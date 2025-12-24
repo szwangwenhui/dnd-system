@@ -3,7 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>DND - 项目管理系统</title>
+  <title>DND 无代码网站构建系统 - 公测版</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect fill='%23667eea' width='100' height='100' rx='20'/><text x='50' y='65' font-size='40' fill='white' text-anchor='middle' font-weight='bold'>DND</text></svg>">
   
   <!-- Tailwind CSS -->
   <script src="https://cdn.tailwindcss.com"></script>
@@ -14,6 +15,12 @@
   
   <!-- Babel Standalone (用于在浏览器中编译JSX) -->
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  
+  <!-- Supabase SDK -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  
+  <!-- html2canvas (用于截图反馈) -->
+  <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
   
   <!-- SheetJS (用于解析Excel文件) -->
   <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
@@ -36,30 +43,38 @@
     .ql-editor {
       min-height: 350px;
     }
+    /* 滚动条样式 */
+    ::-webkit-scrollbar {
+      width: 8px;
+      height: 8px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #f1f1f1;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #c1c1c1;
+      border-radius: 4px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #a1a1a1;
+    }
   </style>
 </head>
 <body>
   <div id="root"></div>
   
-  <!-- 工具类 -->
-  <!-- 数据库模块 (Phase 1拆分: db.js -> 8个文件) -->
-  <script src="./src/utils/db/index.js"></script>
-  <script src="./src/utils/db/projectOperations.js"></script>
-  <script src="./src/utils/db/roleOperations.js"></script>
-  <script src="./src/utils/db/fieldOperations.js"></script>
-  <script src="./src/utils/db/formOperations.js"></script>
-  <script src="./src/utils/db/flowOperations.js"></script>
-  <script src="./src/utils/db/pageOperations.js"></script>
-  <script src="./src/utils/db/statisticsOperations.js"></script>
-  <script src="./src/utils/db/templateOperations.js"></script>
-  <script src="./src/utils/db/pageParamsOperations.js"></script>
+  <!-- ========== Supabase 配置（公测版） ========== -->
+  <script src="./src/config/supabase.js"></script>
+  
+  <!-- ========== Supabase 数据库模块（替代原IndexedDB） ========== -->
+  <script src="./src/utils/supabaseDB.js"></script>
   
   <!-- 参数读取工具 -->
   <script src="./src/utils/paramUtils.js"></script>
   
   <script src="./src/utils/StatisticsEngine.js"></script>
   <script src="./src/utils/expressionEngine.js"></script>
-  <script type="text/babel" src="./src/utils/testEnvBuilder.js"></script>
+  <script src="./src/utils/testEnvBuilder.js"></script>
   
   <!-- 原语表达式模块 -->
   <script src="./src/primitiveExpr/primitives.js"></script>
@@ -67,7 +82,7 @@
   <script type="text/babel" src="./src/primitiveExpr/PrimitiveExprEditor.jsx"></script>
   <script type="text/babel" src="./src/primitiveExpr/PrimitiveExprTest.jsx"></script>
   
-  <!-- 流程执行引擎 (Phase 4拆分: FlowEngine.js -> 4个文件) -->
+  <!-- 流程执行引擎 -->
   <script src="./src/flowEngine/index.js"></script>
   <script src="./src/flowEngine/dataNodes.js"></script>
   <script src="./src/flowEngine/branchNodes.js"></script>
@@ -77,7 +92,6 @@
   <script src="./src/shared/styleUtils.js"></script>
   
   <!-- 用户认证模块 -->
-  <script src="./src/auth/authService.js"></script>
   <script src="./src/auth/systemForms.js"></script>
   <script type="text/babel" src="./src/auth/AuthBlock.jsx"></script>
   
@@ -89,19 +103,14 @@
   <script type="text/babel" src="./src/components/FormDataEditor.jsx"></script>
   <script type="text/babel" src="./src/components/FormDataViewer.jsx"></script>
   
-  <!-- 表单构建器组件（必须在FormDefinition之前加载） -->
-  <!-- 表达式构建器 (Phase 8拆分) -->
-  <script type="text/babel" src="./src/components/expressionBuilder/PiecewiseAnchorBuilder.jsx"></script>
-  <script type="text/babel" src="./src/components/expressionBuilder/PiecewiseDiscreteBuilder.jsx"></script>
+  <!-- 表单构建器组件 -->
   <script type="text/babel" src="./src/components/ExpressionBuilder.jsx"></script>
   <script type="text/babel" src="./src/components/VariableExpressionBuilder.jsx"></script>
   <script type="text/babel" src="./src/components/IndependentBaseForm.jsx"></script>
   <script type="text/babel" src="./src/components/RelatedBaseForm.jsx"></script>
   <script type="text/babel" src="./src/components/MergedFormBuilder.jsx"></script>
   <script type="text/babel" src="./src/components/DerivedFormBuilder.jsx"></script>
-  <script type="text/babel" src="./src/components/AttributeFormBuilder.jsx"></script>
   <script type="text/babel" src="./src/components/BaseFormDataEntry.jsx"></script>
-  <script type="text/babel" src="./src/components/AttributeFormDataEntry.jsx"></script>
   <script type="text/babel" src="./src/components/FormViewer.jsx"></script>
   
   <script type="text/babel" src="./src/components/FormDefinition.jsx"></script>
@@ -116,7 +125,8 @@
   <script type="text/babel" src="./src/components/PageParamsConfig.jsx"></script>
   
   <script type="text/babel" src="./src/components/PageDefinition.jsx"></script>
-  <!-- 统计模块 (Phase 6: 使用statistics目录下的拆分文件) -->
+  
+  <!-- 统计模块 -->
   <script type="text/babel" src="./src/components/statistics/SearchFilterPanel.jsx"></script>
   <script type="text/babel" src="./src/components/statistics/StatisticsChart.jsx"></script>
   <script type="text/babel" src="./src/components/statistics/StatisticsDependency.jsx"></script>
@@ -149,9 +159,6 @@
   <script type="text/babel" src="./src/designer/buttons/ButtonRenderer.jsx"></script>
   <script type="text/babel" src="./src/designer/buttons/FlowDialogRenderer.jsx"></script>
   <script type="text/babel" src="./src/designer/buttons/FlowSelectionRenderer.jsx"></script>
-  <!-- JumpButton已与NavigateButton功能重复，已移除 -->
-  <!-- DataEntryButton与交互区块功能重复，已移除 -->
-  <!-- FormOperateButton和StatusToggleButton回归表单显示的操作栏功能，已移除 -->
   <script type="text/babel" src="./src/designer/buttons/types/NavigateButton.jsx"></script>
   <script type="text/babel" src="./src/designer/buttons/types/BackButton.jsx"></script>
   <script type="text/babel" src="./src/designer/buttons/types/PopupButton.jsx"></script>
@@ -167,7 +174,8 @@
   <script type="text/babel" src="./src/designer/components/InteractionConfig.jsx"></script>
   <script type="text/babel" src="./src/designer/components/DataEntryDialog.jsx"></script>
   <script type="text/babel" src="./src/designer/components/DataEditDialog.jsx"></script>
-  <!-- 页面设计器模块 (Phase 5拆分) -->
+  
+  <!-- 页面设计器核心 -->
   <script src="./src/designer/designerUtils.js"></script>
   <script type="text/babel" src="./src/designer/useDesignerState.js"></script>
   <script type="text/babel" src="./src/designer/useDragResize.js"></script>
@@ -215,7 +223,11 @@
   <script type="text/babel" src="./src/flowEditor/components/NodeEditorDialog.jsx"></script>
   <script type="text/babel" src="./src/flowEditor/FlowEditor.jsx"></script>
   
-  <!-- 主应用 -->
-  <script type="text/babel" src="./src/App.jsx"></script>
+  <!-- ========== 公测版新增组件 ========== -->
+  <script type="text/babel" src="./src/components/LoginPage.jsx"></script>
+  <script type="text/babel" src="./src/components/FeedbackButton.jsx"></script>
+  
+  <!-- ========== 主应用入口（公测版） ========== -->
+  <script type="text/babel" src="./src/AppCloud.jsx"></script>
 </body>
 </html>
