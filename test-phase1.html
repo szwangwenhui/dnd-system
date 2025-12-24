@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DND2 - Phase 1 测试 (db.js拆分)</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', sans-serif;
+      padding: 20px;
+      max-width: 800px;
+      margin: 0 auto;
+    }
+    h1 { color: #333; }
+    .test-section {
+      background: #f5f5f5;
+      padding: 15px;
+      margin: 10px 0;
+      border-radius: 8px;
+    }
+    .success { color: green; }
+    .error { color: red; }
+    .api-list {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 5px;
+      font-size: 12px;
+    }
+    .api-item { 
+      padding: 3px 6px; 
+      background: #e0e0e0; 
+      border-radius: 4px;
+    }
+    .api-item.ok { background: #c8e6c9; }
+    .api-item.missing { background: #ffcdd2; }
+    button {
+      padding: 10px 20px;
+      background: #1976d2;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      margin: 5px;
+    }
+    button:hover { background: #1565c0; }
+    #log {
+      background: #263238;
+      color: #aed581;
+      padding: 15px;
+      border-radius: 8px;
+      font-family: monospace;
+      font-size: 13px;
+      max-height: 300px;
+      overflow-y: auto;
+      white-space: pre-wrap;
+    }
+  </style>
+</head>
+<body>
+  <h1>🔧 DND2 Phase 1 测试</h1>
+  <p>db.js (1,590行) → 8个文件 (1,868行)</p>
+  
+  <div class="test-section">
+    <h3>1. 模块加载检查</h3>
+    <div id="loadCheck">正在检查...</div>
+  </div>
+  
+  <div class="test-section">
+    <h3>2. API完整性检查 (58个API)</h3>
+    <div id="apiCheck" class="api-list"></div>
+    <p id="apiSummary"></p>
+  </div>
+  
+  <div class="test-section">
+    <h3>3. 功能测试</h3>
+    <button onclick="testInit()">测试初始化</button>
+    <button onclick="testProject()">测试项目CRUD</button>
+    <button onclick="testAll()">运行所有测试</button>
+  </div>
+  
+  <div class="test-section">
+    <h3>4. 测试日志</h3>
+    <div id="log">等待测试...</div>
+  </div>
+
+  <!-- 加载拆分后的db模块 -->
+  <script src="./src/utils/db/index.js"></script>
+  <script src="./src/utils/db/projectOperations.js"></script>
+  <script src="./src/utils/db/roleOperations.js"></script>
+  <script src="./src/utils/db/fieldOperations.js"></script>
+  <script src="./src/utils/db/formOperations.js"></script>
+  <script src="./src/utils/db/flowOperations.js"></script>
+  <script src="./src/utils/db/pageOperations.js"></script>
+  <script src="./src/utils/db/statisticsOperations.js"></script>
+
+  <script>
+    // 日志函数
+    function log(msg, type = 'info') {
+      const logDiv = document.getElementById('log');
+      const prefix = type === 'error' ? '❌' : type === 'success' ? '✅' : 'ℹ️';
+      logDiv.textContent += `${prefix} ${msg}\n`;
+      logDiv.scrollTop = logDiv.scrollHeight;
+    }
+
+    // 清空日志
+    function clearLog() {
+      document.getElementById('log').textContent = '';
+    }
+
+    // API列表 (来自纲领)
+    const expectedAPIs = [
+      // 初始化
+      'init',
+      // 项目
+      'addProject', 'getAllProjects', 'getProjectById', 'updateProject', 'deleteProject',
+      // 角色
+      'addRole', 'updateRole', 'deleteRole', 'getRolesByProjectId', 'getRoleById', 'generateRoleId',
+      // 字段
+      'addField', 'updateField', 'deleteField', 'getFieldsByProjectId', 'generateFieldId', 
+      'checkFieldNameExists', 'updateFieldRelatedForms', 'batchUpdateFieldRelatedForms',
+      // 表单
+      'addForm', 'updateForm', 'deleteForm', 'getFormsByProjectId', 'generateFormId', 'buildFormStructure',
+      // 表单数据
+      'addFormData', 'getFormDataList', 'getFormDataById', 'updateFormData', 'deleteFormData',
+      // 数据流程
+      'addDataFlow', 'updateDataFlow', 'deleteDataFlow', 'getDataFlowsByProjectId', 
+      'getDataFlowById', 'generateDataFlowId', 'saveDataFlowDesign',
+      // 页面
+      'addPage', 'updatePage', 'deletePage', 'getPagesByRoleId', 'generatePageId', 'checkPageNameExists',
+      // 变量
+      'addVariable', 'updateVariable', 'deleteVariable', 'getVariables', 'getVariableById',
+      'generateVariableId', 'incrementVariableId', 'addVariableUsage', 'removeVariableUsage',
+      'checkNodeDeletable', 'cleanupFlowVariables', 'getVariablesBySourceType', 'traceVariableSource',
+      // 统计
+      'addStatistic', 'updateStatistic', 'deleteStatistic', 'getStatisticsByProjectId', 
+      'getStatisticById', 'updateStatisticData'
+    ];
+
+    // 1. 检查模块加载
+    function checkModuleLoad() {
+      const checkDiv = document.getElementById('loadCheck');
+      if (typeof window.dndDB !== 'undefined' && window.dndDB !== null) {
+        checkDiv.innerHTML = '<span class="success">✅ window.dndDB 已创建</span>';
+        return true;
+      } else {
+        checkDiv.innerHTML = '<span class="error">❌ window.dndDB 未创建</span>';
+        return false;
+      }
+    }
+
+    // 2. 检查API完整性
+    function checkAPIs() {
+      const apiDiv = document.getElementById('apiCheck');
+      const summaryDiv = document.getElementById('apiSummary');
+      let okCount = 0;
+      let html = '';
+
+      expectedAPIs.forEach(api => {
+        const exists = typeof window.dndDB[api] === 'function';
+        if (exists) okCount++;
+        html += `<div class="api-item ${exists ? 'ok' : 'missing'}">${api}</div>`;
+      });
+
+      apiDiv.innerHTML = html;
+      summaryDiv.innerHTML = okCount === expectedAPIs.length 
+        ? `<span class="success">✅ 全部 ${okCount}/${expectedAPIs.length} 个API已实现</span>`
+        : `<span class="error">❌ ${okCount}/${expectedAPIs.length} 个API已实现，缺少 ${expectedAPIs.length - okCount} 个</span>`;
+    }
+
+    // 测试初始化
+    async function testInit() {
+      clearLog();
+      log('开始测试数据库初始化...');
+      try {
+        await window.dndDB.init();
+        log('数据库初始化成功', 'success');
+      } catch (e) {
+        log('初始化失败: ' + e.message, 'error');
+      }
+    }
+
+    // 测试项目CRUD
+    async function testProject() {
+      clearLog();
+      log('开始测试项目CRUD...');
+      
+      try {
+        // 初始化
+        await window.dndDB.init();
+        log('数据库已初始化', 'success');
+
+        // 创建项目
+        const project = await window.dndDB.addProject({
+          id: 'TEST-' + Date.now(),
+          name: '测试项目',
+          description: 'Phase 1 测试',
+          status: 'active',
+          createdAt: new Date().toISOString()
+        });
+        log('创建项目成功: ' + project.id, 'success');
+        log('  - 默认角色数: ' + project.roles.length);
+        log('  - 系统管理员: ' + project.roles[0].name);
+
+        // 获取项目
+        const fetched = await window.dndDB.getProjectById(project.id);
+        log('获取项目成功: ' + fetched.name, 'success');
+
+        // 更新项目
+        fetched.name = '更新后的测试项目';
+        await window.dndDB.updateProject(fetched);
+        log('更新项目成功', 'success');
+
+        // 获取所有项目
+        const all = await window.dndDB.getAllProjects();
+        log('获取所有项目成功，共 ' + all.length + ' 个', 'success');
+
+        // 删除项目
+        await window.dndDB.deleteProject(project.id);
+        log('删除项目成功', 'success');
+
+        log('\n项目CRUD测试全部通过！', 'success');
+      } catch (e) {
+        log('测试失败: ' + e.message, 'error');
+        console.error(e);
+      }
+    }
+
+    // 运行所有测试
+    async function testAll() {
+      await testInit();
+      log('\n--- 分隔线 ---\n');
+      await testProject();
+    }
+
+    // 页面加载完成后执行检查
+    window.onload = function() {
+      checkModuleLoad();
+      if (window.dndDB) {
+        checkAPIs();
+      }
+    };
+  </script>
+</body>
+</html>

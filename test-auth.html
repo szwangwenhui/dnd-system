@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DND 用户认证模块测试</title>
+  
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  
+  <!-- React -->
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+  
+  <!-- Babel -->
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background-color: #f3f4f6;
+      margin: 0;
+      padding: 0;
+    }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+  
+  <!-- 认证服务 -->
+  <script src="./src/auth/authService.js"></script>
+  
+  <!-- 认证组件 -->
+  <script type="text/babel" src="./src/auth/AuthBlock.jsx"></script>
+  
+  <!-- 测试应用 -->
+  <script type="text/babel">
+    function TestApp() {
+      const [logs, setLogs] = React.useState([]);
+      const [user, setUser] = React.useState(null);
+
+      // 添加日志
+      const addLog = (message, type = 'info') => {
+        const timestamp = new Date().toLocaleTimeString();
+        setLogs(prev => [...prev, { timestamp, message, type }]);
+      };
+
+      // 检查登录状态
+      React.useEffect(() => {
+        const checkUser = async () => {
+          const currentUser = await window.authService.getCurrentUser();
+          setUser(currentUser);
+          if (currentUser) {
+            addLog(`当前已登录: ${currentUser.email}`, 'success');
+          } else {
+            addLog('当前未登录', 'info');
+          }
+        };
+        checkUser();
+
+        // 监听状态变化
+        const unsubscribe = window.authService.onAuthStateChange((event, userData) => {
+          setUser(userData);
+          addLog(`认证状态变化: ${event}`, 'info');
+        });
+
+        return () => unsubscribe && unsubscribe();
+      }, []);
+
+      // 测试注册
+      const testRegister = async () => {
+        const email = prompt('请输入邮箱:', 'test@example.com');
+        const password = prompt('请输入密码:', '123456');
+        const nickname = prompt('请输入昵称:', '测试用户');
+        
+        if (!email || !password) return;
+
+        try {
+          const result = await window.authService.register(email, password, nickname);
+          addLog(`注册成功: ${result.user.email}`, 'success');
+        } catch (err) {
+          addLog(`注册失败: ${err.message}`, 'error');
+        }
+      };
+
+      // 测试登录
+      const testLogin = async () => {
+        const email = prompt('请输入邮箱:', 'test@example.com');
+        const password = prompt('请输入密码:', '123456');
+        
+        if (!email || !password) return;
+
+        try {
+          const result = await window.authService.login(email, password);
+          setUser(result.user);
+          addLog(`登录成功: ${result.user.email}`, 'success');
+        } catch (err) {
+          addLog(`登录失败: ${err.message}`, 'error');
+        }
+      };
+
+      // 测试登出
+      const testLogout = async () => {
+        try {
+          await window.authService.logout();
+          setUser(null);
+          addLog('登出成功', 'success');
+        } catch (err) {
+          addLog(`登出失败: ${err.message}`, 'error');
+        }
+      };
+
+      // 测试获取所有用户
+      const testGetAllUsers = async () => {
+        try {
+          const users = await window.authService.getAllUsers();
+          addLog(`获取用户列表成功: ${users.length}个用户`, 'success');
+          console.log('用户列表:', users);
+        } catch (err) {
+          addLog(`获取用户列表失败: ${err.message}`, 'error');
+        }
+      };
+
+      // 清除所有数据
+      const clearAllData = () => {
+        if (confirm('确定要清除所有用户数据吗？')) {
+          localStorage.removeItem('dnd_users');
+          localStorage.removeItem('dnd_current_user');
+          localStorage.removeItem('dnd_auth_token');
+          setUser(null);
+          addLog('所有数据已清除', 'info');
+        }
+      };
+
+      return (
+        <div className="min-h-screen">
+          {/* 顶部导航 - 演示AuthBlock */}
+          <nav className="bg-white shadow-sm">
+            <div className="max-w-6xl mx-auto px-4 py-3 flex justify-between items-center">
+              <h1 className="text-xl font-bold text-gray-800">
+                🔐 DND 用户认证模块测试
+              </h1>
+              {/* AuthBlock 组件 */}
+              <AuthBlock 
+                config={{
+                  showRegister: true,
+                  showAvatar: true
+                }}
+              />
+            </div>
+          </nav>
+
+          <div className="max-w-6xl mx-auto px-4 py-8">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+              
+              {/* 左侧：操作面板 */}
+              <div className="bg-white rounded-lg shadow p-6">
+                <h2 className="text-lg font-bold mb-4 text-gray-800">API 测试</h2>
+                
+                {/* 当前用户信息 */}
+                <div className="mb-6 p-4 bg-gray-50 rounded-lg">
+                  <h3 className="font-medium text-gray-700 mb-2">当前用户</h3>
+                  {user ? (
+                    <div className="text-sm">
+                      <p><strong>ID:</strong> {user.id}</p>
+                      <p><strong>邮箱:</strong> {user.email}</p>
+                      <p><strong>昵称:</strong> {user.nickname}</p>
+                      <p><strong>角色:</strong> <span className={user.role === 'admin' ? 'text-red-500 font-bold' : ''}>{user.role}</span></p>
+                    </div>
+                  ) : (
+                    <p className="text-gray-500 text-sm">未登录</p>
+                  )}
+                </div>
+
+                {/* 操作按钮 */}
+                <div className="space-y-3">
+                  <button
+                    onClick={testRegister}
+                    className="w-full py-2 px-4 bg-green-500 text-white rounded-lg hover:bg-green-600 transition"
+                  >
+                    📝 测试注册
+                  </button>
+                  <button
+                    onClick={testLogin}
+                    className="w-full py-2 px-4 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition"
+                  >
+                    🔑 测试登录
+                  </button>
+                  <button
+                    onClick={testLogout}
+                    className="w-full py-2 px-4 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition"
+                    disabled={!user}
+                  >
+                    🚪 测试登出
+                  </button>
+                  <button
+                    onClick={testGetAllUsers}
+                    className="w-full py-2 px-4 bg-purple-500 text-white rounded-lg hover:bg-purple-600 transition"
+                  >
+                    👥 获取所有用户 (需管理员)
+                  </button>
+                  <hr className="my-4" />
+                  <button
+                    onClick={clearAllData}
+                    className="w-full py-2 px-4 bg-red-500 text-white rounded-lg hover:bg-red-600 transition"
+                  >
+                    🗑️ 清除所有数据
+                  </button>
+                </div>
+
+                {/* 模式切换 */}
+                <div className="mt-6 p-4 bg-yellow-50 rounded-lg">
+                  <h3 className="font-medium text-yellow-800 mb-2">当前模式</h3>
+                  <p className="text-sm text-yellow-700">
+                    <strong>{window.authService.getMode()}</strong> 
+                    {window.authService.getMode() === 'mock' && ' (本地模拟，数据存localStorage)'}
+                  </p>
+                </div>
+              </div>
+
+              {/* 右侧：日志面板 */}
+              <div className="bg-white rounded-lg shadow p-6">
+                <div className="flex justify-between items-center mb-4">
+                  <h2 className="text-lg font-bold text-gray-800">操作日志</h2>
+                  <button
+                    onClick={() => setLogs([])}
+                    className="text-sm text-gray-500 hover:text-gray-700"
+                  >
+                    清空
+                  </button>
+                </div>
+                
+                <div className="bg-gray-900 rounded-lg p-4 h-96 overflow-auto font-mono text-sm">
+                  {logs.length === 0 ? (
+                    <p className="text-gray-500">暂无日志</p>
+                  ) : (
+                    logs.map((log, index) => (
+                      <div key={index} className={`mb-1 ${
+                        log.type === 'error' ? 'text-red-400' :
+                        log.type === 'success' ? 'text-green-400' :
+                        'text-gray-300'
+                      }`}>
+                        <span className="text-gray-500">[{log.timestamp}]</span> {log.message}
+                      </div>
+                    ))
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* 说明 */}
+            <div className="mt-8 bg-blue-50 rounded-lg p-6">
+              <h3 className="font-bold text-blue-800 mb-3">📖 使用说明</h3>
+              <ul className="text-sm text-blue-700 space-y-2">
+                <li>• <strong>AuthBlock组件</strong>：右上角的登录/注册按钮即为用户账号区块</li>
+                <li>• <strong>模拟模式</strong>：当前使用localStorage模拟数据库，刷新页面数据保留</li>
+                <li>• <strong>第一个注册用户</strong>：自动成为管理员（admin角色）</li>
+                <li>• <strong>管理员功能</strong>：可查看所有用户、删除用户、修改用户角色</li>
+                <li>• <strong>部署时</strong>：切换为Supabase模式，数据存云端数据库</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    // 渲染应用
+    const root = ReactDOM.createRoot(document.getElementById('root'));
+    root.render(<TestApp />);
+  </script>
+</body>
+</html>
