@@ -66,7 +66,7 @@ function LoginPage({ onLoginSuccess }) {
             color: '#1a1a2e',
             margin: '0 0 8px 0'
           }}>
-            DND 无代码设计系统
+            DND 无代码网站构建系统
           </h1>
           <p style={{
             color: '#666',
