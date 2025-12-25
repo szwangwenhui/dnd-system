@@ -622,12 +622,29 @@ function FlowEditor({ projectId, flowId, flowName, onBack }) {
                 const toNode = nodes.find(n => n.id === edge.to);
                 if (!fromNode || !toNode) return null;
                 
-                const x1 = fromNode.x + 60;
-                const y1 = fromNode.y + 40;
-                const x2 = toNode.x + 60;
-                const y2 = toNode.y;
-                const midY = (y1 + y2) / 2;
-                const pathD = `M${x1},${y1} C${x1},${midY} ${x2},${midY} ${x2},${y2}`;
+                // 使用动态连接点计算
+                let x1, y1, x2, y2, pathD;
+                let fromSide = 'bottom';
+                let toSide = 'top';
+                
+                if (window.FlowConnectionUtils) {
+                  const ports = window.FlowConnectionUtils.calcBestPorts(fromNode, toNode, edge.fromOutput);
+                  x1 = ports.fromPos.x;
+                  y1 = ports.fromPos.y;
+                  x2 = ports.toPos.x;
+                  y2 = ports.toPos.y;
+                  fromSide = ports.fromOutput;
+                  toSide = ports.toInput;
+                  pathD = window.FlowConnectionUtils.generatePath(ports.fromPos, ports.toPos, fromSide, toSide);
+                } else {
+                  // 回退到原来的固定位置计算
+                  x1 = fromNode.x + 60;
+                  y1 = fromNode.y + 70;  // 节点底部
+                  x2 = toNode.x + 60;
+                  y2 = toNode.y;  // 节点顶部
+                  const midY = (y1 + y2) / 2;
+                  pathD = `M${x1},${y1} C${x1},${midY} ${x2},${midY} ${x2},${y2}`;
+                }
                 
                 return (
                   <g key={edge.id}>
@@ -659,43 +676,105 @@ function FlowEditor({ projectId, flowId, flowName, onBack }) {
                       style={{ pointerEvents: 'none' }}
                     />
                     {edge.fromOutput && edge.fromOutput !== 'default' && (
-                      <text x={(x1 + x2) / 2} y={midY - 10} fill="#9CA3AF" fontSize="10" textAnchor="middle">
-                        {edge.fromOutput}
+                      <text x={(x1 + x2) / 2} y={(y1 + y2) / 2 - 10} fill="#9CA3AF" fontSize="10" textAnchor="middle">
+                        {edge.fromOutput === 'yes' ? '是' : edge.fromOutput === 'no' ? '否' : edge.fromOutput}
                       </text>
                     )}
                   </g>
                 );
               })}
               {/* 正在连线 */}
-              {connecting && (
-                <>
-                  <path
-                    d={`M${nodes.find(n => n.id === connecting.nodeId)?.x + 60},${nodes.find(n => n.id === connecting.nodeId)?.y + 40} L${mousePos.x},${mousePos.y}`}
-                    fill="none"
-                    stroke="#60A5FA"
-                    strokeWidth="3"
-                    strokeDasharray="5,5"
-                  />
-                  <circle cx={mousePos.x} cy={mousePos.y} r="8" fill="#60A5FA" opacity="0.5" />
-                </>
-              )}
+              {connecting && (() => {
+                const fromNode = nodes.find(n => n.id === connecting.nodeId);
+                if (!fromNode) return null;
+                
+                // 计算动态起点
+                let startX, startY;
+                if (window.FlowConnectionUtils) {
+                  // 临时计算到鼠标位置的最佳输出点
+                  const tempTarget = { x: mousePos.x - 60, y: mousePos.y - 35, type: 'temp' };
+                  const ports = window.FlowConnectionUtils.calcBestPorts(fromNode, tempTarget, connecting.outputType);
+                  startX = ports.fromPos.x;
+                  startY = ports.fromPos.y;
+                } else {
+                  startX = fromNode.x + 60;
+                  startY = fromNode.y + 70;
+                }
+                
+                return (
+                  <>
+                    <path
+                      d={`M${startX},${startY} L${mousePos.x},${mousePos.y}`}
+                      fill="none"
+                      stroke="#60A5FA"
+                      strokeWidth="3"
+                      strokeDasharray="5,5"
+                    />
+                    <circle cx={mousePos.x} cy={mousePos.y} r="8" fill="#60A5FA" opacity="0.5" />
+                  </>
+                );
+              })()}
             </svg>
             
             {/* 节点 */}
-            {nodes.map(node => (
-              <FlowNode
-                key={node.id}
-                node={node}
-                isSelected={selectedNodeId === node.id}
-                isConnecting={!!connecting}
-                onMouseDown={(e) => handleNodeMouseDown(e, node.id)}
-                onDoubleClick={() => { setEditingNode(node); setShowNodeEditor(true); }}
-                onOutputClick={(e, type) => handleOutputClick(e, node.id, type)}
-                onInputClick={(e) => handleInputClick(e, node.id)}
-                onInputMouseUp={(e) => handleInputMouseUp(e, node.id)}
-                onDelete={() => handleDeleteNode(node.id)}
-              />
-            ))}
+            {nodes.map(node => {
+              // 计算该节点的连接点位置
+              let inputSide = 'top';
+              let outputSide = 'bottom';
+              let secondaryInputSide = null;
+              
+              // 根据连线计算最佳位置
+              if (window.FlowConnectionUtils) {
+                // 找到连入该节点的边
+                const incomingEdges = edges.filter(e => e.to === node.id);
+                // 找到从该节点连出的边
+                const outgoingEdges = edges.filter(e => e.from === node.id);
+                
+                // 如果有连入的边，使用第一条边来决定输入位置
+                if (incomingEdges.length > 0) {
+                  const firstIncoming = incomingEdges[0];
+                  const fromNode = nodes.find(n => n.id === firstIncoming.from);
+                  if (fromNode) {
+                    const ports = window.FlowConnectionUtils.calcBestPorts(fromNode, node, firstIncoming.fromOutput);
+                    inputSide = ports.toInput;
+                  }
+                }
+                
+                // 如果有连出的边，使用第一条边来决定输出位置
+                if (outgoingEdges.length > 0) {
+                  const firstOutgoing = outgoingEdges[0];
+                  const toNode = nodes.find(n => n.id === firstOutgoing.to);
+                  if (toNode) {
+                    const ports = window.FlowConnectionUtils.calcBestPorts(node, toNode, firstOutgoing.fromOutput);
+                    outputSide = ports.fromOutput;
+                  }
+                }
+                
+                // 循环节点的第二输入点
+                const isLoop = node.type === 'loop' || node.type === 'loopStart';
+                if (isLoop) {
+                  secondaryInputSide = 'left';
+                }
+              }
+              
+              return (
+                <FlowNode
+                  key={node.id}
+                  node={node}
+                  isSelected={selectedNodeId === node.id}
+                  isConnecting={!!connecting}
+                  inputSide={inputSide}
+                  outputSide={outputSide}
+                  secondaryInputSide={secondaryInputSide}
+                  onMouseDown={(e) => handleNodeMouseDown(e, node.id)}
+                  onDoubleClick={() => { setEditingNode(node); setShowNodeEditor(true); }}
+                  onOutputClick={(e, type) => handleOutputClick(e, node.id, type)}
+                  onInputClick={(e) => handleInputClick(e, node.id)}
+                  onInputMouseUp={(e) => handleInputMouseUp(e, node.id)}
+                  onDelete={() => handleDeleteNode(node.id)}
+                />
+              );
+            })}
           </div>
           
           {/* 操作提示 */}

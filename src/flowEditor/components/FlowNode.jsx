@@ -1,5 +1,19 @@
-// 画布上的节点组件
-function FlowNode({ node, isSelected, onMouseDown, onDoubleClick, onOutputClick, onInputClick, onInputMouseUp, onDelete, isConnecting }) {
+// 画布上的节点组件 - 支持动态连接点位置
+function FlowNode({ 
+  node, 
+  isSelected, 
+  onMouseDown, 
+  onDoubleClick, 
+  onOutputClick, 
+  onInputClick, 
+  onInputMouseUp, 
+  onDelete, 
+  isConnecting,
+  inputSide = 'top',      // 输入点位置：top/left/right
+  outputSide = 'bottom',  // 输出点位置：bottom/left/right
+  secondaryInputSide = null,  // 第二输入点位置（循环节点）
+  outputSides = null      // 多输出点位置数组（分支节点）
+}) {
   const primitive = window.PrimitiveRegistry.get(node.type);
   
   const getColorClasses = (color) => {
@@ -18,21 +32,74 @@ function FlowNode({ node, isSelected, onMouseDown, onDoubleClick, onOutputClick,
 
   const colors = getColorClasses(primitive?.color);
   const isBranch = primitive?.isBranch;
+  const isLoop = node.type === 'loop' || node.type === 'loopStart';
+
+  // 获取连接点的位置样式
+  const getPortStyle = (side, isInput = true) => {
+    const baseStyle = {
+      position: 'absolute',
+      zIndex: 50,
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center'
+    };
+    
+    switch (side) {
+      case 'top':
+        return {
+          ...baseStyle,
+          top: '-16px',
+          left: '50%',
+          transform: 'translateX(-50%)',
+          width: '32px',
+          height: '32px'
+        };
+      case 'bottom':
+        return {
+          ...baseStyle,
+          bottom: '-16px',
+          left: '50%',
+          transform: 'translateX(-50%)',
+          width: '32px',
+          height: '32px'
+        };
+      case 'left':
+        return {
+          ...baseStyle,
+          left: '-16px',
+          top: '50%',
+          transform: 'translateY(-50%)',
+          width: '32px',
+          height: '32px'
+        };
+      case 'right':
+        return {
+          ...baseStyle,
+          right: '-16px',
+          top: '50%',
+          transform: 'translateY(-50%)',
+          width: '32px',
+          height: '32px'
+        };
+      default:
+        return baseStyle;
+    }
+  };
 
   // 处理输入点点击
-  const handleInputPointClick = (e) => {
+  const handleInputPointClick = (e, inputType = 'default') => {
     e.preventDefault();
     e.stopPropagation();
-    console.log('输入点被点击，节点:', node.id);
-    if (onInputClick) onInputClick(e);
+    console.log('输入点被点击，节点:', node.id, '类型:', inputType);
+    if (onInputClick) onInputClick(e, inputType);
   };
 
   // 处理输入点鼠标松开
-  const handleInputPointMouseUp = (e) => {
+  const handleInputPointMouseUp = (e, inputType = 'default') => {
     e.preventDefault();
     e.stopPropagation();
-    console.log('输入点鼠标松开，节点:', node.id);
-    if (onInputMouseUp) onInputMouseUp(e);
+    console.log('输入点鼠标松开，节点:', node.id, '类型:', inputType);
+    if (onInputMouseUp) onInputMouseUp(e, inputType);
   };
 
   // 处理输出点点击/按下
@@ -42,6 +109,84 @@ function FlowNode({ node, isSelected, onMouseDown, onDoubleClick, onOutputClick,
     console.log('输出点被按下，节点:', node.id, '类型:', outputType);
     if (onOutputClick) onOutputClick(e, outputType);
   };
+
+  // 渲染输入点
+  const renderInputPort = (side, inputType = 'default', label = null) => {
+    return (
+      <div
+        key={`input-${inputType}`}
+        data-connection-point={`input-${inputType}`}
+        style={getPortStyle(side, true)}
+      >
+        <div
+          className={`w-5 h-5 rounded-full border-2 cursor-pointer transition-all ${
+            isConnecting 
+              ? 'bg-blue-500 border-blue-300 scale-125 shadow-lg shadow-blue-500/50' 
+              : 'bg-gray-500 border-gray-300 hover:bg-blue-500 hover:border-blue-300 hover:scale-125'
+          }`}
+          onClick={(e) => handleInputPointClick(e, inputType)}
+          onMouseUp={(e) => handleInputPointMouseUp(e, inputType)}
+          title={label || "连接到此节点"}
+        />
+        {label && (
+          <span className="absolute text-[9px] text-gray-400 whitespace-nowrap"
+            style={{
+              [side === 'left' ? 'right' : side === 'right' ? 'left' : side === 'top' ? 'bottom' : 'top']: '20px',
+              ...(side === 'left' || side === 'right' 
+                ? { top: '50%', transform: 'translateY(-50%)' }
+                : { left: '50%', transform: 'translateX(-50%)' }
+              )
+            }}
+          >
+            {label}
+          </span>
+        )}
+      </div>
+    );
+  };
+
+  // 渲染输出点
+  const renderOutputPort = (side, outputType = 'default', label = null, colorClass = null) => {
+    const portColorClass = colorClass 
+      ? colorClass 
+      : `${colors.light} border-2 ${colors.border}`;
+    
+    return (
+      <div
+        key={`output-${outputType}`}
+        data-connection-point={`output-${outputType}`}
+        style={getPortStyle(side, false)}
+        className="cursor-pointer"
+        onMouseDown={(e) => handleOutputPointMouseDown(e, outputType)}
+      >
+        <div
+          className={`w-5 h-5 rounded-full ${portColorClass} hover:scale-125 transition-all`}
+          title={label || "从此节点连出"}
+        />
+        {label && (
+          <span className={`absolute text-[9px] whitespace-nowrap ${
+            outputType === 'yes' ? 'text-green-400' : 
+            outputType === 'no' ? 'text-red-400' : 'text-gray-400'
+          }`}
+            style={{
+              [side === 'bottom' ? 'top' : side === 'top' ? 'bottom' : side === 'left' ? 'right' : 'left']: '20px',
+              ...(side === 'left' || side === 'right' 
+                ? { top: '50%', transform: 'translateY(-50%)' }
+                : { left: '50%', transform: 'translateX(-50%)' }
+              )
+            }}
+          >
+            {label}
+          </span>
+        )}
+      </div>
+    );
+  };
+
+  // 判断是否显示输入点
+  const hasInput = primitive?.connections?.hasInput !== false && node.type !== 'start';
+  // 判断是否显示输出点
+  const hasOutput = primitive?.connections?.hasOutput !== false && node.type !== 'end';
 
   return (
     <div
@@ -56,24 +201,17 @@ function FlowNode({ node, isSelected, onMouseDown, onDoubleClick, onOutputClick,
       }}
       onDoubleClick={onDoubleClick}
     >
-      {/* 输入点 - 增大点击区域 */}
-      {primitive?.connections?.hasInput !== false && node.type !== 'start' && (
-        <div
-          data-connection-point="input"
-          className="absolute -top-4 left-1/2 transform -translate-x-1/2 flex items-center justify-center"
-          style={{ width: 32, height: 32, zIndex: 50 }}
-        >
-          <div
-            className={`w-5 h-5 rounded-full border-2 cursor-pointer transition-all ${
-              isConnecting 
-                ? 'bg-blue-500 border-blue-300 scale-125 shadow-lg shadow-blue-500/50' 
-                : 'bg-gray-500 border-gray-300 hover:bg-blue-500 hover:border-blue-300 hover:scale-125'
-            }`}
-            onClick={handleInputPointClick}
-            onMouseUp={handleInputPointMouseUp}
-            title="连接到此节点"
-          />
-        </div>
+      {/* 输入点 */}
+      {hasInput && (
+        <>
+          {/* 主输入点 */}
+          {renderInputPort(inputSide, 'default')}
+          
+          {/* 第二输入点（循环节点的循环跳回） */}
+          {isLoop && secondaryInputSide && (
+            renderInputPort(secondaryInputSide, 'loop', '循环')
+          )}
+        </>
       )}
       
       {/* 节点主体 */}
@@ -111,44 +249,41 @@ function FlowNode({ node, isSelected, onMouseDown, onDoubleClick, onOutputClick,
         )}
       </div>
       
-      {/* 输出点 - 增大点击区域 */}
-      {primitive?.connections?.hasOutput !== false && node.type !== 'end' && (
+      {/* 输出点 */}
+      {hasOutput && (
         <>
           {isBranch && primitive.branchType === 'binary' ? (
-            // 是非分叉：两个输出点
+            // 是非分叉：两个输出点在底部
             <>
-              <div 
+              <div
                 data-connection-point="output-yes"
-                className="absolute -bottom-4 left-1/4 transform -translate-x-1/2 flex flex-col items-center cursor-pointer"
-                style={{ zIndex: 50 }}
+                className="absolute cursor-pointer"
+                style={{ bottom: '-16px', left: '25%', transform: 'translateX(-50%)', zIndex: 50 }}
                 onMouseDown={(e) => handleOutputPointMouseDown(e, 'yes')}
               >
                 <div className="w-5 h-5 rounded-full bg-green-500 border-2 border-green-300 hover:scale-125 transition-all" />
-                <span className="text-[10px] text-green-400 mt-0.5">是</span>
+                <span className="text-[10px] text-green-400 absolute top-5 left-1/2 -translate-x-1/2">是</span>
               </div>
-              <div 
+              <div
                 data-connection-point="output-no"
-                className="absolute -bottom-4 right-1/4 transform translate-x-1/2 flex flex-col items-center cursor-pointer"
-                style={{ zIndex: 50 }}
+                className="absolute cursor-pointer"
+                style={{ bottom: '-16px', right: '25%', transform: 'translateX(50%)', zIndex: 50 }}
                 onMouseDown={(e) => handleOutputPointMouseDown(e, 'no')}
               >
                 <div className="w-5 h-5 rounded-full bg-red-500 border-2 border-red-300 hover:scale-125 transition-all" />
-                <span className="text-[10px] text-red-400 mt-0.5">否</span>
+                <span className="text-[10px] text-red-400 absolute top-5 left-1/2 -translate-x-1/2">否</span>
               </div>
             </>
+          ) : outputSides && outputSides.length > 1 ? (
+            // 多输出点（多条件分支）
+            outputSides.map((sideInfo, index) => {
+              const side = typeof sideInfo === 'string' ? sideInfo : sideInfo.side;
+              const label = typeof sideInfo === 'object' ? sideInfo.label : `分支${index + 1}`;
+              return renderOutputPort(side, `branch-${index}`, label);
+            })
           ) : (
             // 普通输出点
-            <div 
-              data-connection-point="output"
-              className="absolute -bottom-4 left-1/2 transform -translate-x-1/2 flex items-center justify-center cursor-pointer"
-              style={{ width: 32, height: 32, zIndex: 50 }}
-              onMouseDown={(e) => handleOutputPointMouseDown(e, 'default')}
-            >
-              <div 
-                className={`w-5 h-5 rounded-full ${colors.light} border-2 ${colors.border} hover:scale-125 transition-all`}
-                title="从此节点连出"
-              />
-            </div>
+            renderOutputPort(outputSide, 'default')
           )}
         </>
       )}
