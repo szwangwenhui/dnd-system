@@ -9,6 +9,7 @@ function ProjectManagement({ onSelectProject, onTestExpr }) {
   });
   const [isBuilding, setIsBuilding] = React.useState(false);  // 搭建测试环境状态
   const [buildingProgress, setBuildingProgress] = React.useState('');  // 搭建进度信息
+  const [isLoading, setIsLoading] = React.useState(true);  // 加载状态
 
   // 加载项目列表
   React.useEffect(() => {
@@ -16,11 +17,36 @@ function ProjectManagement({ onSelectProject, onTestExpr }) {
   }, []);
 
   const loadProjects = async () => {
+    setIsLoading(true);
     try {
+      // 等待 dndDB 初始化完成
+      let retryCount = 0;
+      while (!window.dndDB && retryCount < 20) {
+        await new Promise(resolve => setTimeout(resolve, 200));
+        retryCount++;
+      }
+      
+      if (!window.dndDB) {
+        console.error('[ProjectManagement] dndDB 未初始化');
+        setIsLoading(false);
+        return;
+      }
+      
       const allProjects = await window.dndDB.getAllProjects();
       setProjects(allProjects);
     } catch (error) {
-      alert('加载项目列表失败：' + error);
+      console.error('[ProjectManagement] 加载项目失败:', error);
+      // 不显示 alert，静默失败并重试一次
+      setTimeout(async () => {
+        try {
+          const allProjects = await window.dndDB.getAllProjects();
+          setProjects(allProjects);
+        } catch (e) {
+          console.error('[ProjectManagement] 重试加载项目失败:', e);
+        }
+      }, 1000);
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -272,7 +298,16 @@ function ProjectManagement({ onSelectProject, onTestExpr }) {
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
-              {projects.length === 0 ? (
+              {isLoading ? (
+                <tr>
+                  <td colSpan="5" className="px-6 py-12 text-center text-gray-500">
+                    <div className="flex flex-col items-center">
+                      <div className="w-8 h-8 border-4 border-gray-200 border-t-blue-500 rounded-full animate-spin mb-3"></div>
+                      <span>加载中...</span>
+                    </div>
+                  </td>
+                </tr>
+              ) : projects.length === 0 ? (
                 <tr>
                   <td colSpan="5" className="px-6 py-12 text-center text-gray-500">
                     暂无项目，点击右上角"添加新项目"开始创建

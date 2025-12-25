@@ -1655,7 +1655,7 @@ function PageDesigner({ projectId, roleId, page, onClose, onSave }) {
 
   // ===== 渲染 =====
   return (
-    <div className="fixed inset-0 bg-gray-100 z-50 flex flex-col">
+    <div className="fixed inset-0 bg-gray-100 z-[200] flex flex-col">
       <DesignerToolbar
         page={page} canvasType={canvasType} setCanvasType={handleCanvasTypeChange}
         scale={scale} setScale={setScale} canUndo={canUndo} canRedo={canRedo}
