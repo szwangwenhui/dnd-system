@@ -66,7 +66,7 @@ function LoginPage({ onLoginSuccess }) {
             color: '#1a1a2e',
             margin: '0 0 8px 0'
           }}>
-            DND 无代码网站构建系统
+            DND 无代码设计系统
           </h1>
           <p style={{
             color: '#666',
@@ -195,6 +195,21 @@ function LoginPage({ onLoginSuccess }) {
             <li>如遇问题请使用页面右下角的反馈按钮</li>
             <li>感谢您参与测试！</li>
           </ul>
+        </div>
+
+        {/* AI说明 */}
+        <div style={{
+          marginTop: '16px',
+          padding: '12px 16px',
+          background: 'linear-gradient(135deg, #fef3c7 0%, #fde68a 100%)',
+          borderRadius: '8px',
+          fontSize: '12px',
+          color: '#92400e',
+          textAlign: 'center',
+          border: '1px solid #fcd34d'
+        }}>
+          <span style={{ marginRight: '6px' }}>🤖</span>
+          <strong>本网站代码全部由AI编写、调试和修改，无1行人工代码</strong>
         </div>
 
         {/* 版权信息 */}

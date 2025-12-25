@@ -35,6 +35,8 @@ function App() {
         const currentUser = await window.supabaseAuth.getCurrentUser();
         console.log('[App] 当前用户:', currentUser?.email || '未登录');
         setUser(currentUser);
+        // 设置全局用户状态，供用户账号区块使用
+        window.currentUser = currentUser;
       } catch (err) {
         console.error('[App] 检查登录状态失败:', err);
       } finally {
@@ -56,6 +58,8 @@ function App() {
         (event, session) => {
           console.log('[App] 认证状态变化:', event);
           setUser(session?.user || null);
+          // 更新全局用户状态
+          window.currentUser = session?.user || null;
         }
       );
 

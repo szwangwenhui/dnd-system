@@ -46,8 +46,11 @@ function AuthBlock({ block, style = {}, config = {}, onNavigate }) {
   React.useEffect(() => {
     const checkAuth = async () => {
       try {
-        const currentUser = await window.authService.getCurrentUser();
-        setUser(currentUser);
+        if (window.supabaseAuth) {
+          const currentUser = await window.supabaseAuth.getCurrentUser();
+          setUser(currentUser);
+          window.currentUser = currentUser;
+        }
       } catch (err) {
         console.error('检查登录状态失败:', err);
       } finally {
@@ -57,11 +60,25 @@ function AuthBlock({ block, style = {}, config = {}, onNavigate }) {
     checkAuth();
 
     // 监听认证状态变化
-    const unsubscribe = window.authService.onAuthStateChange((event, userData) => {
-      setUser(userData);
-    });
+    const handleAuthChange = () => {
+      checkAuth();
+    };
+    window.addEventListener('authStateChanged', handleAuthChange);
 
-    return () => unsubscribe && unsubscribe();
+    // 监听 supabase 认证状态变化
+    let unsubscribe = null;
+    if (window.supabaseAuth) {
+      const { data } = window.supabaseAuth.onAuthStateChange((event, session) => {
+        setUser(session?.user || null);
+        window.currentUser = session?.user || null;
+      });
+      unsubscribe = data?.subscription?.unsubscribe;
+    }
+
+    return () => {
+      window.removeEventListener('authStateChanged', handleAuthChange);
+      unsubscribe && unsubscribe();
+    };
   }, []);
 
   // 点击外部关闭下拉菜单
@@ -78,8 +95,11 @@ function AuthBlock({ block, style = {}, config = {}, onNavigate }) {
   // 处理登出
   const handleLogout = async () => {
     try {
-      await window.authService.logout();
+      if (window.supabaseAuth) {
+        await window.supabaseAuth.signOut();
+      }
       setUser(null);
+      window.currentUser = null;
       setShowDropdown(false);
     } catch (err) {
       alert('登出失败: ' + err.message);
@@ -371,8 +391,13 @@ function LoginModal({ onClose, onSuccess, onSwitchToRegister }) {
     setError('');
 
     try {
-      const result = await window.authService.login(email, password);
-      onSuccess && onSuccess(result.user);
+      if (window.supabaseAuth) {
+        const result = await window.supabaseAuth.signIn(email, password);
+        window.currentUser = result.user;
+        onSuccess && onSuccess(result.user);
+      } else {
+        throw new Error('认证服务未初始化');
+      }
     } catch (err) {
       setError(err.message || '登录失败');
     } finally {
@@ -509,9 +534,13 @@ function RegisterModal({ onClose, onSuccess, onSwitchToLogin }) {
     }
 
     try {
-      await window.authService.register(email, password, nickname);
-      alert('注册成功！请登录');
-      onSuccess && onSuccess();
+      if (window.supabaseAuth) {
+        await window.supabaseAuth.signUp(email, password, { nickname });
+        alert('注册成功！请登录');
+        onSuccess && onSuccess();
+      } else {
+        throw new Error('认证服务未初始化');
+      }
     } catch (err) {
       setError(err.message || '注册失败');
     } finally {

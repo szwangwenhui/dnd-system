@@ -954,38 +954,152 @@ function DesignerCanvas({
       }
     };
     
-    // 渲染用户账号区块（设计器预览）
+    // 渲染用户账号区块（设计器预览 + 运行模式）
     const renderAuthBlockContent = () => {
+      // 获取用户账号区块的样式配置（子区块样式）
+      const authConfig = block.authConfig || {};
+      const loginBtnStyle = authConfig.loginButton || {};
+      const registerBtnStyle = authConfig.registerButton || {};
+      const userInfoStyle = authConfig.userInfo || {};
+      const logoutBtnStyle = authConfig.logoutButton || {};
+      
+      // 检查是否已登录（通过全局状态）
+      const isLoggedIn = window.currentUser && window.currentUser.email;
+      
+      // 默认按钮样式
+      const defaultLoginStyle = {
+        padding: '6px 16px',
+        backgroundColor: loginBtnStyle.backgroundColor || '#3b82f6',
+        color: loginBtnStyle.color || '#ffffff',
+        border: loginBtnStyle.border || 'none',
+        borderRadius: loginBtnStyle.borderRadius || '4px',
+        fontSize: loginBtnStyle.fontSize || '13px',
+        fontWeight: loginBtnStyle.fontWeight || '500',
+        cursor: 'pointer',
+        transition: 'all 0.2s',
+      };
+      
+      const defaultRegisterStyle = {
+        padding: '6px 16px',
+        backgroundColor: registerBtnStyle.backgroundColor || 'transparent',
+        color: registerBtnStyle.color || '#3b82f6',
+        border: registerBtnStyle.border || '1px solid #3b82f6',
+        borderRadius: registerBtnStyle.borderRadius || '4px',
+        fontSize: registerBtnStyle.fontSize || '13px',
+        fontWeight: registerBtnStyle.fontWeight || '500',
+        cursor: 'pointer',
+        transition: 'all 0.2s',
+      };
+      
+      const defaultUserInfoStyle = {
+        display: 'flex',
+        alignItems: 'center',
+        gap: '8px',
+        padding: userInfoStyle.padding || '4px 12px',
+        backgroundColor: userInfoStyle.backgroundColor || '#f3f4f6',
+        borderRadius: userInfoStyle.borderRadius || '20px',
+        fontSize: userInfoStyle.fontSize || '13px',
+        color: userInfoStyle.color || '#374151',
+      };
+      
+      const defaultLogoutStyle = {
+        padding: '6px 12px',
+        backgroundColor: logoutBtnStyle.backgroundColor || '#fee2e2',
+        color: logoutBtnStyle.color || '#ef4444',
+        border: logoutBtnStyle.border || 'none',
+        borderRadius: logoutBtnStyle.borderRadius || '4px',
+        fontSize: logoutBtnStyle.fontSize || '13px',
+        cursor: 'pointer',
+        transition: 'all 0.2s',
+      };
+
+      // 处理登录点击
+      const handleLoginClick = (e) => {
+        e.stopPropagation();
+        // 触发登录弹窗事件
+        window.dispatchEvent(new CustomEvent('showAuthDialog', { detail: { type: 'login' } }));
+      };
+      
+      // 处理注册点击
+      const handleRegisterClick = (e) => {
+        e.stopPropagation();
+        // 触发注册弹窗事件
+        window.dispatchEvent(new CustomEvent('showAuthDialog', { detail: { type: 'register' } }));
+      };
+      
+      // 处理退出点击
+      const handleLogoutClick = async (e) => {
+        e.stopPropagation();
+        if (window.supabaseAuth) {
+          try {
+            await window.supabaseAuth.signOut();
+            window.currentUser = null;
+            window.dispatchEvent(new CustomEvent('authStateChanged'));
+          } catch (err) {
+            console.error('退出登录失败:', err);
+          }
+        }
+      };
+      
       return (
         <div style={{
           ...contentStyle,
           display: 'flex',
           alignItems: 'center',
-          justifyContent: 'center',
-          gap: '8px',
+          justifyContent: block.style?.justifyContent || 'flex-end',
+          gap: '10px',
+          padding: '8px',
         }}>
-          <button style={{
-            padding: '6px 12px',
-            backgroundColor: '#3b82f6',
-            color: '#ffffff',
-            border: 'none',
-            borderRadius: '4px',
-            fontSize: '12px',
-            cursor: 'default',
-          }}>
-            登录
-          </button>
-          <button style={{
-            padding: '6px 12px',
-            backgroundColor: 'transparent',
-            color: '#3b82f6',
-            border: '1px solid #3b82f6',
-            borderRadius: '4px',
-            fontSize: '12px',
-            cursor: 'default',
-          }}>
-            注册
-          </button>
+          {isLoggedIn ? (
+            // 已登录状态：显示用户信息和退出按钮
+            <>
+              <div style={defaultUserInfoStyle}>
+                <div style={{
+                  width: '24px',
+                  height: '24px',
+                  background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                  borderRadius: '50%',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  color: 'white',
+                  fontSize: '11px',
+                  fontWeight: '600',
+                }}>
+                  {window.currentUser.email?.charAt(0).toUpperCase()}
+                </div>
+                <span>{window.currentUser.email}</span>
+              </div>
+              <button
+                style={defaultLogoutStyle}
+                onClick={handleLogoutClick}
+                onMouseOver={(e) => e.target.style.backgroundColor = '#fecaca'}
+                onMouseOut={(e) => e.target.style.backgroundColor = defaultLogoutStyle.backgroundColor}
+              >
+                退出
+              </button>
+            </>
+          ) : (
+            // 未登录状态：显示登录和注册按钮
+            <>
+              <button
+                style={defaultLoginStyle}
+                onClick={handleLoginClick}
+                onMouseOver={(e) => e.target.style.opacity = '0.9'}
+                onMouseOut={(e) => e.target.style.opacity = '1'}
+              >
+                登录
+              </button>
+              <button
+                style={defaultRegisterStyle}
+                onClick={handleRegisterClick}
+                onMouseOver={(e) => e.target.style.backgroundColor = '#eff6ff'}
+                onMouseOut={(e) => e.target.style.backgroundColor = defaultRegisterStyle.backgroundColor}
+              >
+                注册
+              </button>
+            </>
+          )}
         </div>
       );
     };
@@ -1014,7 +1128,7 @@ function DesignerCanvas({
     return (
       <div
         key={block.id}
-        className={`block-item ${isSelected ? 'ring-2 ring-blue-500' : ''}`}
+        className={`block-item ${isSelected ? 'ring-2 ring-blue-500' : ''} ${isPopupBlock ? 'popup-block' : ''}`}
         style={scaledStyle}
         onMouseDown={(e) => {
           // 如果正在编辑，不触发拖拽
@@ -1064,10 +1178,10 @@ function DesignerCanvas({
           {block.id} · {block.type} · {block.level || 1}级{isPopupBlock ? ' · 弹窗' : ''}{block.parentId ? ` · 父:${block.parentId}` : ''}
         </div>
         
-        {/* 弹窗关闭按钮❌ - 仅弹窗区块且层级≥0时显示 */}
+        {/* 弹窗关闭按钮❌ - 仅弹窗区块且层级≥0时显示，默认隐藏，hover时显示 */}
         {isPopupBlock && layer >= 0 && (
           <div
-            className="absolute top-1 right-1 w-6 h-6 bg-red-500 hover:bg-red-600 text-white rounded-full flex items-center justify-center cursor-pointer"
+            className="popup-close-btn absolute top-1 right-1 w-6 h-6 bg-red-500 hover:bg-red-600 text-white rounded-full flex items-center justify-center cursor-pointer opacity-0 transition-opacity duration-200"
             style={{ zIndex: 999, fontSize: '14px', lineHeight: 1 }}
             onClick={(e) => {
               e.stopPropagation();
