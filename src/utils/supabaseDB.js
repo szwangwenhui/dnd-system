@@ -738,6 +738,18 @@
 
   // ==================== 反馈模块 ====================
   const feedback = {
+    // 生成反馈显示编号（年月日+3位数，如20241225001）- 仅用于显示
+    generateDisplayId() {
+      const now = new Date();
+      const dateStr = now.getFullYear().toString() +
+        String(now.getMonth() + 1).padStart(2, '0') +
+        String(now.getDate()).padStart(2, '0');
+      const timeStr = String(now.getHours()).padStart(2, '0') +
+        String(now.getMinutes()).padStart(2, '0') +
+        String(now.getSeconds()).padStart(2, '0');
+      return dateStr + '-' + timeStr;
+    },
+
     // 提交反馈
     async submit(content, screenshotUrl = null) {
       const user = await auth.getCurrentUser();
@@ -747,11 +759,10 @@
         .insert({
           user_id: user?.id || null,
           user_email: user?.email || '未登录用户',
-          type: 'feedback',
           content: content,
-          screenshot_url: screenshotUrl,
+          screenshot: screenshotUrl,
           page_url: window.location.href,
-          status: 'pending'
+          created_at: new Date().toISOString()
         })
         .select()
         .single();
@@ -760,12 +771,60 @@
       return data;
     },
 
-    // 获取我的反馈
-    async getMyFeedbacks() {
+    // 获取所有反馈
+    async getAllFeedbacks() {
       const { data, error } = await getClient()
         .from('feedbacks')
         .select('*')
         .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      return data || [];
+    },
+
+    // 获取我的反馈
+    async getMyFeedbacks() {
+      const user = await auth.getCurrentUser();
+      if (!user) return [];
+      
+      const { data, error } = await getClient()
+        .from('feedbacks')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      return data || [];
+    },
+
+    // 添加回复
+    async addReply(feedbackId, content) {
+      const user = await auth.getCurrentUser();
+      if (!user) throw new Error('请先登录');
+      
+      const { data, error } = await getClient()
+        .from('feedback_replies')
+        .insert({
+          feedback_id: feedbackId,
+          user_id: user.id,
+          user_email: user.email,
+          content: content,
+          created_at: new Date().toISOString()
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
+    },
+
+    // 获取反馈的回复
+    async getReplies(feedbackId) {
+      const { data, error } = await getClient()
+        .from('feedback_replies')
+        .select('*')
+        .eq('feedback_id', feedbackId)
+        .order('created_at', { ascending: true });
 
       if (error) throw error;
       return data || [];

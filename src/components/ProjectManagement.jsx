@@ -10,6 +10,7 @@ function ProjectManagement({ onSelectProject, onTestExpr }) {
   const [isBuilding, setIsBuilding] = React.useState(false);  // 搭建测试环境状态
   const [buildingProgress, setBuildingProgress] = React.useState('');  // 搭建进度信息
   const [isLoading, setIsLoading] = React.useState(true);  // 加载状态
+  const [showFeedbackList, setShowFeedbackList] = React.useState(false);  // 问题反馈列表弹窗
 
   // 加载项目列表
   React.useEffect(() => {
@@ -242,6 +243,12 @@ function ProjectManagement({ onSelectProject, onTestExpr }) {
           </div>
           <div className="flex gap-3">
             <button
+              onClick={() => setShowFeedbackList(true)}
+              className="px-4 py-2 rounded-lg transition-colors border-2 border-green-500 text-green-600 hover:bg-green-50"
+            >
+              📋 问题反馈
+            </button>
+            <button
               onClick={onTestExpr}
               className="px-4 py-2 rounded-lg transition-colors border-2 border-purple-500 text-purple-600 hover:bg-purple-50"
             >
@@ -470,6 +477,11 @@ function ProjectManagement({ onSelectProject, onTestExpr }) {
             }
           `}</style>
         </div>
+      )}
+
+      {/* 问题反馈列表弹窗 */}
+      {showFeedbackList && window.FeedbackList && (
+        <FeedbackList onClose={() => setShowFeedbackList(false)} />
       )}
     </div>
   );
