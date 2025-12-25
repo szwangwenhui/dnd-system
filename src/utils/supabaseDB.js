@@ -291,6 +291,18 @@
       return fieldId;
     },
 
+    async updateFieldRelatedForms(projectId, fieldId, relatedForms) {
+      const project = await this.getProjectById(projectId);
+      if (!project) throw new Error('项目不存在');
+
+      const idx = (project.fields || []).findIndex(f => f.id === fieldId);
+      if (idx === -1) throw new Error('字段不存在');
+
+      project.fields[idx].relatedForms = relatedForms;
+      await this.updateProject(project);
+      return project.fields[idx];
+    },
+
     // ==================== 表单管理 ====================
 
     async getFormsByProjectId(projectId) {
@@ -579,6 +591,13 @@
       return project?.dataFlows || [];
     },
 
+    async getDataFlowById(projectId, flowId) {
+      const project = await this.getProjectById(projectId);
+      if (!project) throw new Error('项目不存在');
+      const flow = (project.dataFlows || []).find(f => f.id === flowId);
+      return flow || null;
+    },
+
     async addDataFlow(projectId, dataFlow) {
       const project = await this.getProjectById(projectId);
       if (!project) throw new Error('项目不存在');
@@ -599,7 +618,7 @@
       const project = await this.getProjectById(projectId);
       if (!project) throw new Error('项目不存在');
 
-      const idx = project.dataFlows.findIndex(f => f.id === flowId);
+      const idx = (project.dataFlows || []).findIndex(f => f.id === flowId);
       if (idx === -1) throw new Error('流程不存在');
 
       project.dataFlows[idx] = { ...project.dataFlows[idx], ...updates };
@@ -607,11 +626,15 @@
       return project.dataFlows[idx];
     },
 
+    async saveDataFlowDesign(projectId, flowId, design) {
+      return this.updateDataFlow(projectId, flowId, { design });
+    },
+
     async deleteDataFlow(projectId, flowId) {
       const project = await this.getProjectById(projectId);
       if (!project) throw new Error('项目不存在');
 
-      project.dataFlows = project.dataFlows.filter(f => f.id !== flowId);
+      project.dataFlows = (project.dataFlows || []).filter(f => f.id !== flowId);
       await this.updateProject(project);
       return flowId;
     },
@@ -623,7 +646,13 @@
       return project?.statistics || [];
     },
 
-    async addStatistics(projectId, stats) {
+    async getStatisticById(projectId, statsId) {
+      const project = await this.getProjectById(projectId);
+      if (!project) return null;
+      return (project.statistics || []).find(s => s.id === statsId) || null;
+    },
+
+    async addStatistic(projectId, stats) {
       const project = await this.getProjectById(projectId);
       if (!project) throw new Error('项目不存在');
 
@@ -639,11 +668,16 @@
       return newStats;
     },
 
-    async updateStatistics(projectId, statsId, updates) {
+    // 兼容旧方法名
+    async addStatistics(projectId, stats) {
+      return this.addStatistic(projectId, stats);
+    },
+
+    async updateStatistic(projectId, statsId, updates) {
       const project = await this.getProjectById(projectId);
       if (!project) throw new Error('项目不存在');
 
-      const idx = project.statistics.findIndex(s => s.id === statsId);
+      const idx = (project.statistics || []).findIndex(s => s.id === statsId);
       if (idx === -1) throw new Error('统计不存在');
 
       project.statistics[idx] = { ...project.statistics[idx], ...updates };
@@ -651,13 +685,101 @@
       return project.statistics[idx];
     },
 
-    async deleteStatistics(projectId, statsId) {
+    // 兼容旧方法名
+    async updateStatistics(projectId, statsId, updates) {
+      return this.updateStatistic(projectId, statsId, updates);
+    },
+
+    async updateStatisticData(projectId, statsId, data) {
+      return this.updateStatistic(projectId, statsId, { data });
+    },
+
+    async deleteStatistic(projectId, statsId) {
       const project = await this.getProjectById(projectId);
       if (!project) throw new Error('项目不存在');
 
-      project.statistics = project.statistics.filter(s => s.id !== statsId);
+      project.statistics = (project.statistics || []).filter(s => s.id !== statsId);
       await this.updateProject(project);
       return statsId;
+    },
+
+    // 兼容旧方法名
+    async deleteStatistics(projectId, statsId) {
+      return this.deleteStatistic(projectId, statsId);
+    },
+
+    // ==================== 变量管理 ====================
+
+    async getVariables(projectId) {
+      const project = await this.getProjectById(projectId);
+      return project?.variables || [];
+    },
+
+    async getVariableById(projectId, varId) {
+      const project = await this.getProjectById(projectId);
+      if (!project) return null;
+      return (project.variables || []).find(v => v.id === varId) || null;
+    },
+
+    async getVariablesBySourceType(projectId, sourceType) {
+      const project = await this.getProjectById(projectId);
+      if (!project) return [];
+      return (project.variables || []).filter(v => v.sourceType === sourceType);
+    },
+
+    async addVariable(projectId, variable) {
+      const project = await this.getProjectById(projectId);
+      if (!project) throw new Error('项目不存在');
+
+      const variables = project.variables || [];
+      const newVar = {
+        ...variable,
+        id: variable.id || `VAR-${Date.now()}`,
+        usages: [],
+        createdAt: new Date().toISOString()
+      };
+      variables.push(newVar);
+
+      await this.updateProject({ ...project, variables });
+      return newVar;
+    },
+
+    async updateVariable(projectId, varId, updates) {
+      const project = await this.getProjectById(projectId);
+      if (!project) throw new Error('项目不存在');
+
+      const idx = (project.variables || []).findIndex(v => v.id === varId);
+      if (idx === -1) throw new Error('变量不存在');
+
+      project.variables[idx] = { ...project.variables[idx], ...updates };
+      await this.updateProject(project);
+      return project.variables[idx];
+    },
+
+    async deleteVariable(projectId, varId) {
+      const project = await this.getProjectById(projectId);
+      if (!project) throw new Error('项目不存在');
+
+      project.variables = (project.variables || []).filter(v => v.id !== varId);
+      await this.updateProject(project);
+      return varId;
+    },
+
+    async addVariableUsage(projectId, varId, nodeId, flowId) {
+      const project = await this.getProjectById(projectId);
+      if (!project) throw new Error('项目不存在');
+
+      const idx = (project.variables || []).findIndex(v => v.id === varId);
+      if (idx === -1) throw new Error('变量不存在');
+
+      const usages = project.variables[idx].usages || [];
+      // 避免重复添加
+      if (!usages.some(u => u.nodeId === nodeId && u.flowId === flowId)) {
+        usages.push({ nodeId, flowId, addedAt: new Date().toISOString() });
+        project.variables[idx].usages = usages;
+        await this.updateProject(project);
+      }
+      return project.variables[idx];
     },
 
     // ==================== 模板管理 ====================
@@ -665,6 +787,11 @@
     async getPageTemplates(projectId) {
       const project = await this.getProjectById(projectId);
       return project?.pageTemplates || [];
+    },
+
+    // 兼容旧方法名
+    async getPageTemplatesByProjectId(projectId) {
+      return this.getPageTemplates(projectId);
     },
 
     async addPageTemplate(projectId, template) {
@@ -683,9 +810,30 @@
       return newTemplate;
     },
 
+    async createPageFromTemplate(projectId, roleId, templateId, pageName) {
+      const project = await this.getProjectById(projectId);
+      if (!project) throw new Error('项目不存在');
+      
+      const template = (project.pageTemplates || []).find(t => t.id === templateId);
+      if (!template) throw new Error('模板不存在');
+      
+      const newPage = {
+        ...template.design,
+        name: pageName || template.name,
+        id: `PAGE-${Date.now()}`
+      };
+      
+      return this.addPage(projectId, roleId, newPage);
+    },
+
     async getBlockTemplates(projectId) {
       const project = await this.getProjectById(projectId);
       return project?.blockTemplates || [];
+    },
+
+    // 兼容旧方法名
+    async getBlockTemplatesByProjectId(projectId) {
+      return this.getBlockTemplates(projectId);
     },
 
     async addBlockTemplate(projectId, template) {
@@ -702,6 +850,20 @@
 
       await this.updateProject({ ...project, blockTemplates: templates });
       return newTemplate;
+    },
+
+    async createBlockFromTemplate(projectId, templateId) {
+      const project = await this.getProjectById(projectId);
+      if (!project) throw new Error('项目不存在');
+      
+      const template = (project.blockTemplates || []).find(t => t.id === templateId);
+      if (!template) throw new Error('模板不存在');
+      
+      // 返回模板设计的副本，生成新ID
+      return {
+        ...template.design,
+        id: `BLOCK-${Date.now()}`
+      };
     },
 
     async deleteBlockTemplate(projectId, templateId) {
@@ -733,6 +895,41 @@
 
     async updatePageParams(projectId, roleId, pageId, paramConfig) {
       return this.updatePage(projectId, roleId, pageId, { paramConfig });
+    },
+
+    validatePageParams(paramConfig) {
+      const errors = [];
+      const warnings = [];
+      
+      if (!paramConfig) {
+        return { valid: true, errors: [], warnings: [] };
+      }
+      
+      const allParams = [
+        ...(paramConfig.requiredParams || []),
+        ...(paramConfig.optionalParams || []),
+        ...(paramConfig.customParams || [])
+      ];
+      
+      // 检查参数名称是否重复
+      const paramNames = allParams.map(p => p.name);
+      const duplicates = paramNames.filter((name, idx) => paramNames.indexOf(name) !== idx);
+      if (duplicates.length > 0) {
+        errors.push(`参数名称重复: ${[...new Set(duplicates)].join(', ')}`);
+      }
+      
+      // 检查必需参数是否有默认值或有效来源
+      (paramConfig.requiredParams || []).forEach(param => {
+        if (!param.source && !param.defaultValue) {
+          warnings.push(`必需参数 "${param.name}" 没有指定来源或默认值`);
+        }
+      });
+      
+      return {
+        valid: errors.length === 0,
+        errors,
+        warnings
+      };
     }
   };
 
