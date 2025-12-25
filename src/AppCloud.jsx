@@ -1,6 +1,7 @@
 /**
  * DND 公测版主应用入口
  * 增加登录判断和用户信息显示
+ * 增加导航按钮（主页、返回）
  */
 
 function App() {
@@ -16,6 +17,9 @@ function App() {
   const [selectedRole, setSelectedRole] = React.useState(null);
   // 测试表达式弹窗
   const [showExprTest, setShowExprTest] = React.useState(false);
+  
+  // 视图历史栈，用于返回上一页
+  const [viewHistory, setViewHistory] = React.useState([]);
 
   // 检查登录状态
   React.useEffect(() => {
@@ -69,6 +73,44 @@ function App() {
       setUser(null);
     } catch (err) {
       console.error('[App] 登出失败:', err);
+    }
+  };
+
+  // 导航到新视图（保存历史）
+  const navigateTo = (view, project = selectedProject, role = selectedRole) => {
+    setViewHistory(prev => [...prev, { view: currentView, project: selectedProject, role: selectedRole }]);
+    setCurrentView(view);
+    setSelectedProject(project);
+    setSelectedRole(role);
+  };
+
+  // 返回上一页
+  const goBack = () => {
+    if (viewHistory.length > 0) {
+      const lastState = viewHistory[viewHistory.length - 1];
+      setViewHistory(prev => prev.slice(0, -1));
+      setCurrentView(lastState.view);
+      setSelectedProject(lastState.project);
+      setSelectedRole(lastState.role);
+    }
+  };
+
+  // 返回主页
+  const goHome = () => {
+    setViewHistory([]);
+    setCurrentView('projects');
+    setSelectedProject(null);
+    setSelectedRole(null);
+  };
+
+  // 获取当前页面标题
+  const getPageTitle = () => {
+    switch (currentView) {
+      case 'projects': return '项目管理';
+      case 'roles': return `角色管理 - ${selectedProject?.name || ''}`;
+      case 'pages': return `页面规划 - ${selectedRole?.name || ''}`;
+      case 'dataLayer': return `数据层构建 - ${selectedRole?.name || ''}`;
+      default: return '';
     }
   };
 
@@ -128,39 +170,169 @@ function App() {
           alignItems: 'center',
           justifyContent: 'space-between'
         }}>
-          {/* Logo */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-            <div style={{
-              width: '36px',
-              height: '36px',
-              background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-              borderRadius: '8px',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              color: 'white',
-              fontWeight: 'bold',
-              fontSize: '14px'
-            }}>
-              DND
+          {/* 左侧：导航按钮 + Logo */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+            {/* 导航按钮组 */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+              {/* 主页按钮 */}
+              <button
+                onClick={goHome}
+                disabled={currentView === 'projects'}
+                title="返回主页"
+                style={{
+                  width: '36px',
+                  height: '36px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  background: currentView === 'projects' ? '#f3f4f6' : '#667eea',
+                  color: currentView === 'projects' ? '#9ca3af' : 'white',
+                  border: 'none',
+                  borderRadius: '8px',
+                  cursor: currentView === 'projects' ? 'default' : 'pointer',
+                  fontSize: '18px',
+                  transition: 'all 0.2s'
+                }}
+                onMouseOver={(e) => {
+                  if (currentView !== 'projects') {
+                    e.target.style.background = '#5a67d8';
+                  }
+                }}
+                onMouseOut={(e) => {
+                  if (currentView !== 'projects') {
+                    e.target.style.background = '#667eea';
+                  }
+                }}
+              >
+                🏠
+              </button>
+              
+              {/* 返回按钮 */}
+              <button
+                onClick={goBack}
+                disabled={viewHistory.length === 0}
+                title="返回上一页"
+                style={{
+                  width: '36px',
+                  height: '36px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  background: viewHistory.length === 0 ? '#f3f4f6' : '#667eea',
+                  color: viewHistory.length === 0 ? '#9ca3af' : 'white',
+                  border: 'none',
+                  borderRadius: '8px',
+                  cursor: viewHistory.length === 0 ? 'default' : 'pointer',
+                  fontSize: '18px',
+                  transition: 'all 0.2s'
+                }}
+                onMouseOver={(e) => {
+                  if (viewHistory.length > 0) {
+                    e.target.style.background = '#5a67d8';
+                  }
+                }}
+                onMouseOut={(e) => {
+                  if (viewHistory.length > 0) {
+                    e.target.style.background = '#667eea';
+                  }
+                }}
+              >
+                ←
+              </button>
             </div>
-            <span style={{
-              fontSize: '18px',
-              fontWeight: '600',
-              color: '#1f2937'
-            }}>
-              无代码设计系统
-            </span>
-            <span style={{
-              fontSize: '12px',
-              padding: '2px 8px',
-              background: '#fef3c7',
-              color: '#d97706',
-              borderRadius: '4px',
-              fontWeight: '500'
-            }}>
-              公测版
-            </span>
+
+            {/* 分隔线 */}
+            <div style={{ width: '1px', height: '24px', background: '#e5e7eb' }}></div>
+
+            {/* Logo */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+              <div style={{
+                width: '36px',
+                height: '36px',
+                background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                borderRadius: '8px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: 'white',
+                fontWeight: 'bold',
+                fontSize: '14px'
+              }}>
+                DND
+              </div>
+              <span style={{
+                fontSize: '18px',
+                fontWeight: '600',
+                color: '#1f2937'
+              }}>
+                无代码网站构建系统
+              </span>
+              <span style={{
+                fontSize: '12px',
+                padding: '2px 8px',
+                background: '#fef3c7',
+                color: '#d97706',
+                borderRadius: '4px',
+                fontWeight: '500'
+              }}>
+                公测版
+              </span>
+            </div>
+
+            {/* 当前位置面包屑 */}
+            {currentView !== 'projects' && (
+              <>
+                <div style={{ width: '1px', height: '24px', background: '#e5e7eb' }}></div>
+                <div style={{ 
+                  fontSize: '14px', 
+                  color: '#6b7280',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px'
+                }}>
+                  <span 
+                    onClick={goHome}
+                    style={{ 
+                      cursor: 'pointer', 
+                      color: '#667eea',
+                      textDecoration: 'underline'
+                    }}
+                  >
+                    项目管理
+                  </span>
+                  {selectedProject && (
+                    <>
+                      <span style={{ color: '#d1d5db' }}>/</span>
+                      <span 
+                        onClick={() => {
+                          if (currentView !== 'roles') {
+                            setViewHistory(prev => [...prev, { view: currentView, project: selectedProject, role: selectedRole }]);
+                            setCurrentView('roles');
+                            setSelectedRole(null);
+                          }
+                        }}
+                        style={{ 
+                          cursor: currentView !== 'roles' ? 'pointer' : 'default', 
+                          color: currentView !== 'roles' ? '#667eea' : '#374151',
+                          textDecoration: currentView !== 'roles' ? 'underline' : 'none',
+                          fontWeight: currentView === 'roles' ? '500' : 'normal'
+                        }}
+                      >
+                        {selectedProject.name}
+                      </span>
+                    </>
+                  )}
+                  {selectedRole && (currentView === 'pages' || currentView === 'dataLayer') && (
+                    <>
+                      <span style={{ color: '#d1d5db' }}>/</span>
+                      <span style={{ color: '#374151', fontWeight: '500' }}>
+                        {selectedRole.name} - {currentView === 'pages' ? '页面规划' : '数据层'}
+                      </span>
+                    </>
+                  )}
+                </div>
+              </>
+            )}
           </div>
 
           {/* 用户信息 */}
@@ -225,8 +397,7 @@ function App() {
           <ProjectManagement 
             onSelectProject={(project) => {
               console.log('[App] 选择项目:', project.name);
-              setSelectedProject(project);
-              setCurrentView('roles');
+              navigateTo('roles', project, null);
             }}
             onTestExpr={() => setShowExprTest(true)}
           />
@@ -236,17 +407,12 @@ function App() {
           // 角色管理页面
           <RoleManagement 
             projectId={selectedProject.id}
-            onBack={() => {
-              setSelectedProject(null);
-              setCurrentView('projects');
-            }}
+            onBack={goBack}
             onDataLayerClick={(role) => {
-              setSelectedRole(role);
-              setCurrentView('dataLayer');
+              navigateTo('dataLayer', selectedProject, role);
             }}
             onPageDesignClick={(role) => {
-              setSelectedRole(role);
-              setCurrentView('pages');
+              navigateTo('pages', selectedProject, role);
             }}
           />
         )}
@@ -256,10 +422,7 @@ function App() {
           <PageDefinition 
             projectId={selectedProject.id}
             roleId={selectedRole.id}
-            onBack={() => {
-              setSelectedRole(null);
-              setCurrentView('roles');
-            }}
+            onBack={goBack}
           />
         )}
 
@@ -268,10 +431,7 @@ function App() {
           <DataLayerBuilder 
             projectId={selectedProject.id}
             roleId={selectedRole.id}
-            onBack={() => {
-              setSelectedRole(null);
-              setCurrentView('roles');
-            }}
+            onBack={goBack}
           />
         )}
       </main>

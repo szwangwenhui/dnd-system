@@ -8,6 +8,7 @@ function ProjectManagement({ onSelectProject, onTestExpr }) {
     status: '规划阶段'
   });
   const [isBuilding, setIsBuilding] = React.useState(false);  // 搭建测试环境状态
+  const [buildingProgress, setBuildingProgress] = React.useState('');  // 搭建进度信息
 
   // 加载项目列表
   React.useEffect(() => {
@@ -34,14 +35,42 @@ function ProjectManagement({ onSelectProject, onTestExpr }) {
     }
 
     setIsBuilding(true);
+    setBuildingProgress('正在初始化...');
+    
     try {
+      // 模拟进度更新
+      const progressSteps = [
+        '正在创建测试项目...',
+        '正在创建测试角色...',
+        '正在创建测试字段...',
+        '正在创建测试表单...',
+        '正在生成测试数据...',
+        '正在完成配置...'
+      ];
+      
+      let stepIndex = 0;
+      const progressInterval = setInterval(() => {
+        if (stepIndex < progressSteps.length) {
+          setBuildingProgress(progressSteps[stepIndex]);
+          stepIndex++;
+        }
+      }, 800);
+
       await window.TestEnvBuilder.buildTestEnvironment();
-      alert('测试环境搭建成功！\n\n已创建：\n- 1个测试项目\n- 3个测试角色\n- 30个字段（10主键+10整数+10字符）\n- 10个表单\n- 表1的5条测试数据');
-      loadProjects();
+      
+      clearInterval(progressInterval);
+      setBuildingProgress('搭建完成！');
+      
+      setTimeout(() => {
+        setIsBuilding(false);
+        setBuildingProgress('');
+        alert('测试环境搭建成功！\n\n已创建：\n- 1个测试项目\n- 3个测试角色\n- 30个字段（10主键+10整数+10字符）\n- 10个表单\n- 表1的5条测试数据');
+        loadProjects();
+      }, 500);
     } catch (error) {
-      alert('搭建测试环境失败：' + error.message);
-    } finally {
       setIsBuilding(false);
+      setBuildingProgress('');
+      alert('搭建测试环境失败：' + error.message);
     }
   };
 
@@ -364,6 +393,47 @@ function ProjectManagement({ onSelectProject, onTestExpr }) {
               </div>
             </form>
           </div>
+        </div>
+      )}
+
+      {/* 搭建测试环境进度弹窗 */}
+      {isBuilding && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg shadow-xl w-full max-w-md mx-4 p-8">
+            <div className="text-center">
+              {/* 转盘进度条 */}
+              <div className="relative w-20 h-20 mx-auto mb-6">
+                <div 
+                  className="w-20 h-20 border-4 border-gray-200 border-t-orange-500 rounded-full"
+                  style={{
+                    animation: 'spin 1s linear infinite'
+                  }}
+                />
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <span className="text-2xl">🔧</span>
+                </div>
+              </div>
+              
+              <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                正在搭建测试环境
+              </h3>
+              
+              <p className="text-orange-600 font-medium mb-4">
+                {buildingProgress}
+              </p>
+              
+              <p className="text-sm text-gray-500">
+                测试环境搭建时间较长，请耐心等候...
+              </p>
+            </div>
+          </div>
+          
+          <style>{`
+            @keyframes spin {
+              from { transform: rotate(0deg); }
+              to { transform: rotate(360deg); }
+            }
+          `}</style>
         </div>
       )}
     </div>
