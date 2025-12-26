@@ -469,6 +469,12 @@
       // 获取用户管理表ID
       const userFormId = 'SYS-FORM-USER';
       
+      // 父区块位置和尺寸
+      const parentX = 400;
+      const parentY = 150;
+      const parentWidth = 400;
+      const parentHeight = 300;
+      
       // 创建4个内置区块
       const builtInBlocks = [
         // 1. "登录/注册"按钮 - 显示在右上角，点击打开登录注册弹窗
@@ -503,22 +509,20 @@
           name: '登录注册表单',
           type: '交互',
           contentType: '表单',
-          x: 400,
-          y: 150,
-          width: 400,
-          height: 300,
+          x: parentX,
+          y: parentY,
+          width: parentWidth,
+          height: parentHeight,
           level: 99,
           isBuiltIn: true,
           isPopup: true,
+          // 绑定用户管理表
+          targetFormId: userFormId,
+          targetFormName: '用户管理',
+          selectedFields: ['SYS-FLD-002', 'SYS-FLD-009'],  // 账号 + 密码
           popupConfig: {
             showCloseButton: true,
             closeOnOverlayClick: true
-          },
-          formConfig: {
-            formId: userFormId,
-            formName: '用户管理',
-            displayFields: ['SYS-FLD-002', 'SYS-FLD-009'],  // 账号 + 密码
-            hideSubmitButton: true  // 隐藏默认提交按钮，用下面两个按钮代替
           },
           style: {
             backgroundColor: '#ffffff',
@@ -528,18 +532,18 @@
             zIndex: -1  // 默认隐藏
           }
         },
-        // 3. "登录"按钮 - 启动存在性校验流程
+        // 3. "登录"按钮 - 启动存在性校验流程（绝对坐标：在父区块底部左侧）
         {
           id: `${newRoleId}-0000-BLK-003`,
           name: '登录',
           type: '按钮',
-          x: 50,
-          y: 220,
+          x: parentX + 50,           // 父区块x + 50
+          y: parentY + parentHeight - 70,  // 父区块底部往上70px
           width: 140,
           height: 44,
           level: 99,
           isBuiltIn: true,
-          parentId: `${newRoleId}-0000-BLK-002`,  // 使用parentId
+          parentId: `${newRoleId}-0000-BLK-002`,
           isPopup: true,
           // 按钮类型和文字放在顶层
           buttonType: 'submitForm',
@@ -561,18 +565,18 @@
             zIndex: -1  // 默认隐藏（跟随父区块）
           }
         },
-        // 4. "注册"按钮 - 直接存储到用户管理表
+        // 4. "注册"按钮 - 直接存储到用户管理表（绝对坐标：在父区块底部右侧）
         {
           id: `${newRoleId}-0000-BLK-004`,
           name: '注册',
           type: '按钮',
-          x: 210,
-          y: 220,
+          x: parentX + 210,          // 父区块x + 210
+          y: parentY + parentHeight - 70,  // 父区块底部往上70px
           width: 140,
           height: 44,
           level: 99,
           isBuiltIn: true,
-          parentId: `${newRoleId}-0000-BLK-002`,  // 使用parentId
+          parentId: `${newRoleId}-0000-BLK-002`,
           isPopup: true,
           // 按钮类型和文字放在顶层
           buttonType: 'submitForm',

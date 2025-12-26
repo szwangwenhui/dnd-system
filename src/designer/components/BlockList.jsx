@@ -392,7 +392,7 @@ function BlockList({
             >
               <option value="">-- 选择表单 --</option>
               {(forms || [])
-                .filter(f => f.category === '对象表' || f.type === '对象表单')
+                .filter(f => f.category === '对象表' || f.type === '对象表单' || f.isSystemUserForm === true)
                 .map(f => (
                   <option key={f.id} value={f.id}>{f.name} ({f.id})</option>
                 ))
