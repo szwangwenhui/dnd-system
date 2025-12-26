@@ -68,7 +68,7 @@ function BlockList({
     
     return (
       <div className="px-2 py-2 bg-gray-50 border-t border-gray-200 text-xs space-y-2">
-        {/* 区块类型 */}
+        {/* 区块类型 - 移除"用户账号"选项，改为内置区块 */}
         <div className="flex items-center justify-between">
           <span className="text-gray-500">类别：</span>
           <select
@@ -80,7 +80,6 @@ function BlockList({
             <option value="显示">显示</option>
             <option value="交互">交互</option>
             <option value="按钮">按钮</option>
-            <option value="用户账号">用户账号</option>
           </select>
         </div>
         

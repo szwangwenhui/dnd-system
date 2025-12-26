@@ -2657,6 +2657,31 @@ function Preview() {
           boxShadow: '0 4px 20px rgba(0,0,0,0.15)',
           position: 'relative',
         }}>
+          {/* 内置登录/注册按钮 - 固定在右上角 */}
+          <div style={{
+            position: 'absolute',
+            top: '12px',
+            right: '12px',
+            zIndex: 100,
+          }}>
+            {window.AuthBlock && (
+              <AuthBlock 
+                block={{}}
+                config={{
+                  showRegister: true,
+                  showAvatar: true,
+                  loginText: '登录',
+                  registerText: '注册'
+                }}
+                onNavigate={(pageId) => {
+                  if (pageId) {
+                    navigateToPage(pageId);
+                  }
+                }}
+              />
+            )}
+          </div>
+          
           {blocks.map(block => renderBlock(block))}
           
           {blocks.length === 0 && (
