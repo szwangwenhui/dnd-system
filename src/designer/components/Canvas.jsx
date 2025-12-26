@@ -1255,53 +1255,6 @@ function DesignerCanvas({
         }}
         onClick={onCanvasClick}
       >
-        {/* 内置登录/注册按钮预览 - 固定在右上角 */}
-        <div style={{
-          position: 'absolute',
-          top: 12 * (scale / 100),
-          right: 12 * (scale / 100),
-          zIndex: 100,
-          transform: `scale(${scale / 100})`,
-          transformOrigin: 'top right',
-          pointerEvents: 'none',  // 设计模式下不可交互
-          opacity: 0.7,
-        }}>
-          <div style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '8px',
-            padding: '4px 8px',
-            backgroundColor: 'rgba(255,255,255,0.9)',
-            borderRadius: '4px',
-            boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
-          }}>
-            <button style={{
-              padding: '6px 12px',
-              backgroundColor: '#3b82f6',
-              color: '#fff',
-              border: 'none',
-              borderRadius: '4px',
-              fontSize: '14px',
-              cursor: 'default',
-            }}>登录</button>
-            <button style={{
-              padding: '6px 12px',
-              backgroundColor: 'transparent',
-              color: '#3b82f6',
-              border: '1px solid #3b82f6',
-              borderRadius: '4px',
-              fontSize: '14px',
-              cursor: 'default',
-            }}>注册</button>
-          </div>
-          <div style={{
-            fontSize: '10px',
-            color: '#9ca3af',
-            textAlign: 'center',
-            marginTop: '2px',
-          }}>内置登录区块</div>
-        </div>
-        
         {blocks.map(block => renderBlock(block))}
       </div>
     </div>

@@ -7,6 +7,7 @@ function RoleManagement({ projectId, onBack, onDataLayerClick, onPageDesignClick
   const [formData, setFormData] = React.useState({
     name: ''
   });
+  const [creating, setCreating] = React.useState(false);  // 创建中状态
 
   // 加载项目和角色列表
   React.useEffect(() => {
@@ -74,16 +75,19 @@ function RoleManagement({ projectId, onBack, onDataLayerClick, onPageDesignClick
         });
         alert('角色更新成功！');
       } else {
-        // 创建新角色
+        // 创建新角色（显示进度条）
+        setCreating(true);
         await window.dndDB.addRole(projectId, {
           name: formData.name
         });
-        alert('角色创建成功！');
+        setCreating(false);
+        alert('角色创建成功！（已自动创建首页及登录注册区块）');
       }
 
       closeModal();
       loadProjectAndRoles();
     } catch (error) {
+      setCreating(false);
       alert('操作失败：' + error);
     }
   };
@@ -279,50 +283,67 @@ function RoleManagement({ projectId, onBack, onDataLayerClick, onPageDesignClick
               </h3>
             </div>
             
-            <form onSubmit={handleSubmit}>
-              <div className="px-6 py-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    角色名称 <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    type="text"
-                    name="name"
-                    value={formData.name}
-                    onChange={handleInputChange}
-                    maxLength="10"
-                    placeholder="请输入角色名称（不超过10个字符）"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    required
-                  />
-                  <p className="mt-1 text-xs text-gray-500">
-                    已输入 {formData.name.length}/10 个字符
-                  </p>
+            {/* 创建中的进度提示 */}
+            {creating && (
+              <div className="px-6 py-8 text-center">
+                <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mb-4"></div>
+                <p className="text-gray-600">正在创建角色...</p>
+                <p className="text-sm text-gray-400 mt-2">系统正在自动创建首页及登录注册区块，请稍候</p>
+              </div>
+            )}
+            
+            {!creating && (
+              <form onSubmit={handleSubmit}>
+                <div className="px-6 py-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      角色名称 <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      name="name"
+                      value={formData.name}
+                      onChange={handleInputChange}
+                      maxLength="10"
+                      placeholder="请输入角色名称（不超过10个字符）"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      required
+                    />
+                    <p className="mt-1 text-xs text-gray-500">
+                      已输入 {formData.name.length}/10 个字符
+                    </p>
+                  </div>
+
+                  {editingRole && (
+                    <div className="mt-3 text-sm text-gray-500">
+                      角色编号：<span className="font-mono font-semibold text-gray-700">{editingRole.id}</span>
+                    </div>
+                  )}
+                  
+                  {!editingRole && (
+                    <div className="mt-3 text-xs text-blue-600 bg-blue-50 rounded p-2">
+                      💡 创建角色时将自动生成首页及内置的登录/注册区块
+                    </div>
+                  )}
                 </div>
 
-                {editingRole && (
-                  <div className="mt-3 text-sm text-gray-500">
-                    角色编号：<span className="font-mono font-semibold text-gray-700">{editingRole.id}</span>
-                  </div>
-                )}
-              </div>
-
-              <div className="px-6 py-4 bg-gray-50 flex justify-end space-x-3">
-                <button
-                  type="button"
-                  onClick={closeModal}
-                  className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-100 transition-colors"
-                >
-                  取消
-                </button>
-                <button
-                  type="submit"
-                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-                >
-                  {editingRole ? '保存修改' : '确认提交'}
-                </button>
-              </div>
-            </form>
+                <div className="px-6 py-4 bg-gray-50 flex justify-end space-x-3">
+                  <button
+                    type="button"
+                    onClick={closeModal}
+                    className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-100 transition-colors"
+                  >
+                    取消
+                  </button>
+                  <button
+                    type="submit"
+                    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                  >
+                    {editingRole ? '保存修改' : '确认提交'}
+                  </button>
+                </div>
+              </form>
+            )}
           </div>
         </div>
       )}

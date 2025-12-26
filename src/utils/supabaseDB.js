@@ -113,6 +113,7 @@
       const systemFields = [
         { id: 'SYS-FLD-001', name: '用户ID', type: '数字', nature: '系统字段', isSystemField: true },
         { id: 'SYS-FLD-002', name: '账号', type: '文本', nature: '系统字段', isSystemField: true },
+        { id: 'SYS-FLD-009', name: '密码', type: '密码', nature: '系统字段', isSystemField: true },
         { id: 'SYS-FLD-003', name: '昵称', type: '文本', nature: '系统字段', isSystemField: true },
         { id: 'SYS-FLD-004', name: '头像', type: '文本', nature: '系统字段', isSystemField: true },
         { id: 'SYS-FLD-005', name: '角色', type: '文本', nature: '系统字段', isSystemField: true },
@@ -465,7 +466,182 @@
       const roles = project.roles || [];
       const newRoleId = role.id || this.generateRoleId(project);
       
-      // 为新角色自动创建首页
+      // 获取用户管理表ID
+      const userFormId = 'SYS-FORM-USER';
+      
+      // 创建6个内置区块
+      const builtInBlocks = [
+        // 1. "登录注册"按钮 - 显示在右上角，点击打开父容器弹窗
+        {
+          id: `${newRoleId}-0000-BLK-001`,
+          name: '登录注册按钮',
+          type: '按钮',
+          x: 1080,
+          y: 20,
+          width: 100,
+          height: 36,
+          level: 100,
+          isBuiltIn: true,
+          buttonConfig: {
+            buttonType: 'openPopup',
+            buttonText: '登录/注册',
+            targetBlockId: `${newRoleId}-0000-BLK-002`
+          },
+          style: {
+            backgroundColor: '#3b82f6',
+            color: '#ffffff',
+            borderRadius: '4px',
+            fontSize: '14px'
+          }
+        },
+        // 2. 登录注册父区块 - 容器弹窗
+        {
+          id: `${newRoleId}-0000-BLK-002`,
+          name: '登录注册容器',
+          type: '显示',
+          contentType: '容器',
+          x: 400,
+          y: 150,
+          width: 400,
+          height: 200,
+          level: 99,
+          isBuiltIn: true,
+          isPopup: true,
+          popupConfig: {
+            showCloseButton: true,
+            closeOnOverlayClick: true
+          },
+          style: {
+            backgroundColor: '#ffffff',
+            borderRadius: '12px',
+            boxShadow: '0 20px 40px rgba(0,0,0,0.2)',
+            padding: '24px'
+          },
+          childBlocks: [`${newRoleId}-0000-BLK-003`, `${newRoleId}-0000-BLK-004`]
+        },
+        // 3. "登录"按钮 - 打开登录交互弹窗
+        {
+          id: `${newRoleId}-0000-BLK-003`,
+          name: '登录按钮',
+          type: '按钮',
+          x: 60,
+          y: 80,
+          width: 120,
+          height: 40,
+          level: 99,
+          isBuiltIn: true,
+          parentBlockId: `${newRoleId}-0000-BLK-002`,
+          isPopup: true,
+          buttonConfig: {
+            buttonType: 'openPopup',
+            buttonText: '登录',
+            targetBlockId: `${newRoleId}-0000-BLK-005`
+          },
+          style: {
+            backgroundColor: '#3b82f6',
+            color: '#ffffff',
+            borderRadius: '8px',
+            fontSize: '16px',
+            fontWeight: 'bold'
+          }
+        },
+        // 4. "注册"按钮 - 打开注册交互弹窗
+        {
+          id: `${newRoleId}-0000-BLK-004`,
+          name: '注册按钮',
+          type: '按钮',
+          x: 220,
+          y: 80,
+          width: 120,
+          height: 40,
+          level: 99,
+          isBuiltIn: true,
+          parentBlockId: `${newRoleId}-0000-BLK-002`,
+          isPopup: true,
+          buttonConfig: {
+            buttonType: 'openPopup',
+            buttonText: '注册',
+            targetBlockId: `${newRoleId}-0000-BLK-006`
+          },
+          style: {
+            backgroundColor: 'transparent',
+            color: '#3b82f6',
+            border: '2px solid #3b82f6',
+            borderRadius: '8px',
+            fontSize: '16px',
+            fontWeight: 'bold'
+          }
+        },
+        // 5. 登录交互区块 - 用于校验，不存储
+        {
+          id: `${newRoleId}-0000-BLK-005`,
+          name: '登录表单',
+          type: '交互',
+          contentType: '表单',
+          x: 350,
+          y: 200,
+          width: 500,
+          height: 300,
+          level: 98,
+          isBuiltIn: true,
+          isPopup: true,
+          popupConfig: {
+            showCloseButton: true,
+            closeOnOverlayClick: true
+          },
+          formConfig: {
+            formId: userFormId,
+            formName: '用户管理',
+            submitAction: 'validate',  // 校验模式
+            displayFields: ['SYS-FLD-002', 'SYS-FLD-009'],  // 账号 + 密码
+            submitButtonText: '登录',
+            onSuccess: 'closePopup',
+            onFail: 'showError'
+          },
+          style: {
+            backgroundColor: '#ffffff',
+            borderRadius: '12px',
+            boxShadow: '0 20px 40px rgba(0,0,0,0.2)',
+            padding: '32px'
+          }
+        },
+        // 6. 注册交互区块 - 用于存储
+        {
+          id: `${newRoleId}-0000-BLK-006`,
+          name: '注册表单',
+          type: '交互',
+          contentType: '表单',
+          x: 350,
+          y: 200,
+          width: 500,
+          height: 400,
+          level: 98,
+          isBuiltIn: true,
+          isPopup: true,
+          popupConfig: {
+            showCloseButton: true,
+            closeOnOverlayClick: true
+          },
+          formConfig: {
+            formId: userFormId,
+            formName: '用户管理',
+            submitAction: 'create',  // 存储模式
+            displayFields: ['SYS-FLD-002', 'SYS-FLD-009'],  // 账号 + 密码
+            hasConfirmPassword: true,  // 需要确认密码
+            submitButtonText: '注册',
+            onSuccess: 'showSuccessAndClose',
+            onFail: 'showError'
+          },
+          style: {
+            backgroundColor: '#ffffff',
+            borderRadius: '12px',
+            boxShadow: '0 20px 40px rgba(0,0,0,0.2)',
+            padding: '32px'
+          }
+        }
+      ];
+      
+      // 为新角色自动创建首页（包含内置区块）
       const defaultHomePage = {
         id: `${newRoleId}-0000`,
         name: '首页',
@@ -473,7 +649,7 @@
         level: 0,
         parentId: null,
         designProgress: 0,
-        blocks: [],
+        blocks: builtInBlocks,
         createdAt: new Date().toISOString()
       };
       
