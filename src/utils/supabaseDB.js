@@ -482,30 +482,31 @@
           height: 36,
           level: 100,
           isBuiltIn: true,
+          // 按钮类型和文字放在顶层
+          buttonType: 'openPopup',
+          buttonText: '登录/注册',
           buttonConfig: {
-            buttonType: 'openPopup',
-            buttonText: '登录/注册',
-            targetBlockId: `${newRoleId}-0000-BLK-002`
+            targetBlockId: `${newRoleId}-0000-BLK-002`,
+            targetBlockName: '登录注册表单'
           },
           style: {
             backgroundColor: '#3b82f6',
             color: '#ffffff',
             borderRadius: '4px',
             fontSize: '14px',
-            fontWeight: 'bold',
-            textAlign: 'center'
+            fontWeight: 'bold'
           }
         },
-        // 2. 登录注册父区块 - 交互区块，包含账号密码字段
+        // 2. 登录注册父区块 - 交互区块，包含账号密码字段，默认隐藏
         {
           id: `${newRoleId}-0000-BLK-002`,
           name: '登录注册表单',
           type: '交互',
           contentType: '表单',
-          x: 350,
+          x: 400,
           y: 150,
           width: 400,
-          height: 280,
+          height: 300,
           level: 99,
           isBuiltIn: true,
           isPopup: true,
@@ -519,12 +520,12 @@
             displayFields: ['SYS-FLD-002', 'SYS-FLD-009'],  // 账号 + 密码
             hideSubmitButton: true  // 隐藏默认提交按钮，用下面两个按钮代替
           },
-          childBlocks: [`${newRoleId}-0000-BLK-003`, `${newRoleId}-0000-BLK-004`],
           style: {
             backgroundColor: '#ffffff',
             borderRadius: '12px',
             boxShadow: '0 20px 40px rgba(0,0,0,0.2)',
-            padding: '32px'
+            padding: '32px',
+            zIndex: -1  // 默认隐藏
           }
         },
         // 3. "登录"按钮 - 启动存在性校验流程
@@ -532,17 +533,18 @@
           id: `${newRoleId}-0000-BLK-003`,
           name: '登录',
           type: '按钮',
-          x: 40,
-          y: 200,
-          width: 150,
+          x: 50,
+          y: 220,
+          width: 140,
           height: 44,
           level: 99,
           isBuiltIn: true,
-          parentBlockId: `${newRoleId}-0000-BLK-002`,
+          parentId: `${newRoleId}-0000-BLK-002`,  // 使用parentId
           isPopup: true,
+          // 按钮类型和文字放在顶层
+          buttonType: 'submitForm',
+          buttonText: '登录',
           buttonConfig: {
-            buttonType: 'submitForm',
-            buttonText: '登录',
             submitAction: 'validate',  // 存在性校验
             formBlockId: `${newRoleId}-0000-BLK-002`,
             onSuccess: 'closePopupAndRefresh',
@@ -556,7 +558,7 @@
             borderRadius: '8px',
             fontSize: '16px',
             fontWeight: 'bold',
-            textAlign: 'center'
+            zIndex: -1  // 默认隐藏（跟随父区块）
           }
         },
         // 4. "注册"按钮 - 直接存储到用户管理表
@@ -565,16 +567,17 @@
           name: '注册',
           type: '按钮',
           x: 210,
-          y: 200,
-          width: 150,
+          y: 220,
+          width: 140,
           height: 44,
           level: 99,
           isBuiltIn: true,
-          parentBlockId: `${newRoleId}-0000-BLK-002`,
+          parentId: `${newRoleId}-0000-BLK-002`,  // 使用parentId
           isPopup: true,
+          // 按钮类型和文字放在顶层
+          buttonType: 'submitForm',
+          buttonText: '注册',
           buttonConfig: {
-            buttonType: 'submitForm',
-            buttonText: '注册',
             submitAction: 'create',  // 直接存储
             formBlockId: `${newRoleId}-0000-BLK-002`,
             onSuccess: 'showSuccessAndClear',
@@ -585,11 +588,13 @@
           style: {
             backgroundColor: 'transparent',
             color: '#3b82f6',
-            border: '2px solid #3b82f6',
+            borderWidth: '2px',
+            borderStyle: 'solid',
+            borderColor: '#3b82f6',
             borderRadius: '8px',
             fontSize: '16px',
             fontWeight: 'bold',
-            textAlign: 'center'
+            zIndex: -1  // 默认隐藏（跟随父区块）
           }
         }
       ];
