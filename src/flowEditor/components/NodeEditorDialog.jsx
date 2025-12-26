@@ -119,10 +119,11 @@ function NodeEditorDialog({ node, projectId, flowId, flowName, forms, fields, pa
           <MultiBranchConfigForm
             node={{ ...node, config }}
             nodes={nodes}
-            flows={dataFlows}
             onUpdate={(updates) => {
               if (updates.config) handleConfigChange(updates.config);
             }}
+            projectId={projectId}
+            flowId={flowId}
           />
         );
       
@@ -258,12 +259,13 @@ function NodeEditorDialog({ node, projectId, flowId, flowName, forms, fields, pa
           <PropCheckConfigForm
             node={{ ...node, config }}
             nodes={nodes}
+            forms={forms}
+            fields={fields}
             onUpdate={(updates) => {
               if (updates.config) handleConfigChange(updates.config);
             }}
             projectId={projectId}
             flowId={flowId}
-            forms={forms}
           />
         );
       

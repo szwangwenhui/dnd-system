@@ -1,22 +1,23 @@
-// 属性校验节点配置表单（用于多条件分叉）
-// 已集成变量管理：校验对象可从变量管理选择
+// 属性校验节点配置表单
+// 功能：根据主键查询属性字段值，输出键值对数组
 function PropCheckConfigForm({ 
   node, 
   nodes, 
+  forms,
+  fields,
   onUpdate,
-  // 变量管理相关参数
   projectId,
-  flowId,
-  forms
+  flowId
 }) {
   const config = node.config || {};
-  const enumRules = config.enumRules || [];
-  const rangeRules = config.rangeRules || [];
+  const outputFields = config.outputFields || [];
+  
+  // 获取当前流程中的其他节点（排除自己）
+  const availableNodes = nodes.filter(n => n.id !== node.id);
 
   // 变量相关状态
   const [variables, setVariables] = React.useState([]);
   const [loadingVars, setLoadingVars] = React.useState(false);
-  const [selectedVariable, setSelectedVariable] = React.useState(null);
 
   // 加载变量列表
   React.useEffect(() => {
@@ -24,13 +25,6 @@ function PropCheckConfigForm({
       loadVariables();
     }
   }, [projectId]);
-
-  // 加载选中的变量详情
-  React.useEffect(() => {
-    if (config.variableId && projectId) {
-      loadSelectedVariable(config.variableId);
-    }
-  }, [config.variableId, projectId]);
 
   const loadVariables = async () => {
     setLoadingVars(true);
@@ -43,18 +37,6 @@ function PropCheckConfigForm({
       setLoadingVars(false);
     }
   };
-
-  const loadSelectedVariable = async (variableId) => {
-    try {
-      const variable = await window.dndDB.getVariableById(projectId, variableId);
-      setSelectedVariable(variable);
-    } catch (error) {
-      console.error('加载变量详情失败:', error);
-    }
-  };
-  
-  // 找出多条件分叉节点，获取其管道数量
-  const multiBranchNodes = nodes.filter(n => n.type === 'multiBranch');
   
   const updateConfig = (key, value) => {
     onUpdate({
@@ -62,42 +44,54 @@ function PropCheckConfigForm({
     });
   };
 
-  // 批量更新配置
-  const updateConfigMultiple = (updates) => {
+  // 批量更新
+  const updateConfigBatch = (updates) => {
     onUpdate({
       config: { ...config, ...updates }
     });
   };
 
-  // 选择变量
-  const handleSelectVariable = async (variableId) => {
-    if (!variableId) {
-      setSelectedVariable(null);
-      updateConfigMultiple({ variableId: '', variablePath: '', checkTarget: '' });
-      return;
-    }
-
-    try {
-      const variable = await window.dndDB.getVariableById(projectId, variableId);
-      setSelectedVariable(variable);
-      
-      // 记录变量使用
-      if (node.id && flowId) {
+  // 选择输入变量
+  const handleSelectSourceVariable = async (variableId) => {
+    if (node.id && flowId && projectId && variableId) {
+      try {
         await window.dndDB.addVariableUsage(projectId, variableId, node.id, flowId);
+      } catch (error) {
+        console.error('记录变量使用失败:', error);
       }
+    }
+    updateConfig('sourceVariableId', variableId);
+  };
 
-      updateConfigMultiple({ variableId: variableId, variablePath: '', checkTarget: variableId });
-    } catch (error) {
-      console.error('选择变量失败:', error);
+  // 选择目标表单
+  const handleSelectTargetForm = (formId) => {
+    const form = forms?.find(f => f.id === formId);
+    updateConfigBatch({
+      targetFormId: formId,
+      targetFormName: form?.name || '',
+      outputFields: []  // 清空已选字段
+    });
+  };
+
+  // 获取目标表单的字段列表
+  const getTargetFormFields = () => {
+    if (!config.targetFormId || !forms) return [];
+    const form = forms.find(f => f.id === config.targetFormId);
+    if (!form || !form.structure) return [];
+    
+    // 根据表单类型返回字段
+    if (form.type === '属性表单') {
+      return form.structure.levelFields || [];
+    } else {
+      return form.structure.fields || [];
     }
   };
 
-  // 获取变量的字段列表
-  const getVariableFields = () => {
-    if (!selectedVariable || !selectedVariable.sourceFormId || !forms) return [];
-    const form = forms.find(f => f.id === selectedVariable.sourceFormId);
-    if (!form) return [];
-    return form.structure?.fields || [];
+  // 获取字段名称
+  const getFieldName = (fieldId) => {
+    if (!fieldId || !fields) return fieldId;
+    const field = fields.find(f => f.id === fieldId || f.fieldId === fieldId);
+    return field?.name || fieldId;
   };
 
   // 获取数据类型文本
@@ -110,323 +104,235 @@ function PropCheckConfigForm({
     }
   };
 
-  // 添加枚举规则
-  const addEnumRule = () => {
-    updateConfig('enumRules', [
-      ...enumRules,
-      { id: Date.now(), value: '', pipe: 1 }
-    ]);
+  // 切换字段选中状态
+  const toggleFieldSelection = (fieldId) => {
+    const currentFields = [...outputFields];
+    const index = currentFields.indexOf(fieldId);
+    if (index > -1) {
+      currentFields.splice(index, 1);
+    } else {
+      currentFields.push(fieldId);
+    }
+    updateConfig('outputFields', currentFields);
   };
 
-  // 更新枚举规则
-  const updateEnumRule = (index, updates) => {
-    const newRules = [...enumRules];
-    newRules[index] = { ...newRules[index], ...updates };
-    updateConfig('enumRules', newRules);
-  };
+  // 获取选中变量的信息
+  const selectedVariable = variables.find(v => v.id === config.sourceVariableId);
+  const targetFormFields = getTargetFormFields();
 
-  // 删除枚举规则
-  const removeEnumRule = (index) => {
-    updateConfig('enumRules', enumRules.filter((_, i) => i !== index));
-  };
-
-  // 添加区间规则
-  const addRangeRule = () => {
-    updateConfig('rangeRules', [
-      ...rangeRules,
-      { id: Date.now(), operator: '>=', value: '', pipe: 1 }
-    ]);
-  };
-
-  // 更新区间规则
-  const updateRangeRule = (index, updates) => {
-    const newRules = [...rangeRules];
-    newRules[index] = { ...newRules[index], ...updates };
-    updateConfig('rangeRules', newRules);
-  };
-
-  // 删除区间规则
-  const removeRangeRule = (index) => {
-    updateConfig('rangeRules', rangeRules.filter((_, i) => i !== index));
-  };
-
-  // 管道颜色
-  const getPipeColor = (pipe) => {
-    const colors = ['#3B82F6', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6', '#EC4899', '#06B6D4', '#F97316'];
-    return colors[(pipe - 1) % colors.length];
-  };
-
-  const variableFields = getVariableFields();
+  // 过滤出包含主键信息的变量（对象类型）
+  const objectVariables = variables.filter(v => 
+    v.dataType === 'object' || v.dataType === 'array'
+  );
 
   return (
     <div className="space-y-4">
       {/* 说明 */}
       <div className="bg-orange-900/30 border border-orange-700 rounded p-3">
         <p className="text-sm text-orange-300">
-          ✓ 属性校验用于配合"多条件分叉"节点，根据属性值决定走哪个管道。
+          ✓ 属性校验：根据主键值查询表单记录，获取指定字段的值
+        </p>
+        <p className="text-xs text-orange-400 mt-1">
+          输出所有选中字段的键值对数组，可用于后续的多条件分叉
         </p>
       </div>
 
-      {/* 校验对象 - 集成变量管理 */}
-      <div>
-        <label className="block text-sm font-medium text-gray-300 mb-2">
-          校验对象 <span className="text-red-400">*</span>
+      {/* 输入变量选择 */}
+      <div className="bg-blue-900/30 p-3 rounded border border-blue-700">
+        <label className="block text-sm font-medium text-blue-300 mb-2">
+          📦 输入变量（含主键）<span className="text-red-400">*</span>
         </label>
-        
         {loadingVars ? (
           <div className="text-sm text-gray-400">加载中...</div>
-        ) : variables.length === 0 ? (
-          <input
-            type="text"
-            value={config.checkTarget || ''}
-            onChange={(e) => updateConfig('checkTarget', e.target.value)}
-            placeholder="如：user.会员等级、order.省份、score.分数"
-            className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-white text-sm"
-          />
+        ) : objectVariables.length === 0 ? (
+          <div className="text-sm text-yellow-400">
+            ⚠️ 暂无可用的对象变量，请先添加读取节点创建包含主键的变量
+          </div>
         ) : (
-          <div className="space-y-2">
-            <select
-              value={config.variableId || ''}
-              onChange={(e) => handleSelectVariable(e.target.value)}
-              className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-white text-sm"
-            >
-              <option value="">-- 选择变量 --</option>
-              {variables.map(v => (
-                <option key={v.id} value={v.id}>
-                  {v.id} {v.name ? `(${v.name})` : ''} [{getDataTypeText(v.dataType)}]
-                </option>
-              ))}
-            </select>
-
-            {/* 选择字段 */}
-            {selectedVariable && (
-              <div className="flex items-center space-x-2">
-                <span className="text-xs text-gray-400">校验字段:</span>
-                {variableFields.length > 0 ? (
-                  <select
-                    value={config.variablePath || ''}
-                    onChange={(e) => {
-                      const path = e.target.value;
-                      updateConfigMultiple({ 
-                        variablePath: path,
-                        checkTarget: path ? `${config.variableId}.${path}` : config.variableId
-                      });
-                    }}
-                    className="flex-1 px-2 py-1.5 bg-gray-600 border border-gray-500 rounded text-white text-sm"
-                  >
-                    <option value="">（整个变量）</option>
-                    {variableFields.map(f => (
-                      <option key={f.id} value={f.id}>{f.name || f.id}</option>
-                    ))}
-                  </select>
-                ) : (
-                  <input
-                    type="text"
-                    value={config.variablePath || ''}
-                    onChange={(e) => {
-                      const path = e.target.value;
-                      updateConfigMultiple({ 
-                        variablePath: path,
-                        checkTarget: path ? `${config.variableId}.${path}` : config.variableId
-                      });
-                    }}
-                    placeholder="输入字段路径，如 会员等级"
-                    className="flex-1 px-2 py-1.5 bg-gray-600 border border-gray-500 rounded text-white text-sm"
-                  />
-                )}
-              </div>
-            )}
-
-            {/* 当前校验目标预览 */}
-            {config.checkTarget && (
-              <div className="text-xs text-green-400 bg-green-900/30 rounded p-2">
-                ✓ 校验目标: {config.checkTarget}
-              </div>
-            )}
+          <select
+            value={config.sourceVariableId || ''}
+            onChange={(e) => handleSelectSourceVariable(e.target.value)}
+            className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-white text-sm"
+          >
+            <option value="">-- 选择变量 --</option>
+            {objectVariables.map(v => (
+              <option key={v.id} value={v.id}>
+                {v.id} {v.name ? `(${v.name})` : ''} [{getDataTypeText(v.dataType)}]
+              </option>
+            ))}
+          </select>
+        )}
+        {config.sourceVariableId && (
+          <div className="mt-2 text-xs text-gray-400">
+            将使用变量 <span className="text-blue-300">{config.sourceVariableId}</span> 中的主键值进行查询
           </div>
         )}
       </div>
 
-      {/* 校验模式 */}
-      <div>
-        <label className="block text-sm font-medium text-gray-300 mb-2">校验模式</label>
-        <div className="flex space-x-4">
-          <label className="flex items-center text-sm text-gray-300">
-            <input
-              type="radio"
-              checked={config.checkMode !== 'range'}
-              onChange={() => updateConfig('checkMode', 'enum')}
-              className="mr-2"
-            />
-            枚举匹配（值等于什么，走几号管道）
-          </label>
-          <label className="flex items-center text-sm text-gray-300">
-            <input
-              type="radio"
-              checked={config.checkMode === 'range'}
-              onChange={() => updateConfig('checkMode', 'range')}
-              className="mr-2"
-            />
-            区间判断（值在什么范围，走几号管道）
-          </label>
-        </div>
-      </div>
-
-      {/* 枚举匹配规则 */}
-      {config.checkMode !== 'range' && (
-        <div className="border border-blue-600 rounded-lg p-4 space-y-3">
-          <h4 className="text-sm font-medium text-blue-400">枚举匹配规则</h4>
-          
-          {enumRules.length > 0 && (
-            <div className="space-y-2">
-              {enumRules.map((rule, index) => (
-                <div key={rule.id} className="flex items-center space-x-2">
-                  <span className="text-gray-400 text-sm">值 =</span>
-                  <input
-                    type="text"
-                    value={rule.value}
-                    onChange={(e) => updateEnumRule(index, { value: e.target.value })}
-                    placeholder="如：金卡"
-                    className="flex-1 px-2 py-1.5 bg-gray-700 border border-gray-600 rounded text-white text-sm"
-                  />
-                  <span className="text-gray-400 text-sm">→</span>
-                  <div className="flex items-center space-x-1">
-                    <span 
-                      className="w-4 h-4 rounded-full"
-                      style={{ backgroundColor: getPipeColor(rule.pipe) }}
-                    />
-                    <select
-                      value={rule.pipe}
-                      onChange={(e) => updateEnumRule(index, { pipe: parseInt(e.target.value) })}
-                      className="w-24 px-2 py-1.5 bg-gray-700 border border-gray-600 rounded text-white text-sm"
-                    >
-                      {[1,2,3,4,5,6,7,8].map(n => (
-                        <option key={n} value={n}>{n}号管道</option>
-                      ))}
-                    </select>
-                  </div>
-                  <button
-                    onClick={() => removeEnumRule(index)}
-                    className="text-red-400 hover:text-red-300"
-                  >
-                    ✕
-                  </button>
-                </div>
-              ))}
-            </div>
-          )}
-          
-          <button
-            onClick={addEnumRule}
-            className="text-sm text-blue-400 hover:text-blue-300"
-          >
-            + 添加匹配规则
-          </button>
-        </div>
-      )}
-
-      {/* 区间判断规则 */}
-      {config.checkMode === 'range' && (
-        <div className="border border-yellow-600 rounded-lg p-4 space-y-3">
-          <h4 className="text-sm font-medium text-yellow-400">区间判断规则（按顺序判断，命中即停）</h4>
-          
-          {rangeRules.length > 0 && (
-            <div className="space-y-2">
-              {rangeRules.map((rule, index) => (
-                <div key={rule.id} className="flex items-center space-x-2">
-                  <select
-                    value={rule.operator}
-                    onChange={(e) => updateRangeRule(index, { operator: e.target.value })}
-                    className="w-20 px-2 py-1.5 bg-gray-700 border border-gray-600 rounded text-white text-sm"
-                  >
-                    <option value=">=">≥</option>
-                    <option value=">">＞</option>
-                    <option value="<=">≤</option>
-                    <option value="<">＜</option>
-                    <option value="==">＝</option>
-                  </select>
-                  <input
-                    type="text"
-                    value={rule.value}
-                    onChange={(e) => updateRangeRule(index, { value: e.target.value })}
-                    placeholder="临界值"
-                    className="w-24 px-2 py-1.5 bg-gray-700 border border-gray-600 rounded text-white text-sm"
-                  />
-                  <span className="text-gray-400 text-sm">→</span>
-                  <div className="flex items-center space-x-1">
-                    <span 
-                      className="w-4 h-4 rounded-full"
-                      style={{ backgroundColor: getPipeColor(rule.pipe) }}
-                    />
-                    <select
-                      value={rule.pipe}
-                      onChange={(e) => updateRangeRule(index, { pipe: parseInt(e.target.value) })}
-                      className="w-24 px-2 py-1.5 bg-gray-700 border border-gray-600 rounded text-white text-sm"
-                    >
-                      {[1,2,3,4,5,6,7,8].map(n => (
-                        <option key={n} value={n}>{n}号管道</option>
-                      ))}
-                    </select>
-                  </div>
-                  <button
-                    onClick={() => removeRangeRule(index)}
-                    className="text-red-400 hover:text-red-300"
-                  >
-                    ✕
-                  </button>
-                </div>
-              ))}
-            </div>
-          )}
-          
-          <button
-            onClick={addRangeRule}
-            className="text-sm text-yellow-400 hover:text-yellow-300"
-          >
-            + 添加区间规则
-          </button>
-          
-          <p className="text-xs text-gray-500">
-            💡 规则按从上到下的顺序判断，一旦命中就停止
-          </p>
-        </div>
-      )}
-
-      {/* 默认管道 */}
-      <div>
-        <label className="block text-sm font-medium text-gray-300 mb-2">
-          默认管道（都不匹配时）
+      {/* 校验表单选择 */}
+      <div className="bg-green-900/30 p-3 rounded border border-green-700">
+        <label className="block text-sm font-medium text-green-300 mb-2">
+          📋 校验表单<span className="text-red-400">*</span>
         </label>
-        <div className="flex items-center space-x-2">
-          <span 
-            className="w-4 h-4 rounded-full"
-            style={{ backgroundColor: getPipeColor(config.defaultPipe || 1) }}
-          />
-          <select
-            value={config.defaultPipe || 1}
-            onChange={(e) => updateConfig('defaultPipe', parseInt(e.target.value))}
-            className="w-32 px-3 py-2 bg-gray-700 border border-gray-600 rounded text-white text-sm"
-          >
-            {[1,2,3,4,5,6,7,8].map(n => (
-              <option key={n} value={n}>{n}号管道</option>
-            ))}
-          </select>
+        <select
+          value={config.targetFormId || ''}
+          onChange={(e) => handleSelectTargetForm(e.target.value)}
+          className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-white text-sm"
+        >
+          <option value="">-- 选择表单 --</option>
+          {forms?.map(form => (
+            <option key={form.id} value={form.id}>
+              {form.name} [{form.type || form.subType}]
+            </option>
+          ))}
+        </select>
+        {config.targetFormId && (
+          <div className="mt-2 text-xs text-gray-400">
+            将在表单 <span className="text-green-300">{config.targetFormName}</span> 中查询
+          </div>
+        )}
+      </div>
+
+      {/* 输出字段选择 */}
+      {config.targetFormId && (
+        <div className="bg-gray-800 p-3 rounded border border-gray-600">
+          <label className="block text-sm font-medium text-gray-300 mb-2">
+            📤 输出字段<span className="text-red-400">*</span>
+          </label>
+          <p className="text-xs text-gray-400 mb-3">
+            选择要查询并输出的字段（可多选）
+          </p>
+          
+          {targetFormFields.length > 0 ? (
+            <div className="space-y-2 max-h-48 overflow-y-auto">
+              {targetFormFields.map(field => {
+                const fieldId = field.fieldId || field.id;
+                const isSelected = outputFields.includes(fieldId);
+                return (
+                  <label 
+                    key={fieldId}
+                    className={`flex items-center p-2 rounded cursor-pointer transition-colors ${
+                      isSelected ? 'bg-blue-900/50 border border-blue-600' : 'bg-gray-700/50 hover:bg-gray-700'
+                    }`}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={isSelected}
+                      onChange={() => toggleFieldSelection(fieldId)}
+                      className="mr-3"
+                    />
+                    <div className="flex-1">
+                      <span className="text-white text-sm">{getFieldName(fieldId)}</span>
+                      <span className="text-gray-400 text-xs ml-2">({fieldId})</span>
+                    </div>
+                  </label>
+                );
+              })}
+            </div>
+          ) : (
+            <div className="text-sm text-yellow-400">
+              ⚠️ 该表单没有可用字段
+            </div>
+          )}
+          
+          {outputFields.length > 0 && (
+            <div className="mt-3 text-xs text-green-400">
+              ✓ 已选择 {outputFields.length} 个字段
+            </div>
+          )}
+          
+          {outputFields.length === 0 && targetFormFields.length > 0 && (
+            <div className="mt-3 text-xs text-yellow-400">
+              ⚠️ 请至少选择一个输出字段
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* 输出变量 */}
+      <div className="bg-purple-900/30 p-3 rounded border border-purple-700">
+        <label className="block text-sm font-medium text-purple-300 mb-2">
+          💾 输出变量名
+        </label>
+        <input
+          type="text"
+          value={config.outputVariableId || ''}
+          onChange={(e) => updateConfig('outputVariableId', e.target.value)}
+          placeholder="如：userInfo、productData"
+          className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-white text-sm"
+        />
+        <div className="mt-2 text-xs text-gray-400">
+          查询结果将存储为键值对数组：[{`{ field1: "值1", field2: "值2" }`}]
         </div>
       </div>
 
-      {/* 流程配合示例 */}
-      <div className="border-t border-gray-600 pt-4">
-        <h4 className="text-sm font-medium text-gray-300 mb-2">流程配合示例</h4>
-        <div className="bg-gray-900 rounded p-3 text-xs font-mono">
-          <div className="text-blue-400">□↓ 读取用户 → user</div>
-          <div className="text-gray-500 pl-4">↓</div>
-          <div className="text-orange-400">✓ 对象属性校验（{config.checkTarget || 'user.会员等级'}）</div>
-          <div className="text-gray-500 pl-4">↓ 确定走几号管道</div>
-          <div className="text-yellow-400">◆ 多条件分叉</div>
-          <div className="text-gray-400 pl-4">├─ 1号管道 → 金卡优惠计算</div>
-          <div className="text-gray-400 pl-4">├─ 2号管道 → 银卡优惠计算</div>
-          <div className="text-gray-400 pl-4">└─ 3号管道 → 普通计算</div>
+      {/* 数据不存在时的处理（必配） */}
+      <div className="bg-red-900/30 p-3 rounded border border-red-700">
+        <label className="block text-sm font-medium text-red-300 mb-2">
+          ⚠️ 数据不存在时 → 跳转到<span className="text-red-400">*</span>
+        </label>
+        <select
+          value={config.notExistNodeId || ''}
+          onChange={(e) => updateConfig('notExistNodeId', e.target.value)}
+          className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-white text-sm"
+        >
+          <option value="">-- 必须选择 --</option>
+          {availableNodes.map(n => (
+            <option key={n.id} value={n.id}>{n.name} ({n.id})</option>
+          ))}
+        </select>
+        <div className="mt-2 text-xs text-red-300">
+          当根据主键查询不到数据时，将跳转到此节点
         </div>
+      </div>
+
+      {/* 逻辑预览 */}
+      {config.sourceVariableId && config.targetFormId && outputFields.length > 0 && (
+        <div className="bg-gray-700/30 p-3 rounded">
+          <div className="text-xs text-gray-400 mb-1">查询逻辑预览：</div>
+          <div className="text-sm font-mono space-y-1">
+            <div>
+              <span className="text-gray-400">从</span>
+              <span className="text-blue-300 mx-1">{config.sourceVariableId}</span>
+              <span className="text-gray-400">获取主键值</span>
+            </div>
+            <div>
+              <span className="text-gray-400">在</span>
+              <span className="text-green-300 mx-1">{config.targetFormName}</span>
+              <span className="text-gray-400">中查询</span>
+            </div>
+            <div>
+              <span className="text-gray-400">输出字段：</span>
+              <span className="text-yellow-300">{outputFields.map(f => getFieldName(f)).join(', ')}</span>
+            </div>
+            <div>
+              <span className="text-gray-400">存储到：</span>
+              <span className="text-purple-300">{config.outputVariableId || '(未指定)'}</span>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 使用说明 */}
+      <div className="border-t border-gray-600 pt-4">
+        <h4 className="text-sm font-medium text-gray-300 mb-2">📖 使用说明</h4>
+        <div className="text-xs text-gray-400 space-y-1">
+          <p>1. 选择包含主键值的输入变量</p>
+          <p>2. 选择要查询的目标表单</p>
+          <p>3. 选择要输出的字段（可多选）</p>
+          <p>4. 设置输出变量名，查询结果将存储为键值对数组</p>
+          <p>5. 必须配置"数据不存在"时的跳转节点</p>
+        </div>
+        <h4 className="text-sm font-medium text-gray-300 mt-3 mb-2">💡 输出格式</h4>
+        <div className="bg-gray-900 rounded p-2 text-xs font-mono text-gray-300">
+          <div>// 输出变量的值：</div>
+          <div className="text-green-400">[{`{ "会员等级": "金卡", "省份": "广东" }`}]</div>
+        </div>
+        <h4 className="text-sm font-medium text-gray-300 mt-3 mb-2">💡 后续使用</h4>
+        <ul className="text-xs text-gray-400 space-y-1">
+          <li>• 可接"多条件分叉"根据字段值走不同流程</li>
+          <li>• 可接"写入节点"将查询结果写入其他表单</li>
+        </ul>
       </div>
     </div>
   );

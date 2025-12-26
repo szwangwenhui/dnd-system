@@ -138,9 +138,13 @@ PrimitiveRegistry.register({
 // ========== 分支控制：是非分叉 ==========
 PrimitiveRegistry.register({
   id: 'binaryBranch', name: '是非分叉', icon: '◇', category: 'branch',
-  description: '根据条件判断走两个分支之一', color: 'yellow',
-  defaultConfig: { expression: '', yesBranch: { type: 'node', nodeId: '' }, noBranch: { type: 'node', nodeId: '' } },
-  toDocument: function(config) { return `◇ 判断：${config?.expression || '?'}`; },
+  description: '根据布尔值变量决定走两个分支之一', color: 'yellow',
+  defaultConfig: { 
+    sourceVariableId: '',  // 输入的布尔值变量
+    trueNodeId: '',        // true时跳转的节点
+    falseNodeId: ''        // false时跳转的节点
+  },
+  toDocument: function(config) { return `◇ 判断：${config?.sourceVariableId || '?'}`; },
   canDelete: true, unique: false,
   connections: { hasInput: true, hasOutput: true, maxOutputs: 2, outputLabels: ['是', '否'] },
   isBranch: true, branchType: 'binary'
@@ -149,9 +153,16 @@ PrimitiveRegistry.register({
 // ========== 分支控制：多条件分叉 ==========
 PrimitiveRegistry.register({
   id: 'multiBranch', name: '多条件分叉', icon: '◆', category: 'branch',
-  description: '根据条件走多个分支之一', color: 'orange',
-  defaultConfig: { pipeCount: 2, pipes: [{ label: '1号管道', type: 'node', nodeId: '' }, { label: '2号管道', type: 'node', nodeId: '' }] },
-  toDocument: function(config) { return `◆ ${config?.pipeCount || 2}路分叉`; },
+  description: '根据变量值匹配跳转到对应节点', color: 'orange',
+  defaultConfig: { 
+    sourceVariableId: '',  // 输入变量
+    matchRules: [],        // 匹配规则：[{ value: '值', nodeId: '节点ID' }, ...]
+    defaultNodeId: ''      // 默认节点（都不匹配时）
+  },
+  toDocument: function(config) { 
+    const count = config?.matchRules?.length || 0;
+    return `◆ ${count}条件分叉：${config?.sourceVariableId || '?'}`; 
+  },
   canDelete: true, unique: false,
   connections: { hasInput: true, hasOutput: true, maxOutputs: -1, dynamic: true },
   isBranch: true, branchType: 'multi'
@@ -275,26 +286,33 @@ PrimitiveRegistry.register({
   isBranch: true, branchType: 'binary'
 });
 
-// ========== 校验：数据格式校验 ==========
+// ========== 备注节点（原格式校验） ==========
 PrimitiveRegistry.register({
-  id: 'formatCheck', name: '格式校验', icon: '✓!', category: 'validate',
-  description: '校验数据格式', color: 'orange',
-  defaultConfig: { rules: [], passNodeId: '', failNodeId: '', failMode: 'first' },
-  toDocument: function(config) { return `✓! 格式校验(${config?.rules?.length||0}条)`; },
+  id: 'formatCheck', name: '备注', icon: '📝', category: 'validate',
+  description: '添加流程备注说明', color: 'gray',
+  defaultConfig: { note: '' },
+  toDocument: function(config) { return `📝 ${config?.note?.substring(0, 20) || '备注'}...`; },
   canDelete: true, unique: false,
-  connections: { hasInput: true, hasOutput: true, maxOutputs: 2, outputLabels: ['通过', '未通过'] },
-  isBranch: true, branchType: 'binary'
+  connections: { hasInput: true, hasOutput: true, maxOutputs: 1 },
+  isBranch: false
 });
 
 // ========== 校验：属性校验 ==========
 PrimitiveRegistry.register({
   id: 'propCheck', name: '属性校验', icon: '✓', category: 'validate',
-  description: '根据属性值确定分叉管道', color: 'orange',
-  defaultConfig: { checkTarget: '', checkMode: 'enum', enumRules: [], rangeRules: [], defaultPipe: 1 },
-  toDocument: function(config) { return `✓ 属性校验：${config?.checkTarget||'?'}`; },
+  description: '根据主键查询属性字段值', color: 'orange',
+  defaultConfig: { 
+    sourceVariableId: '',   // 输入变量（含主键的对象）
+    targetFormId: '',       // 校验表单
+    targetFormName: '',
+    outputFields: [],       // 输出字段列表
+    outputVariableId: '',   // 输出变量ID
+    notExistNodeId: ''      // 数据不存在时跳转的节点（必配）
+  },
+  toDocument: function(config) { return `✓ 属性查询：${config?.targetFormName || '?'}`; },
   canDelete: true, unique: false,
-  connections: { hasInput: true, hasOutput: true, maxOutputs: -1, dynamic: true },
-  isBranch: true, branchType: 'multi'
+  connections: { hasInput: true, hasOutput: true, maxOutputs: 2, outputLabels: ['找到', '不存在'] },
+  isBranch: true, branchType: 'binary'
 });
 
 // ========== 计算：表达式计算 ==========
