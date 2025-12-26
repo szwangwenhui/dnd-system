@@ -469,12 +469,12 @@
       // 获取用户管理表ID
       const userFormId = 'SYS-FORM-USER';
       
-      // 创建6个内置区块
+      // 创建4个内置区块
       const builtInBlocks = [
-        // 1. "登录注册"按钮 - 显示在右上角，点击打开父容器弹窗
+        // 1. "登录/注册"按钮 - 显示在右上角，点击打开登录注册弹窗
         {
           id: `${newRoleId}-0000-BLK-001`,
-          name: '登录注册按钮',
+          name: '登录/注册',
           type: '按钮',
           x: 1080,
           y: 20,
@@ -491,19 +491,21 @@
             backgroundColor: '#3b82f6',
             color: '#ffffff',
             borderRadius: '4px',
-            fontSize: '14px'
+            fontSize: '14px',
+            fontWeight: 'bold',
+            textAlign: 'center'
           }
         },
-        // 2. 登录注册父区块 - 容器弹窗
+        // 2. 登录注册父区块 - 交互区块，包含账号密码字段
         {
           id: `${newRoleId}-0000-BLK-002`,
-          name: '登录注册容器',
-          type: '显示',
-          contentType: '容器',
-          x: 400,
+          name: '登录注册表单',
+          type: '交互',
+          contentType: '表单',
+          x: 350,
           y: 150,
           width: 400,
-          height: 200,
+          height: 280,
           level: 99,
           isBuiltIn: true,
           isPopup: true,
@@ -511,57 +513,74 @@
             showCloseButton: true,
             closeOnOverlayClick: true
           },
+          formConfig: {
+            formId: userFormId,
+            formName: '用户管理',
+            displayFields: ['SYS-FLD-002', 'SYS-FLD-009'],  // 账号 + 密码
+            hideSubmitButton: true  // 隐藏默认提交按钮，用下面两个按钮代替
+          },
+          childBlocks: [`${newRoleId}-0000-BLK-003`, `${newRoleId}-0000-BLK-004`],
           style: {
             backgroundColor: '#ffffff',
             borderRadius: '12px',
             boxShadow: '0 20px 40px rgba(0,0,0,0.2)',
-            padding: '24px'
-          },
-          childBlocks: [`${newRoleId}-0000-BLK-003`, `${newRoleId}-0000-BLK-004`]
+            padding: '32px'
+          }
         },
-        // 3. "登录"按钮 - 打开登录交互弹窗
+        // 3. "登录"按钮 - 启动存在性校验流程
         {
           id: `${newRoleId}-0000-BLK-003`,
-          name: '登录按钮',
+          name: '登录',
           type: '按钮',
-          x: 60,
-          y: 80,
-          width: 120,
-          height: 40,
+          x: 40,
+          y: 200,
+          width: 150,
+          height: 44,
           level: 99,
           isBuiltIn: true,
           parentBlockId: `${newRoleId}-0000-BLK-002`,
           isPopup: true,
           buttonConfig: {
-            buttonType: 'openPopup',
+            buttonType: 'submitForm',
             buttonText: '登录',
-            targetBlockId: `${newRoleId}-0000-BLK-005`
+            submitAction: 'validate',  // 存在性校验
+            formBlockId: `${newRoleId}-0000-BLK-002`,
+            onSuccess: 'closePopupAndRefresh',
+            onFail: 'showError',
+            successMessage: '登录成功',
+            failMessage: '账号或密码错误'
           },
           style: {
             backgroundColor: '#3b82f6',
             color: '#ffffff',
             borderRadius: '8px',
             fontSize: '16px',
-            fontWeight: 'bold'
+            fontWeight: 'bold',
+            textAlign: 'center'
           }
         },
-        // 4. "注册"按钮 - 打开注册交互弹窗
+        // 4. "注册"按钮 - 直接存储到用户管理表
         {
           id: `${newRoleId}-0000-BLK-004`,
-          name: '注册按钮',
+          name: '注册',
           type: '按钮',
-          x: 220,
-          y: 80,
-          width: 120,
-          height: 40,
+          x: 210,
+          y: 200,
+          width: 150,
+          height: 44,
           level: 99,
           isBuiltIn: true,
           parentBlockId: `${newRoleId}-0000-BLK-002`,
           isPopup: true,
           buttonConfig: {
-            buttonType: 'openPopup',
+            buttonType: 'submitForm',
             buttonText: '注册',
-            targetBlockId: `${newRoleId}-0000-BLK-006`
+            submitAction: 'create',  // 直接存储
+            formBlockId: `${newRoleId}-0000-BLK-002`,
+            onSuccess: 'showSuccessAndClear',
+            onFail: 'showError',
+            successMessage: '注册成功，请登录',
+            failMessage: '注册失败，账号可能已存在'
           },
           style: {
             backgroundColor: 'transparent',
@@ -569,74 +588,8 @@
             border: '2px solid #3b82f6',
             borderRadius: '8px',
             fontSize: '16px',
-            fontWeight: 'bold'
-          }
-        },
-        // 5. 登录交互区块 - 用于校验，不存储
-        {
-          id: `${newRoleId}-0000-BLK-005`,
-          name: '登录表单',
-          type: '交互',
-          contentType: '表单',
-          x: 350,
-          y: 200,
-          width: 500,
-          height: 300,
-          level: 98,
-          isBuiltIn: true,
-          isPopup: true,
-          popupConfig: {
-            showCloseButton: true,
-            closeOnOverlayClick: true
-          },
-          formConfig: {
-            formId: userFormId,
-            formName: '用户管理',
-            submitAction: 'validate',  // 校验模式
-            displayFields: ['SYS-FLD-002', 'SYS-FLD-009'],  // 账号 + 密码
-            submitButtonText: '登录',
-            onSuccess: 'closePopup',
-            onFail: 'showError'
-          },
-          style: {
-            backgroundColor: '#ffffff',
-            borderRadius: '12px',
-            boxShadow: '0 20px 40px rgba(0,0,0,0.2)',
-            padding: '32px'
-          }
-        },
-        // 6. 注册交互区块 - 用于存储
-        {
-          id: `${newRoleId}-0000-BLK-006`,
-          name: '注册表单',
-          type: '交互',
-          contentType: '表单',
-          x: 350,
-          y: 200,
-          width: 500,
-          height: 400,
-          level: 98,
-          isBuiltIn: true,
-          isPopup: true,
-          popupConfig: {
-            showCloseButton: true,
-            closeOnOverlayClick: true
-          },
-          formConfig: {
-            formId: userFormId,
-            formName: '用户管理',
-            submitAction: 'create',  // 存储模式
-            displayFields: ['SYS-FLD-002', 'SYS-FLD-009'],  // 账号 + 密码
-            hasConfirmPassword: true,  // 需要确认密码
-            submitButtonText: '注册',
-            onSuccess: 'showSuccessAndClose',
-            onFail: 'showError'
-          },
-          style: {
-            backgroundColor: '#ffffff',
-            borderRadius: '12px',
-            boxShadow: '0 20px 40px rgba(0,0,0,0.2)',
-            padding: '32px'
+            fontWeight: 'bold',
+            textAlign: 'center'
           }
         }
       ];
