@@ -1,4 +1,5 @@
 // DND2 预览模块 - 主组件
+// 版本: 2024-12-26-v4 (恢复稳定版本，修复hooks数量问题)
 // 原文件: src/preview/Preview.jsx (2,389行)
 // 
 // Phase 3 拆分结构:
@@ -768,9 +769,7 @@ function Preview() {
     // 根据区块类型和内容类型渲染
     // 先检查区块类型（交互、按钮），再检查内容类型
     
-    // 弹窗关闭按钮组件 - 鼠标悬停时才显示
-    const [showCloseButton, setShowCloseButton] = React.useState(false);
-    
+    // 弹窗关闭按钮组件 - 一直显示（后续可改为悬停显示）
     const PopupCloseButton = () => (
       <div
         style={{
@@ -781,7 +780,7 @@ function Preview() {
           height: 24,
           backgroundColor: '#ef4444',
           borderRadius: '50%',
-          display: showCloseButton ? 'flex' : 'none',
+          display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
           cursor: 'pointer',
@@ -797,12 +796,6 @@ function Preview() {
         ✕
       </div>
     );
-    
-    // 弹窗容器的鼠标事件处理器
-    const popupHoverHandlers = isPopupBlock ? {
-      onMouseEnter: () => setShowCloseButton(true),
-      onMouseLeave: () => setShowCloseButton(false)
-    } : {};
     
     // 如果是子区块（有subType），使用子区块渲染
     if (block.subType) {
@@ -921,7 +914,7 @@ function Preview() {
     const labelColor = style.labelColor || '#6b7280';
     
     return (
-      <div key={block.id} style={containerStyle} {...popupHoverHandlers}>
+      <div key={block.id} style={containerStyle}>
         {PopupCloseButton && <PopupCloseButton />}
         
         {/* 表单标题 */}
@@ -2491,18 +2484,34 @@ function Preview() {
     }
   };
 
-  // 加载中
+  // 加载中 - 显示转圈圈动画
   if (loading) {
     return (
       <div style={{
         display: 'flex',
+        flexDirection: 'column',
         alignItems: 'center',
         justifyContent: 'center',
         height: '100vh',
-        fontSize: '18px',
-        color: '#666',
+        backgroundColor: '#f9fafb',
       }}>
-        加载中...
+        <div style={{
+          width: '48px',
+          height: '48px',
+          border: '4px solid #e5e7eb',
+          borderTop: '4px solid #3b82f6',
+          borderRadius: '50%',
+          animation: 'spin 1s linear infinite',
+        }} />
+        <style>{`
+          @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+          }
+        `}</style>
+        <div style={{ marginTop: '16px', fontSize: '16px', color: '#6b7280' }}>
+          页面加载中...
+        </div>
       </div>
     );
   }
