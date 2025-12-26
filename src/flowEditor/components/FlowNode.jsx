@@ -1,4 +1,5 @@
 // 画布上的节点组件 - 支持动态连接点位置
+// 节点尺寸：84px宽（原120px的70%）
 function FlowNode({ 
   node, 
   isSelected, 
@@ -48,38 +49,38 @@ function FlowNode({
       case 'top':
         return {
           ...baseStyle,
-          top: '-16px',
+          top: '-12px',
           left: '50%',
           transform: 'translateX(-50%)',
-          width: '32px',
-          height: '32px'
+          width: '24px',
+          height: '24px'
         };
       case 'bottom':
         return {
           ...baseStyle,
-          bottom: '-16px',
+          bottom: '-12px',
           left: '50%',
           transform: 'translateX(-50%)',
-          width: '32px',
-          height: '32px'
+          width: '24px',
+          height: '24px'
         };
       case 'left':
         return {
           ...baseStyle,
-          left: '-16px',
+          left: '-12px',
           top: '50%',
           transform: 'translateY(-50%)',
-          width: '32px',
-          height: '32px'
+          width: '24px',
+          height: '24px'
         };
       case 'right':
         return {
           ...baseStyle,
-          right: '-16px',
+          right: '-12px',
           top: '50%',
           transform: 'translateY(-50%)',
-          width: '32px',
-          height: '32px'
+          width: '24px',
+          height: '24px'
         };
       default:
         return baseStyle;
@@ -119,7 +120,7 @@ function FlowNode({
         style={getPortStyle(side, true)}
       >
         <div
-          className={`w-5 h-5 rounded-full border-2 cursor-pointer transition-all ${
+          className={`w-4 h-4 rounded-full border-2 cursor-pointer transition-all ${
             isConnecting 
               ? 'bg-blue-500 border-blue-300 scale-125 shadow-lg shadow-blue-500/50' 
               : 'bg-gray-500 border-gray-300 hover:bg-blue-500 hover:border-blue-300 hover:scale-125'
@@ -129,9 +130,9 @@ function FlowNode({
           title={label || "连接到此节点"}
         />
         {label && (
-          <span className="absolute text-[9px] text-gray-400 whitespace-nowrap"
+          <span className="absolute text-[8px] text-gray-400 whitespace-nowrap"
             style={{
-              [side === 'left' ? 'right' : side === 'right' ? 'left' : side === 'top' ? 'bottom' : 'top']: '20px',
+              [side === 'left' ? 'right' : side === 'right' ? 'left' : side === 'top' ? 'bottom' : 'top']: '16px',
               ...(side === 'left' || side === 'right' 
                 ? { top: '50%', transform: 'translateY(-50%)' }
                 : { left: '50%', transform: 'translateX(-50%)' }
@@ -160,16 +161,16 @@ function FlowNode({
         onMouseDown={(e) => handleOutputPointMouseDown(e, outputType)}
       >
         <div
-          className={`w-5 h-5 rounded-full ${portColorClass} hover:scale-125 transition-all`}
+          className={`w-4 h-4 rounded-full ${portColorClass} hover:scale-125 transition-all`}
           title={label || "从此节点连出"}
         />
         {label && (
-          <span className={`absolute text-[9px] whitespace-nowrap ${
+          <span className={`absolute text-[8px] whitespace-nowrap ${
             outputType === 'yes' ? 'text-green-400' : 
             outputType === 'no' ? 'text-red-400' : 'text-gray-400'
           }`}
             style={{
-              [side === 'bottom' ? 'top' : side === 'top' ? 'bottom' : side === 'left' ? 'right' : 'left']: '20px',
+              [side === 'bottom' ? 'top' : side === 'top' ? 'bottom' : side === 'left' ? 'right' : 'left']: '16px',
               ...(side === 'left' || side === 'right' 
                 ? { top: '50%', transform: 'translateY(-50%)' }
                 : { left: '50%', transform: 'translateX(-50%)' }
@@ -214,25 +215,25 @@ function FlowNode({
         </>
       )}
       
-      {/* 节点主体 */}
+      {/* 节点主体 - 缩小到70% */}
       <div
-        className={`w-[120px] rounded-lg border-2 overflow-hidden transition-shadow ${
+        className={`w-[84px] rounded-lg border-2 overflow-hidden transition-shadow ${
           isSelected ? 'shadow-lg shadow-blue-500/30 ring-2 ring-blue-500' : 'shadow-md'
         } ${colors.border}`}
         style={{ backgroundColor: '#2d2d3a' }}
       >
         {/* 头部 */}
-        <div className={`px-2 py-1.5 ${colors.bg} flex items-center space-x-1.5`}>
-          <span className="text-white text-sm">{primitive?.icon || '?'}</span>
-          <span className="text-white text-xs font-medium truncate flex-1">{node.name}</span>
+        <div className={`px-1.5 py-1 ${colors.bg} flex items-center space-x-1`}>
+          <span className="text-white text-xs">{primitive?.icon || '?'}</span>
+          <span className="text-white text-[10px] font-medium truncate flex-1">{node.name}</span>
         </div>
         
         {/* 内容 */}
-        <div className="px-2 py-2 text-xs text-gray-400">
+        <div className="px-1.5 py-1.5 text-[9px] text-gray-400">
           <div className="truncate">{node.id}</div>
           {primitive?.toDocument && (
             <div className="truncate mt-0.5 text-gray-500">
-              {primitive.toDocument(node.config || {}).substring(0, 20)}...
+              {primitive.toDocument(node.config || {}).substring(0, 15)}...
             </div>
           )}
         </div>
@@ -240,7 +241,7 @@ function FlowNode({
         {/* 删除按钮 */}
         {isSelected && primitive?.canDelete !== false && (
           <button
-            className="absolute -top-2 -right-2 w-5 h-5 bg-red-500 rounded-full text-white text-xs flex items-center justify-center hover:bg-red-600"
+            className="absolute -top-1.5 -right-1.5 w-4 h-4 bg-red-500 rounded-full text-white text-[10px] flex items-center justify-center hover:bg-red-600"
             style={{ zIndex: 60 }}
             onClick={(e) => { e.stopPropagation(); onDelete(); }}
           >
@@ -253,25 +254,25 @@ function FlowNode({
       {hasOutput && (
         <>
           {isBranch && primitive.branchType === 'binary' ? (
-            // 是非分叉：两个输出点在底部
+            // 是非分叉：两个输出点在底部，分开放置避免汇聚
             <>
               <div
                 data-connection-point="output-yes"
                 className="absolute cursor-pointer"
-                style={{ bottom: '-16px', left: '25%', transform: 'translateX(-50%)', zIndex: 50 }}
+                style={{ bottom: '-12px', left: '20%', transform: 'translateX(-50%)', zIndex: 50 }}
                 onMouseDown={(e) => handleOutputPointMouseDown(e, 'yes')}
               >
-                <div className="w-5 h-5 rounded-full bg-green-500 border-2 border-green-300 hover:scale-125 transition-all" />
-                <span className="text-[10px] text-green-400 absolute top-5 left-1/2 -translate-x-1/2">是</span>
+                <div className="w-4 h-4 rounded-full bg-green-500 border-2 border-green-300 hover:scale-125 transition-all" />
+                <span className="text-[8px] text-green-400 absolute top-4 left-1/2 -translate-x-1/2">是</span>
               </div>
               <div
                 data-connection-point="output-no"
                 className="absolute cursor-pointer"
-                style={{ bottom: '-16px', right: '25%', transform: 'translateX(50%)', zIndex: 50 }}
+                style={{ bottom: '-12px', left: '80%', transform: 'translateX(-50%)', zIndex: 50 }}
                 onMouseDown={(e) => handleOutputPointMouseDown(e, 'no')}
               >
-                <div className="w-5 h-5 rounded-full bg-red-500 border-2 border-red-300 hover:scale-125 transition-all" />
-                <span className="text-[10px] text-red-400 absolute top-5 left-1/2 -translate-x-1/2">否</span>
+                <div className="w-4 h-4 rounded-full bg-red-500 border-2 border-red-300 hover:scale-125 transition-all" />
+                <span className="text-[8px] text-red-400 absolute top-4 left-1/2 -translate-x-1/2">否</span>
               </div>
             </>
           ) : outputSides && outputSides.length > 1 ? (

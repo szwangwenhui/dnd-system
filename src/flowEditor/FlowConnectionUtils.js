@@ -26,9 +26,9 @@
  */
 
 const FlowConnectionUtils = {
-  // 节点尺寸常量
-  NODE_WIDTH: 120,
-  NODE_HEIGHT: 70,  // 包含头部和内容
+  // 节点尺寸常量（缩小到70%）
+  NODE_WIDTH: 84,
+  NODE_HEIGHT: 50,  // 包含头部和内容
   
   // 获取连接点在节点边上的位置
   getPortPosition(node, side) {

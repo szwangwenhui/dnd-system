@@ -208,8 +208,13 @@ function LoginPage({ onLoginSuccess }) {
           textAlign: 'center',
           border: '1px solid #fcd34d'
         }}>
-          <span style={{ marginRight: '6px' }}>🤖</span>
-          <strong>本网站代码全部由AI编写、调试和修改，无1行人工代码</strong>
+          <div style={{ marginBottom: '4px' }}>
+            <span style={{ marginRight: '6px' }}>🤖</span>
+            <span>本网站代码全部由AI编写、调试和修改</span>
+          </div>
+          <div style={{ fontSize: '14px', fontWeight: 'bold' }}>
+            没有1行人工代码
+          </div>
         </div>
 
         {/* 版权信息 */}

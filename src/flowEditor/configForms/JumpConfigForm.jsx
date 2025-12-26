@@ -1,14 +1,63 @@
-// 页面跳转节点配置表单
-function JumpConfigForm({ node, pages, nodes, onUpdate }) {
+// 流程跳转节点配置表单
+// 功能：跳转到另一个数据流程
+function JumpConfigForm({ 
+  node, 
+  onUpdate,
+  projectId,
+  flowId
+}) {
   const config = node.config || {};
   const params = config.params || [];
   
-  const availableNodes = nodes.filter(n => n.id !== node.id);
+  // 可跳转的流程列表（开始节点包含flowTrigger触发方式的流程）
+  const [availableFlows, setAvailableFlows] = React.useState([]);
+  const [allFlows, setAllFlows] = React.useState([]);
+  const [loading, setLoading] = React.useState(false);
+
+  // 加载流程列表
+  React.useEffect(() => {
+    if (projectId) {
+      loadFlows();
+    }
+  }, [projectId]);
+
+  const loadFlows = async () => {
+    setLoading(true);
+    try {
+      const flows = await window.dndDB.getDataFlowsByProjectId(projectId);
+      setAllFlows(flows || []);
+      
+      // 筛选出可被其他流程触发的流程（排除当前流程）
+      const targetFlows = (flows || []).filter(f => {
+        if (f.id === flowId) return false;  // 排除当前流程
+        
+        // 检查开始节点是否配置了flowTrigger触发方式
+        const startNode = f.design?.nodes?.find(n => n.type === 'start');
+        if (!startNode) return true;  // 如果没有开始节点配置，默认可跳转
+        
+        const triggerTypes = startNode.config?.triggerTypes || [startNode.config?.triggerType];
+        return triggerTypes.includes('flowTrigger') || triggerTypes.length === 0;
+      });
+      
+      setAvailableFlows(targetFlows);
+    } catch (error) {
+      console.error('加载流程列表失败:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
   
   const updateConfig = (key, value) => {
     onUpdate({
       config: { ...config, [key]: value }
     });
+  };
+
+  // 选择目标流程
+  const handleSelectFlow = (targetFlowId) => {
+    const flow = allFlows.find(f => f.id === targetFlowId);
+    updateConfig('targetFlowId', targetFlowId);
+    updateConfig('targetFlowName', flow?.name || '');
   };
 
   // 添加参数
@@ -33,71 +82,54 @@ function JumpConfigForm({ node, pages, nodes, onUpdate }) {
 
   return (
     <div className="space-y-4">
-      {/* 目标页面 */}
-      <div>
-        <label className="block text-sm font-medium text-gray-300 mb-2">
-          目标页面 <span className="text-red-400">*</span>
-        </label>
-        <select
-          value={config.targetPage || ''}
-          onChange={(e) => updateConfig('targetPage', e.target.value)}
-          className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-white text-sm"
-        >
-          <option value="">-- 选择页面 --</option>
-          {pages?.map(page => (
-            <option key={page.id} value={page.id}>{page.name}</option>
-          ))}
-        </select>
+      {/* 说明 */}
+      <div className="bg-purple-900/30 border border-purple-700 rounded p-3">
+        <p className="text-sm text-purple-300">
+          ↗ 流程跳转：跳转到另一个数据流程执行
+        </p>
+        <p className="text-xs text-purple-400 mt-1">
+          跳转后本流程结束，目标流程需在开始节点勾选"其它流程触发"
+        </p>
       </div>
 
-      {/* 打开方式 */}
-      <div>
-        <label className="block text-sm font-medium text-gray-300 mb-2">打开方式</label>
-        <div className="space-y-2">
-          <label className="flex items-center text-sm text-gray-300">
-            <input
-              type="radio"
-              checked={config.openMode === 'replace' || !config.openMode}
-              onChange={() => updateConfig('openMode', 'replace')}
-              className="mr-2"
-            />
-            <span className="flex items-center">
-              <span className="mr-2">📄</span>
-              替换当前页（离开当前页）
-            </span>
-          </label>
-          <label className="flex items-center text-sm text-gray-300">
-            <input
-              type="radio"
-              checked={config.openMode === 'newWindow'}
-              onChange={() => updateConfig('openMode', 'newWindow')}
-              className="mr-2"
-            />
-            <span className="flex items-center">
-              <span className="mr-2">🗗</span>
-              新窗口打开
-            </span>
-          </label>
-          <label className="flex items-center text-sm text-gray-300">
-            <input
-              type="radio"
-              checked={config.openMode === 'modal'}
-              onChange={() => updateConfig('openMode', 'modal')}
-              className="mr-2"
-            />
-            <span className="flex items-center">
-              <span className="mr-2">⬚</span>
-              弹窗打开（模态框）
-            </span>
-          </label>
-        </div>
+      {/* 目标流程 */}
+      <div className="bg-blue-900/30 p-3 rounded border border-blue-700">
+        <label className="block text-sm font-medium text-blue-300 mb-2">
+          🎯 目标流程 <span className="text-red-400">*</span>
+        </label>
+        {loading ? (
+          <div className="text-sm text-gray-400">加载中...</div>
+        ) : availableFlows.length === 0 ? (
+          <div className="text-sm text-yellow-400">
+            ⚠️ 暂无可跳转的流程。请确保目标流程的开始节点勾选了"其它流程触发"
+          </div>
+        ) : (
+          <select
+            value={config.targetFlowId || ''}
+            onChange={(e) => handleSelectFlow(e.target.value)}
+            className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-white text-sm"
+          >
+            <option value="">-- 选择流程 --</option>
+            {availableFlows.map(flow => (
+              <option key={flow.id} value={flow.id}>{flow.name} ({flow.id})</option>
+            ))}
+          </select>
+        )}
+        {config.targetFlowId && (
+          <div className="mt-2 text-xs text-gray-400">
+            将跳转到流程：<span className="text-blue-300">{config.targetFlowName}</span>
+          </div>
+        )}
       </div>
 
-      {/* 传入参数 */}
-      <div>
+      {/* 传递参数（可选） */}
+      <div className="bg-gray-800 p-3 rounded border border-gray-600">
         <label className="block text-sm font-medium text-gray-300 mb-2">
-          传入参数（可选）
+          📦 传递参数（可选）
         </label>
+        <p className="text-xs text-gray-400 mb-3">
+          可以将当前流程的变量传递给目标流程
+        </p>
         
         {params.length > 0 && (
           <div className="space-y-2 mb-3">
@@ -129,7 +161,7 @@ function JumpConfigForm({ node, pages, nodes, onUpdate }) {
                   type="text"
                   value={param.value}
                   onChange={(e) => updateParam(index, { value: e.target.value })}
-                  placeholder={param.valueType === 'fixed' ? '输入值' : '如: order.id'}
+                  placeholder={param.valueType === 'fixed' ? '输入值' : '变量名'}
                   className="flex-1 px-2 py-1.5 bg-gray-700 border border-gray-600 rounded text-white text-sm"
                 />
                 
@@ -153,67 +185,50 @@ function JumpConfigForm({ node, pages, nodes, onUpdate }) {
         </button>
       </div>
 
-      {/* 跳转后本流程行为 */}
-      <div>
-        <label className="block text-sm font-medium text-gray-300 mb-2">跳转后本流程</label>
-        <div className="space-y-2">
-          <label className="flex items-center text-sm text-gray-300">
-            <input
-              type="radio"
-              checked={config.afterJump === 'end' || !config.afterJump}
-              onChange={() => updateConfig('afterJump', 'end')}
-              className="mr-2"
-            />
-            结束（跳转即结束流程）
-          </label>
-          <label className="flex items-center text-sm text-gray-300">
-            <input
-              type="radio"
-              checked={config.afterJump === 'continue'}
-              onChange={() => updateConfig('afterJump', 'continue')}
-              className="mr-2"
-            />
-            继续（弹窗关闭后继续下一节点）
-          </label>
-        </div>
-        
-        {config.afterJump === 'continue' && (
-          <p className="text-xs text-yellow-500 mt-2">
-            ⚠ 仅在"弹窗打开"模式下有效
-          </p>
-        )}
-      </div>
-
       {/* 预览 */}
-      <div className="border-t border-gray-600 pt-4">
-        <h4 className="text-sm font-medium text-gray-300 mb-2">跳转预览</h4>
-        <div className="bg-gray-900 rounded p-3 text-sm">
-          <div className="flex items-center space-x-2 text-gray-300">
-            <span className="text-green-400">⬚→</span>
-            <span>跳转到</span>
-            <span className="text-blue-400 font-medium">
-              {pages?.find(p => p.id === config.targetPage)?.name || '未选择页面'}
-            </span>
-          </div>
-          
-          {params.length > 0 && (
-            <div className="mt-2 pl-6 text-xs text-gray-500">
-              携带参数：
-              {params.map((p, i) => (
-                <span key={i} className="ml-2">
-                  {p.name}={p.valueType === 'variable' ? `{${p.value}}` : `"${p.value}"`}
-                </span>
-              ))}
+      {config.targetFlowId && (
+        <div className="bg-gray-700/30 p-3 rounded">
+          <div className="text-xs text-gray-400 mb-1">跳转预览：</div>
+          <div className="text-sm font-mono">
+            <div className="text-white">
+              <span className="text-purple-400">↗</span> 跳转到流程 
+              <span className="text-blue-300 ml-1">{config.targetFlowName}</span>
             </div>
-          )}
-          
-          <div className="mt-2 pl-6 text-xs text-gray-500">
-            打开方式：
-            {config.openMode === 'newWindow' && '新窗口'}
-            {config.openMode === 'modal' && '弹窗'}
-            {(!config.openMode || config.openMode === 'replace') && '替换当前页'}
+            {params.length > 0 && (
+              <div className="mt-1 pl-4 text-gray-400 text-xs">
+                携带参数：
+                {params.map((p, i) => (
+                  <span key={i} className="ml-2">
+                    <span className="text-yellow-300">{p.name}</span>=
+                    {p.valueType === 'variable' 
+                      ? <span className="text-green-300">{`{${p.value}}`}</span>
+                      : <span className="text-gray-300">"{p.value}"</span>
+                    }
+                  </span>
+                ))}
+              </div>
+            )}
+            <div className="mt-1 pl-4 text-red-300 text-xs">
+              ⚠ 本流程在此结束
+            </div>
           </div>
         </div>
+      )}
+
+      {/* 使用说明 */}
+      <div className="border-t border-gray-600 pt-4">
+        <h4 className="text-sm font-medium text-gray-300 mb-2">📖 使用说明</h4>
+        <div className="text-xs text-gray-400 space-y-1">
+          <p>1. 选择要跳转的目标流程</p>
+          <p>2. 目标流程需在开始节点勾选"其它流程触发"</p>
+          <p>3. 可传递参数给目标流程使用</p>
+          <p>4. 跳转后本流程结束，不再执行后续节点</p>
+        </div>
+        <h4 className="text-sm font-medium text-gray-300 mt-3 mb-2">💡 与页面跳转的区别</h4>
+        <ul className="text-xs text-gray-400 space-y-1">
+          <li>• <strong>页面跳转</strong>：在结束节点配置，用于流程结束后跳转页面</li>
+          <li>• <strong>流程跳转</strong>：在流程中途跳转到另一个流程继续执行</li>
+        </ul>
       </div>
     </div>
   );

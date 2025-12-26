@@ -39,19 +39,25 @@ PrimitiveRegistry.register({
   id: 'start', name: '开始', icon: '○', category: 'flow',
   description: '流程的起点，定义触发条件', color: 'green',
   defaultConfig: {
-    triggerType: 'button',
+    triggerTypes: ['button'],  // 改为数组，支持多选
     buttonConfig: { pageId: '', pageName: '', blockId: '', blockName: '' },
     intervalConfig: { interval: 60, unit: 'seconds', formId: '', formName: '', primaryKey: '', scanField: '' },
-    scheduleConfig: { hour: 0, minute: 0 }
+    scheduleConfig: { hour: 0, minute: 0 },
+    flowTriggerConfig: { allowedFlows: [] }  // 允许哪些流程跳转触发
   },
   toDocument: function(config) {
     if (!config) return '○ 流程开始';
-    switch(config.triggerType) {
-      case 'button': return `○ 按钮触发：${config.buttonConfig?.pageName || '未设置'} - ${config.buttonConfig?.blockName || '未设置'}`;
-      case 'interval': return `○ 间隔扫描：每${config.intervalConfig?.interval || 60}${config.intervalConfig?.unit === 'minutes' ? '分钟' : '秒'}`;
-      case 'schedule': return `○ 定时触发：${String(config.scheduleConfig?.hour || 0).padStart(2,'0')}:${String(config.scheduleConfig?.minute || 0).padStart(2,'0')}`;
-      default: return '○ 流程开始';
-    }
+    const types = config.triggerTypes || [config.triggerType || 'button'];
+    const labels = types.map(t => {
+      switch(t) {
+        case 'button': return '按钮';
+        case 'interval': return '间隔扫描';
+        case 'schedule': return '定时';
+        case 'flowTrigger': return '流程跳转';
+        default: return t;
+      }
+    });
+    return `○ 触发：${labels.join('/')}`;
   },
   canDelete: false, unique: true,
   connections: { hasInput: false, hasOutput: true, maxOutputs: 1 }
@@ -178,14 +184,18 @@ PrimitiveRegistry.register({
   connections: { hasInput: true, hasOutput: true, maxOutputs: 1 }
 });
 
-// ========== 交互操作：跳转 ==========
+// ========== 交互操作：流程跳转 ==========
 PrimitiveRegistry.register({
-  id: 'jump', name: '跳转', icon: '⬚→', category: 'interact',
-  description: '跳转到指定页面', color: 'purple',
-  defaultConfig: { pageId: '', pageName: '', openMode: 'replace', params: [], afterJump: 'end' },
-  toDocument: function(config) { return `⬚→ 跳转[${config?.pageName || '?'}]`; },
+  id: 'jump', name: '流程跳转', icon: '↗', category: 'interact',
+  description: '跳转到另一个数据流程', color: 'purple',
+  defaultConfig: { 
+    targetFlowId: '',      // 目标流程ID
+    targetFlowName: '',    // 目标流程名称
+    params: []             // 传递的参数
+  },
+  toDocument: function(config) { return `↗ 跳转流程[${config?.targetFlowName || '?'}]`; },
   canDelete: true, unique: false,
-  connections: { hasInput: true, hasOutput: true, maxOutputs: 1 }
+  connections: { hasInput: true, hasOutput: false, maxOutputs: 0 }  // 跳转后本流程结束
 });
 
 // ========== 循环控制：循环开始 ==========

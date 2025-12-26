@@ -144,11 +144,11 @@ function NodeEditorDialog({ node, projectId, flowId, flowName, forms, fields, pa
         return (
           <JumpConfigForm
             node={{ ...node, config }}
-            pages={pages}
-            nodes={nodes}
             onUpdate={(updates) => {
               if (updates.config) handleConfigChange(updates.config);
             }}
+            projectId={projectId}
+            flowId={flowId}
           />
         );
       

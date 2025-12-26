@@ -1,8 +1,9 @@
 // 开始节点配置表单
-function StartNodeConfigForm({ config, onChange, pages, forms, blocks, fields }) {
+function StartNodeConfigForm({ config, onChange, pages, forms, blocks, fields, projectId }) {
   // 确保所有子配置对象都存在
   const defaultConfig = {
-    triggerType: 'button',
+    triggerTypes: ['button'],  // 改为数组，支持多选
+    triggerType: 'button',     // 保留兼容
     buttonConfig: { pageId: '', pageName: '', blockId: '', blockName: '' },
     scheduleConfig: { hour: 0, minute: 0 },
     dataChangeConfig: {
@@ -18,6 +19,9 @@ function StartNodeConfigForm({ config, onChange, pages, forms, blocks, fields })
       conditionField: '',
       conditionOperator: '==',
       conditionValue: ''
+    },
+    flowTriggerConfig: {
+      allowedFlows: []  // 允许哪些流程触发，空数组表示所有流程都可以触发
     },
     // 保留旧的intervalConfig以兼容已有配置
     intervalConfig: { 
@@ -38,31 +42,34 @@ function StartNodeConfigForm({ config, onChange, pages, forms, blocks, fields })
   const [localConfig, setLocalConfig] = React.useState({
     ...defaultConfig,
     ...config,
+    triggerTypes: config?.triggerTypes || (config?.triggerType ? [config.triggerType] : ['button']),
     buttonConfig: { ...defaultConfig.buttonConfig, ...(config?.buttonConfig || {}) },
     scheduleConfig: { ...defaultConfig.scheduleConfig, ...(config?.scheduleConfig || {}) },
     dataChangeConfig: { ...defaultConfig.dataChangeConfig, ...(config?.dataChangeConfig || {}) },
     conditionConfig: { ...defaultConfig.conditionConfig, ...(config?.conditionConfig || {}) },
+    flowTriggerConfig: { ...defaultConfig.flowTriggerConfig, ...(config?.flowTriggerConfig || {}) },
     intervalConfig: { ...defaultConfig.intervalConfig, ...(config?.intervalConfig || {}) }
   });
 
   // 标记是否已初始化
   const initializedRef = React.useRef(false);
 
-  // 首次渲染后，如果triggerType为空，自动设置默认值并通知父组件
+  // 首次渲染后，如果triggerTypes为空，自动设置默认值并通知父组件
   React.useEffect(() => {
     // 只在首次渲染后执行一次
-    if (!initializedRef.current && !config?.triggerType) {
+    if (!initializedRef.current && (!config?.triggerTypes || config.triggerTypes.length === 0)) {
       initializedRef.current = true;
       // 使用setTimeout确保不在渲染期间调用setState
       setTimeout(() => {
         const initialConfig = {
           ...defaultConfig,
           ...config,
-          triggerType: 'button',  // 确保设置默认触发类型
+          triggerTypes: config?.triggerType ? [config.triggerType] : ['button'],
           buttonConfig: { ...defaultConfig.buttonConfig, ...(config?.buttonConfig || {}) },
           scheduleConfig: { ...defaultConfig.scheduleConfig, ...(config?.scheduleConfig || {}) },
           dataChangeConfig: { ...defaultConfig.dataChangeConfig, ...(config?.dataChangeConfig || {}) },
           conditionConfig: { ...defaultConfig.conditionConfig, ...(config?.conditionConfig || {}) },
+          flowTriggerConfig: { ...defaultConfig.flowTriggerConfig, ...(config?.flowTriggerConfig || {}) },
           intervalConfig: { ...defaultConfig.intervalConfig, ...(config?.intervalConfig || {}) }
         };
         onChange(initialConfig);
@@ -155,51 +162,114 @@ function StartNodeConfigForm({ config, onChange, pages, forms, blocks, fields })
 
   return (
     <div className="space-y-4">
-      {/* 触发方式 */}
+      {/* 触发方式 - 改为多选 */}
       <div>
-        <label className="block text-sm font-medium text-gray-300 mb-2">触发方式</label>
+        <label className="block text-sm font-medium text-gray-300 mb-2">
+          触发方式 <span className="text-xs text-gray-400">（可多选）</span>
+        </label>
         <div className="space-y-2">
           <label className="flex items-center space-x-2 cursor-pointer">
             <input
-              type="radio"
-              checked={localConfig.triggerType === 'button'}
-              onChange={() => updateConfig('triggerType', 'button')}
-              className="text-blue-500"
+              type="checkbox"
+              checked={localConfig.triggerTypes?.includes('button')}
+              onChange={(e) => {
+                const types = [...(localConfig.triggerTypes || [])];
+                if (e.target.checked) {
+                  if (!types.includes('button')) types.push('button');
+                } else {
+                  const idx = types.indexOf('button');
+                  if (idx > -1) types.splice(idx, 1);
+                }
+                updateConfig('triggerTypes', types.length > 0 ? types : ['button']);
+              }}
+              className="text-blue-500 rounded"
             />
-            <span className="text-gray-200">按钮触发</span>
+            <span className="text-gray-200">🔘 按钮触发</span>
           </label>
           <label className="flex items-center space-x-2 cursor-pointer">
             <input
-              type="radio"
-              checked={localConfig.triggerType === 'schedule'}
-              onChange={() => updateConfig('triggerType', 'schedule')}
-              className="text-blue-500"
+              type="checkbox"
+              checked={localConfig.triggerTypes?.includes('schedule')}
+              onChange={(e) => {
+                const types = [...(localConfig.triggerTypes || [])];
+                if (e.target.checked) {
+                  if (!types.includes('schedule')) types.push('schedule');
+                } else {
+                  const idx = types.indexOf('schedule');
+                  if (idx > -1) types.splice(idx, 1);
+                }
+                updateConfig('triggerTypes', types.length > 0 ? types : ['button']);
+              }}
+              className="text-blue-500 rounded"
             />
-            <span className="text-gray-200">定时触发</span>
+            <span className="text-gray-200">⏰ 定时触发</span>
           </label>
           <label className="flex items-center space-x-2 cursor-pointer">
             <input
-              type="radio"
-              checked={localConfig.triggerType === 'dataChange'}
-              onChange={() => updateConfig('triggerType', 'dataChange')}
-              className="text-blue-500"
+              type="checkbox"
+              checked={localConfig.triggerTypes?.includes('dataChange')}
+              onChange={(e) => {
+                const types = [...(localConfig.triggerTypes || [])];
+                if (e.target.checked) {
+                  if (!types.includes('dataChange')) types.push('dataChange');
+                } else {
+                  const idx = types.indexOf('dataChange');
+                  if (idx > -1) types.splice(idx, 1);
+                }
+                updateConfig('triggerTypes', types.length > 0 ? types : ['button']);
+              }}
+              className="text-blue-500 rounded"
             />
-            <span className="text-gray-200">数据变化</span>
+            <span className="text-gray-200">📊 数据变化</span>
           </label>
           <label className="flex items-center space-x-2 cursor-pointer">
             <input
-              type="radio"
-              checked={localConfig.triggerType === 'condition' || localConfig.triggerType === 'interval'}
-              onChange={() => updateConfig('triggerType', 'condition')}
-              className="text-blue-500"
+              type="checkbox"
+              checked={localConfig.triggerTypes?.includes('condition') || localConfig.triggerTypes?.includes('interval')}
+              onChange={(e) => {
+                const types = [...(localConfig.triggerTypes || [])];
+                if (e.target.checked) {
+                  if (!types.includes('condition')) types.push('condition');
+                } else {
+                  const idx = types.indexOf('condition');
+                  if (idx > -1) types.splice(idx, 1);
+                  const idx2 = types.indexOf('interval');
+                  if (idx2 > -1) types.splice(idx2, 1);
+                }
+                updateConfig('triggerTypes', types.length > 0 ? types : ['button']);
+              }}
+              className="text-blue-500 rounded"
             />
-            <span className="text-gray-200">条件满足</span>
+            <span className="text-gray-200">✓ 条件满足</span>
+          </label>
+          <label className="flex items-center space-x-2 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={localConfig.triggerTypes?.includes('flowTrigger')}
+              onChange={(e) => {
+                const types = [...(localConfig.triggerTypes || [])];
+                if (e.target.checked) {
+                  if (!types.includes('flowTrigger')) types.push('flowTrigger');
+                } else {
+                  const idx = types.indexOf('flowTrigger');
+                  if (idx > -1) types.splice(idx, 1);
+                }
+                updateConfig('triggerTypes', types.length > 0 ? types : ['button']);
+              }}
+              className="text-blue-500 rounded"
+            />
+            <span className="text-gray-200">↗ 其它流程跳转触发</span>
           </label>
         </div>
+        {localConfig.triggerTypes?.length > 1 && (
+          <div className="mt-2 text-xs text-green-400">
+            ✓ 已选择 {localConfig.triggerTypes.length} 种触发方式
+          </div>
+        )}
       </div>
 
       {/* 按钮触发配置 */}
-      {localConfig.triggerType === 'button' && (
+      {localConfig.triggerTypes?.includes('button') && (
         <div className="bg-gray-700 rounded-lg p-4 space-y-3">
           <h4 className="text-sm font-medium text-gray-300">按钮触发配置</h4>
           
@@ -265,7 +335,7 @@ function StartNodeConfigForm({ config, onChange, pages, forms, blocks, fields })
       )}
 
       {/* 数据变化配置 */}
-      {localConfig.triggerType === 'dataChange' && (
+      {localConfig.triggerTypes?.includes('dataChange') && (
         <div className="bg-gray-700 rounded-lg p-4 space-y-3">
           <h4 className="text-sm font-medium text-gray-300">数据变化配置</h4>
           
@@ -317,7 +387,7 @@ function StartNodeConfigForm({ config, onChange, pages, forms, blocks, fields })
       )}
 
       {/* 条件满足配置 */}
-      {(localConfig.triggerType === 'condition' || localConfig.triggerType === 'interval') && (
+      {(localConfig.triggerTypes?.includes('condition') || localConfig.triggerTypes?.includes('interval')) && (
         <div className="bg-gray-700 rounded-lg p-4 space-y-3">
           <h4 className="text-sm font-medium text-gray-300">条件满足配置</h4>
           
@@ -460,7 +530,7 @@ function StartNodeConfigForm({ config, onChange, pages, forms, blocks, fields })
       )}
 
       {/* 定时触发配置 */}
-      {localConfig.triggerType === 'schedule' && (
+      {localConfig.triggerTypes?.includes('schedule') && (
         <div className="bg-gray-700 rounded-lg p-4 space-y-3">
           <h4 className="text-sm font-medium text-gray-300">定时触发配置</h4>
           
@@ -494,6 +564,19 @@ function StartNodeConfigForm({ config, onChange, pages, forms, blocks, fields })
           
           <div className="text-xs text-gray-400">
             每天 {String(localConfig.scheduleConfig.hour).padStart(2, '0')}:{String(localConfig.scheduleConfig.minute).padStart(2, '0')} 自动执行
+          </div>
+        </div>
+      )}
+
+      {/* 其它流程触发配置 */}
+      {localConfig.triggerTypes?.includes('flowTrigger') && (
+        <div className="bg-purple-900/30 rounded-lg p-4 space-y-3 border border-purple-700">
+          <h4 className="text-sm font-medium text-purple-300">↗ 其它流程跳转触发</h4>
+          <p className="text-xs text-gray-400">
+            当其他流程使用"流程跳转"节点跳转到本流程时触发执行
+          </p>
+          <div className="text-xs text-purple-400 bg-purple-900/50 rounded p-2">
+            💡 勾选此选项后，其他流程的"流程跳转"节点可以选择本流程作为目标
           </div>
         </div>
       )}
