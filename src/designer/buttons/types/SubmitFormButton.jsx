@@ -86,17 +86,21 @@ async function executeSubmitForm(config, context) {
   console.log('config:', config);
   console.log('context:', context);
   
-  const { projectId, blockId, forms } = context;
+  const { projectId, blockId } = context;
   const submitAction = config.submitAction || 'create';
   
-  // 获取表单区块（通过配置或查找父区块）
+  // 获取表单区块ID（通过配置或查找父区块）
   let formBlockId = config.formBlockId;
   if (!formBlockId) {
-    // 尝试从按钮的parentId获取
+    // 尝试从blocks中查找按钮的父区块
     const blocks = context.blocks || [];
     const button = blocks.find(b => b.id === blockId);
-    formBlockId = button?.parentId;
+    if (button?.parentId) {
+      formBlockId = button.parentId;
+    }
   }
+  
+  console.log('表单区块ID:', formBlockId);
   
   if (!formBlockId) {
     const msg = config.failMessage || '未找到关联的表单区块';
@@ -104,24 +108,24 @@ async function executeSubmitForm(config, context) {
     return { success: false, error: msg };
   }
   
-  // 获取表单输入数据（从全局状态或DOM）
-  // 这里需要通过事件获取表单数据
-  const formData = await getFormInputData(formBlockId);
+  // 从全局状态获取表单输入数据
+  const formData = window.__previewFormData?.[formBlockId] || {};
   console.log('表单数据:', formData);
   
   if (!formData || Object.keys(formData).length === 0) {
-    const msg = '请填写表单内容';
-    alert(msg);
-    return { success: false, error: msg };
+    alert('请填写表单内容');
+    return { success: false, error: '表单数据为空' };
   }
   
-  // 获取用户管理表
+  // 获取用户管理表ID
   const userFormId = 'SYS-FORM-USER';
   
   try {
     if (submitAction === 'validate') {
       // 存在性校验（登录）
+      console.log('执行登录验证...');
       const result = await validateUser(projectId, userFormId, formData);
+      
       if (result.success) {
         const msg = config.successMessage || '登录成功';
         alert(msg);
@@ -129,6 +133,8 @@ async function executeSubmitForm(config, context) {
         window.dispatchEvent(new CustomEvent('closePopup', {
           detail: { blockId: formBlockId }
         }));
+        // 刷新页面以更新用户状态
+        setTimeout(() => window.location.reload(), 500);
         return { success: true, user: result.user };
       } else {
         const msg = config.failMessage || '账号或密码错误';
@@ -137,12 +143,16 @@ async function executeSubmitForm(config, context) {
       }
     } else {
       // 直接存储（注册）
+      console.log('执行注册...');
       const result = await createUser(projectId, userFormId, formData);
+      
       if (result.success) {
         const msg = config.successMessage || '注册成功，请登录';
         alert(msg);
         // 清空表单
-        clearFormInput(formBlockId);
+        window.dispatchEvent(new CustomEvent('clearFormInput', {
+          detail: { blockId: formBlockId }
+        }));
         return { success: true, userId: result.userId };
       } else {
         const msg = config.failMessage || result.error || '注册失败';
@@ -156,38 +166,6 @@ async function executeSubmitForm(config, context) {
     alert(msg);
     return { success: false, error: msg };
   }
-}
-
-// 获取表单输入数据
-async function getFormInputData(formBlockId) {
-  // 尝试从全局状态获取
-  if (window.__previewFormData && window.__previewFormData[formBlockId]) {
-    return window.__previewFormData[formBlockId];
-  }
-  
-  // 回退：从DOM获取
-  const formContainer = document.querySelector(`[data-block-id="${formBlockId}"]`);
-  if (formContainer) {
-    const inputs = formContainer.querySelectorAll('input');
-    const data = {};
-    inputs.forEach(input => {
-      const fieldId = input.getAttribute('data-field-id') || input.name;
-      if (fieldId) {
-        data[fieldId] = input.value;
-      }
-    });
-    return data;
-  }
-  
-  return null;
-}
-
-// 清空表单输入
-function clearFormInput(formBlockId) {
-  // 通过事件通知清空
-  window.dispatchEvent(new CustomEvent('clearFormInput', {
-    detail: { blockId: formBlockId }
-  }));
 }
 
 // 验证用户（登录）

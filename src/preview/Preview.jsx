@@ -1,5 +1,5 @@
 // DND2 预览模块 - 主组件
-// 版本: 2024-12-26-v6 (悬停显示关闭按钮、修复按钮颜色)
+// 版本: 2024-12-26-v7 (添加表单数据全局同步、关闭弹窗事件)
 // 原文件: src/preview/Preview.jsx (2,389行)
 // 
 // Phase 3 拆分结构:
@@ -87,6 +87,61 @@ function Preview() {
       }
     };
   }, [projectId, roleId, pageId]);
+
+  // 同步表单输入数据到全局，供按钮组件访问
+  React.useEffect(() => {
+    window.__previewFormData = interactionInputData;
+  }, [interactionInputData]);
+  
+  // 监听清空表单和关闭弹窗事件
+  React.useEffect(() => {
+    const handleClearForm = (e) => {
+      const { blockId } = e.detail || {};
+      if (blockId) {
+        setInteractionInputData(prev => ({
+          ...prev,
+          [blockId]: {}
+        }));
+      }
+    };
+    
+    const handleClosePopup = async (e) => {
+      const { blockId } = e.detail || {};
+      if (blockId) {
+        // 关闭弹窗：设置zIndex为-1
+        setBlocks(prevBlocks => {
+          // 获取所有子区块
+          const getAllDescendants = (parentId, allBlocks) => {
+            const descendants = [];
+            const directChildren = allBlocks.filter(b => b.parentId === parentId);
+            directChildren.forEach(child => {
+              descendants.push(child);
+              descendants.push(...getAllDescendants(child.id, allBlocks));
+            });
+            return descendants;
+          };
+          
+          const descendants = getAllDescendants(blockId, prevBlocks);
+          const descendantIds = descendants.map(d => d.id);
+          
+          return prevBlocks.map(b => {
+            if (b.id === blockId || descendantIds.includes(b.id)) {
+              return { ...b, style: { ...b.style, zIndex: -1 } };
+            }
+            return b;
+          });
+        });
+      }
+    };
+    
+    window.addEventListener('clearFormInput', handleClearForm);
+    window.addEventListener('closePopup', handleClosePopup);
+    
+    return () => {
+      window.removeEventListener('clearFormInput', handleClearForm);
+      window.removeEventListener('closePopup', handleClosePopup);
+    };
+  }, []);
 
   // 弹窗事件监听
   React.useEffect(() => {
@@ -2357,6 +2412,7 @@ function Preview() {
           pageId: pageId,
           roleId: roleId,
           blockId: block.id,
+          blocks: blocks,  // 添加blocks以便查找父区块
           pages: pages,
           forms: forms,
           fields: fields
