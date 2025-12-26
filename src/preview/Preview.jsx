@@ -1,5 +1,5 @@
 // DND2 预览模块 - 主组件
-// 版本: 2024-12-26-v4 (恢复稳定版本，修复hooks数量问题)
+// 版本: 2024-12-26-v6 (悬停显示关闭按钮、修复按钮颜色)
 // 原文件: src/preview/Preview.jsx (2,389行)
 // 
 // Phase 3 拆分结构:
@@ -769,9 +769,10 @@ function Preview() {
     // 根据区块类型和内容类型渲染
     // 先检查区块类型（交互、按钮），再检查内容类型
     
-    // 弹窗关闭按钮组件 - 一直显示（后续可改为悬停显示）
+    // 弹窗关闭按钮组件 - 使用CSS实现悬停显示
     const PopupCloseButton = () => (
       <div
+        className="popup-close-btn"
         style={{
           position: 'absolute',
           top: 8,
@@ -788,7 +789,9 @@ function Preview() {
           fontSize: 14,
           fontWeight: 'bold',
           zIndex: 999,
-          boxShadow: '0 2px 4px rgba(0,0,0,0.2)'
+          boxShadow: '0 2px 4px rgba(0,0,0,0.2)',
+          opacity: 0,
+          transition: 'opacity 0.2s'
         }}
         onClick={handleClosePopup}
         title="关闭弹窗"
@@ -803,7 +806,7 @@ function Preview() {
     }
     
     if (block.type === '交互') {
-      return renderInteractionBlock(block, blockStyle, contentStyle, isPopupBlock ? PopupCloseButton : null);
+      return renderInteractionBlock(block, blockStyle, contentStyle, isPopupBlock ? PopupCloseButton : null, isPopupBlock);
     }
     
     if (block.type === '按钮') {
@@ -870,7 +873,7 @@ function Preview() {
   };
 
   // 渲染交互区块（根据样式模式渲染）
-  const renderInteractionBlock = (block, blockStyle, contentStyle, PopupCloseButton) => {
+  const renderInteractionBlock = (block, blockStyle, contentStyle, PopupCloseButton, isPopupBlock = false) => {
     const style = block.style || {};
     const styleMode = block.styleMode || 'default';
     
@@ -914,7 +917,7 @@ function Preview() {
     const labelColor = style.labelColor || '#6b7280';
     
     return (
-      <div key={block.id} style={containerStyle}>
+      <div key={block.id} className={isPopupBlock ? 'popup-container' : ''} style={containerStyle}>
         {PopupCloseButton && <PopupCloseButton />}
         
         {/* 表单标题 */}
@@ -2307,14 +2310,26 @@ function Preview() {
     // blockStyle 已经包含了完整的边框、圆角等样式
     const style = block.style || {};
     
-    // 判断用户是否设置了背景色（不是默认的transparent）
-    const hasCustomBg = style.backgroundColor && style.backgroundColor !== 'transparent';
+    // 判断用户是否设置了背景色
+    const isTransparentBg = !style.backgroundColor || style.backgroundColor === 'transparent';
     const hasCustomColor = style.color && style.color !== '#333' && style.color !== '#333333';
     
     // 从内容样式获取字体设置
     const fontSize = contentStyle.fontSize || 14;
     const fontFamily = contentStyle.fontFamily || 'inherit';
     const fontWeight = contentStyle.fontWeight || 'normal';
+    
+    // 根据背景色决定文字颜色
+    let bgColor, textColor;
+    if (isTransparentBg) {
+      // 透明背景：保持透明，文字用设置的颜色或默认蓝色
+      bgColor = 'transparent';
+      textColor = hasCustomColor ? style.color : '#3b82f6';
+    } else {
+      // 有背景色：使用设置的背景色，文字用设置的颜色或默认白色
+      bgColor = style.backgroundColor;
+      textColor = hasCustomColor ? style.color : '#ffffff';
+    }
     
     const finalStyle = {
       ...blockStyle,  // 继承所有样式（包括边框）
@@ -2327,10 +2342,9 @@ function Preview() {
       fontSize: fontSize,
       fontFamily: fontFamily,
       fontWeight: fontWeight,
-      // 直接使用原始样式中的背景色，如果没有设置则使用默认蓝色
-      backgroundColor: hasCustomBg ? style.backgroundColor : '#3b82f6',
-      // 如果用户没有设置文字颜色，使用白色；否则保留用户设置
-      color: hasCustomColor ? style.color : '#ffffff',
+      // 颜色
+      backgroundColor: bgColor,
+      color: textColor,
     };
 
     const handleClick = async () => {
@@ -2606,6 +2620,11 @@ function Preview() {
       display: 'flex',
       flexDirection: 'column',
     }}>
+      {/* 全局CSS - 弹窗悬停显示关闭按钮 */}
+      <style>{`
+        .popup-container:hover .popup-close-btn { opacity: 1 !important; }
+      `}</style>
+      
       {/* 预览工具栏 - 使用拆分的组件 */}
       {window.PreviewToolbar ? (
         <PreviewToolbar 
