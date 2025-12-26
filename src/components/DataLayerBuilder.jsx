@@ -15,9 +15,13 @@ function DataLayerBuilder({ projectId, roleId, onBack }) {
   const loadData = async () => {
     try {
       const proj = await window.dndDB.getProjectById(projectId);
+      if (!proj) {
+        alert('项目不存在');
+        return;
+      }
       setProject(proj);
       
-      const foundRole = proj.roles.find(r => r.id === roleId);
+      const foundRole = proj.roles?.find(r => r.id === roleId);
       setRole(foundRole);
     } catch (error) {
       alert('加载数据失败：' + error);

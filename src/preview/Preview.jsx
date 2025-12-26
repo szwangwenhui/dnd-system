@@ -429,9 +429,18 @@ function Preview() {
       // 加载表单和字段数据
       setForms(project.forms || []);
       
-      // 获取角色的字段
+      // 获取角色的字段，并合并项目级系统字段
       const role = project.roles?.find(r => r.id === roleId);
-      setFields(role?.fields || []);
+      const roleFields = role?.fields || [];
+      const projectFields = project.fields || [];
+      // 合并字段：项目级字段 + 角色字段（去重，优先使用角色字段）
+      const mergedFields = [...projectFields];
+      roleFields.forEach(rf => {
+        if (!mergedFields.find(f => f.id === rf.id)) {
+          mergedFields.push(rf);
+        }
+      });
+      setFields(mergedFields);
       
       // 预加载所有表单数据
       await loadAllFormData(page.design?.blocks || [], project.forms || []);
@@ -759,7 +768,9 @@ function Preview() {
     // 根据区块类型和内容类型渲染
     // 先检查区块类型（交互、按钮），再检查内容类型
     
-    // 弹窗关闭按钮组件
+    // 弹窗关闭按钮组件 - 鼠标悬停时才显示
+    const [showCloseButton, setShowCloseButton] = React.useState(false);
+    
     const PopupCloseButton = () => (
       <div
         style={{
@@ -770,7 +781,7 @@ function Preview() {
           height: 24,
           backgroundColor: '#ef4444',
           borderRadius: '50%',
-          display: 'flex',
+          display: showCloseButton ? 'flex' : 'none',
           alignItems: 'center',
           justifyContent: 'center',
           cursor: 'pointer',
@@ -786,6 +797,12 @@ function Preview() {
         ✕
       </div>
     );
+    
+    // 弹窗容器的鼠标事件处理器
+    const popupHoverHandlers = isPopupBlock ? {
+      onMouseEnter: () => setShowCloseButton(true),
+      onMouseLeave: () => setShowCloseButton(false)
+    } : {};
     
     // 如果是子区块（有subType），使用子区块渲染
     if (block.subType) {
@@ -893,7 +910,8 @@ function Preview() {
     // 获取表单和字段信息
     const form = forms.find(f => f.id === block.targetFormId);
     const primaryKeyId = form?.structure?.primaryKey;
-    const selectedFieldIds = [primaryKeyId, ...(block.selectedFields || [])].filter(Boolean);
+    // 不显示主键字段（自动生成），只显示用户选择的字段
+    const selectedFieldIds = (block.selectedFields || []).filter(Boolean);
     
     // 从内容样式中获取字体设置
     const labelFontSize = contentStyle.fontSize ? contentStyle.fontSize * 0.85 : 12;
@@ -903,7 +921,7 @@ function Preview() {
     const labelColor = style.labelColor || '#6b7280';
     
     return (
-      <div key={block.id} style={containerStyle}>
+      <div key={block.id} style={containerStyle} {...popupHoverHandlers}>
         {PopupCloseButton && <PopupCloseButton />}
         
         {/* 表单标题 */}
@@ -921,7 +939,7 @@ function Preview() {
         <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
           {selectedFieldIds.map(fieldId => {
             const field = fields.find(f => f.id === fieldId);
-            const isPrimaryKey = fieldId === primaryKeyId;
+            const fieldType = field?.type || '文本';
             
             return (
               <div key={fieldId} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -933,10 +951,10 @@ function Preview() {
                   flexShrink: 0,
                   fontFamily: contentStyle.fontFamily || 'inherit',
                 }}>
-                  {field?.name || fieldId}{isPrimaryKey ? '*' : ''}
+                  {field?.name || fieldId}
                 </label>
                 <input
-                  type="text"
+                  type={fieldType === '密码' ? 'password' : 'text'}
                   value={interactionInputData[block.id]?.[fieldId] || ''}
                   onChange={(e) => {
                     setInteractionInputData(prev => ({
@@ -963,25 +981,27 @@ function Preview() {
           })}
         </div>
         
-        {/* 提交按钮 */}
-        <button
-          onClick={() => handleInteractionSubmit(block)}
-          style={{
-            marginTop: '12px',
-            width: '100%',
-            padding: '8px',
-            backgroundColor: style.buttonColor || '#3b82f6',
-            color: style.buttonTextColor || '#ffffff',
-            border: 'none',
-            borderRadius: '4px',
-            fontSize: inputFontSize,
-            fontWeight: 'bold',
-            fontFamily: contentStyle.fontFamily || 'inherit',
-            cursor: 'pointer',
-          }}
-        >
-          确认提交
-        </button>
+        {/* 提交按钮 - 如果hideSubmitButton为true则隐藏 */}
+        {!block.hideSubmitButton && (
+          <button
+            onClick={() => handleInteractionSubmit(block)}
+            style={{
+              marginTop: '12px',
+              width: '100%',
+              padding: '8px',
+              backgroundColor: style.buttonColor || '#3b82f6',
+              color: style.buttonTextColor || '#ffffff',
+              border: 'none',
+              borderRadius: '4px',
+              fontSize: inputFontSize,
+              fontWeight: 'bold',
+              fontFamily: contentStyle.fontFamily || 'inherit',
+              cursor: 'pointer',
+            }}
+          >
+            确认提交
+          </button>
+        )}
       </div>
     );
   };
@@ -2573,7 +2593,7 @@ function Preview() {
   return (
     <div style={{
       minHeight: '100vh',
-      backgroundColor: '#f0f0f0',
+      backgroundColor: '#ffffff',
       display: 'flex',
       flexDirection: 'column',
     }}>
@@ -2642,19 +2662,18 @@ function Preview() {
         </div>
       )}
 
-      {/* 预览内容区 */}
+      {/* 预览内容区 - 真实页面样式 */}
       <div style={{
         flex: 1,
         display: 'flex',
         justifyContent: 'center',
-        padding: '24px',
         overflow: 'auto',
+        backgroundColor: '#ffffff',
       }}>
         <div style={{
           width: `${config.width}px`,
           minHeight: `${canvasHeight}px`,
-          backgroundColor: '#fff',
-          boxShadow: '0 4px 20px rgba(0,0,0,0.15)',
+          backgroundColor: '#ffffff',
           position: 'relative',
         }}>
           {blocks.map(block => renderBlock(block))}

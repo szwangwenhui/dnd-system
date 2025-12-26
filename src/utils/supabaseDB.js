@@ -519,7 +519,8 @@
           // 绑定用户管理表
           targetFormId: userFormId,
           targetFormName: '用户管理',
-          selectedFields: ['SYS-FLD-002', 'SYS-FLD-009'],  // 账号 + 密码
+          selectedFields: ['SYS-FLD-002', 'SYS-FLD-009'],  // 只显示账号 + 密码（不含用户ID主键）
+          hideSubmitButton: true,  // 隐藏默认提交按钮
           popupConfig: {
             showCloseButton: true,
             closeOnOverlayClick: true
@@ -532,24 +533,23 @@
             zIndex: -1  // 默认隐藏
           }
         },
-        // 3. "登录"按钮 - 启动存在性校验流程（绝对坐标：在父区块底部左侧）
+        // 3. "登录"按钮 - 子区块，跟随父区块显示/隐藏
         {
           id: `${newRoleId}-0000-BLK-003`,
           name: '登录',
           type: '按钮',
-          x: parentX + 50,           // 父区块x + 50
-          y: parentY + parentHeight - 70,  // 父区块底部往上70px
+          x: parentX + 50,
+          y: parentY + parentHeight - 70,
           width: 140,
           height: 44,
           level: 99,
           isBuiltIn: true,
           parentId: `${newRoleId}-0000-BLK-002`,
-          isPopup: true,
-          // 按钮类型和文字放在顶层
+          isPopup: false,  // 不是弹窗，只是子区块
           buttonType: 'submitForm',
           buttonText: '登录',
           buttonConfig: {
-            submitAction: 'validate',  // 存在性校验
+            submitAction: 'validate',
             formBlockId: `${newRoleId}-0000-BLK-002`,
             onSuccess: 'closePopupAndRefresh',
             onFail: 'showError',
@@ -562,27 +562,26 @@
             borderRadius: '8px',
             fontSize: '16px',
             fontWeight: 'bold',
-            zIndex: -1  // 默认隐藏（跟随父区块）
+            zIndex: -1  // 跟随父区块隐藏
           }
         },
-        // 4. "注册"按钮 - 直接存储到用户管理表（绝对坐标：在父区块底部右侧）
+        // 4. "注册"按钮 - 子区块，跟随父区块显示/隐藏
         {
           id: `${newRoleId}-0000-BLK-004`,
           name: '注册',
           type: '按钮',
-          x: parentX + 210,          // 父区块x + 210
-          y: parentY + parentHeight - 70,  // 父区块底部往上70px
+          x: parentX + 210,
+          y: parentY + parentHeight - 70,
           width: 140,
           height: 44,
           level: 99,
           isBuiltIn: true,
           parentId: `${newRoleId}-0000-BLK-002`,
-          isPopup: true,
-          // 按钮类型和文字放在顶层
+          isPopup: false,  // 不是弹窗，只是子区块
           buttonType: 'submitForm',
           buttonText: '注册',
           buttonConfig: {
-            submitAction: 'create',  // 直接存储
+            submitAction: 'create',
             formBlockId: `${newRoleId}-0000-BLK-002`,
             onSuccess: 'showSuccessAndClear',
             onFail: 'showError',
@@ -598,7 +597,7 @@
             borderRadius: '8px',
             fontSize: '16px',
             fontWeight: 'bold',
-            zIndex: -1  // 默认隐藏（跟随父区块）
+            zIndex: -1  // 跟随父区块隐藏
           }
         }
       ];
