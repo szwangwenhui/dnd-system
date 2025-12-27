@@ -12,7 +12,8 @@ function DesignerToolbar({
   onSave, 
   onClose,
   hasChanges,
-  onOpenEditor
+  onOpenEditor,
+  onOpenGraphicEditor
 }) {
   return (
     <div className="h-12 bg-white border-b border-gray-200 flex items-center justify-between px-4 shadow-sm flex-shrink-0">
@@ -26,14 +27,24 @@ function DesignerToolbar({
       
       {/* 右侧：工具按钮 */}
       <div className="flex items-center space-x-3">
-        {/* 富文本编辑器按钮 */}
+        {/* 文档编辑器按钮 */}
         <button
           onClick={onOpenEditor}
           className="px-3 py-1.5 bg-purple-100 text-purple-700 rounded hover:bg-purple-200 flex items-center space-x-1"
-          title="打开富文本编辑器"
+          title="打开文档编辑器（富文本）"
         >
-          <span>📝</span>
-          <span>编辑器</span>
+          <span>📄</span>
+          <span>文档编辑器</span>
+        </button>
+        
+        {/* 图形编辑器按钮 */}
+        <button
+          onClick={onOpenGraphicEditor}
+          className="px-3 py-1.5 bg-green-100 text-green-700 rounded hover:bg-green-200 flex items-center space-x-1"
+          title="打开图形编辑器（绑图）"
+        >
+          <span>🎨</span>
+          <span>图形编辑器</span>
         </button>
         
         <div className="w-px h-6 bg-gray-300"></div>

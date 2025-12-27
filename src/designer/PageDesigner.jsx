@@ -24,6 +24,10 @@ function PageDesigner({ projectId, roleId, page, onClose, onSave }) {
   const [closeProgress, setCloseProgress] = React.useState(page.designProgress || 0);
   const [hasChanges, setHasChanges] = React.useState(false);
 
+  // ===== 面板收起/展开状态 =====
+  const [leftPanelCollapsed, setLeftPanelCollapsed] = React.useState(false);
+  const [rightPanelCollapsed, setRightPanelCollapsed] = React.useState(false);
+
   // ===== 区块模板状态 =====
   const [showBlockTemplateSelector, setShowBlockTemplateSelector] = React.useState(false);
   const [showSaveBlockTemplate, setShowSaveBlockTemplate] = React.useState(false);
@@ -61,6 +65,10 @@ function PageDesigner({ projectId, roleId, page, onClose, onSave }) {
   const [editorContent, setEditorContent] = React.useState('');
   const [editorTitle, setEditorTitle] = React.useState('富文本编辑器');
   const [editorTargetBlockId, setEditorTargetBlockId] = React.useState(null);
+
+  // ===== 图形编辑器状态 =====
+  const [showGraphicEditor, setShowGraphicEditor] = React.useState(false);
+  const [graphicEditorTarget, setGraphicEditorTarget] = React.useState(null); // null=整个画布, blockId=指定区块
 
   // ===== 媒体预览状态 =====
   const [mediaPreview, setMediaPreview] = React.useState({ show: false, type: null, url: null, name: null });
@@ -313,6 +321,68 @@ function PageDesigner({ projectId, roleId, page, onClose, onSave }) {
     setEditorTitle(`编辑区块 ${selectedBlock.id} 的内容`);
     setEditorTargetBlockId(selectedBlock.id);
     setShowEditor(true);
+  };
+
+  // 打开图形编辑器
+  const handleOpenGraphicEditor = () => {
+    console.log('打开图形编辑器, selectedBlockId:', selectedBlockId);
+    
+    // 如果选中了区块，以该区块为画布；否则以整个设计画布为画布
+    const selectedBlock = selectedBlockId ? blocks.find(b => b.id === selectedBlockId) : null;
+    
+    if (selectedBlock) {
+      // 检查是否是适合绘图的区块类型
+      if (selectedBlock.type !== '显示') {
+        alert('图形编辑器只能用于"显示"类型的区块，或者不选中任何区块直接在画布上绘制装饰');
+        return;
+      }
+      setGraphicEditorTarget(selectedBlock);
+    } else {
+      // 以整个画布为目标
+      setGraphicEditorTarget(null);
+    }
+    
+    setShowGraphicEditor(true);
+  };
+
+  // 保存图形编辑器内容
+  const handleGraphicEditorSave = (imageData, elements) => {
+    console.log('图形编辑器保存:', imageData ? '有图片数据' : '无', '元素数量:', elements?.length);
+    
+    if (graphicEditorTarget) {
+      // 保存到指定区块
+      updateBlockWithHistory(graphicEditorTarget.id, {
+        contentType: '图片',
+        content: { url: imageData, type: 'base64' },
+        graphicElements: elements  // 保存元素数据以便后续编辑
+      });
+      setHasChanges(true);
+    } else {
+      // 保存为页面装饰层（创建一个新的装饰区块）
+      const canvasConfig = window.StyleUtils?.getCanvasConfig(canvasType) || { width: 1600, minHeight: 800 };
+      const newBlock = {
+        id: generateBlockId(),
+        name: '画布装饰',
+        type: '显示',
+        contentType: '图片',
+        content: { url: imageData, type: 'base64' },
+        graphicElements: elements,
+        x: 0,
+        y: 0,
+        width: canvasConfig.width,
+        height: canvasConfig.minHeight,
+        level: 0,  // 最底层
+        style: {
+          zIndex: 0,
+          pointerEvents: 'none'  // 不阻挡其他区块的交互
+        }
+      };
+      setBlocks([newBlock, ...blocks]);
+      setHasChanges(true);
+    }
+    
+    setShowGraphicEditor(false);
+    setGraphicEditorTarget(null);
   };
 
   // 保存编辑器内容
@@ -1662,35 +1732,66 @@ function PageDesigner({ projectId, roleId, page, onClose, onSave }) {
         onUndo={handleUndo} onRedo={handleRedo} onSave={handleSave}
         onClose={handleClose} hasChanges={hasChanges}
         onOpenEditor={handleOpenEditor}
+        onOpenGraphicEditor={handleOpenGraphicEditor}
       />
       <div className="flex-1 flex overflow-hidden">
-        <BlockList
-          blocks={blocks} selectedBlockId={selectedBlockId}
-          onSelectBlock={handleSelectBlockFromList} onAddBlock={handleAddBlock}
-          onDeleteBlock={handleDeleteBlock} expandedBlocks={expandedBlocks}
-          onToggleExpand={toggleBlockExpand}
-          onUpdateBlock={handleUpdateBlockFromList}
-          onGenerateChildBlocks={handleGenerateChildBlocks}
-          onGenerateFlowButtonChildBlocks={handleGenerateFlowButtonChildBlocks}
-          onSaveAsTemplate={handleSaveBlockAsTemplate}
-          projectId={projectId}
-          roleId={roleId}
-          forms={forms}
-          fields={fields}
-          dataFlows={dataFlows}
-        />
-        <DesignerCanvas
-          blocks={blocks} selectedBlockId={selectedBlockId}
-          canvasType={canvasType} scale={scale} onSelectBlock={handleSelectBlock}
-          onBlockDragStart={handleBlockDragStart}
-          onBlockResizeStart={handleBlockResizeStart}
-          onCanvasClick={handleCanvasClick}
-          onBlockContentChange={handleBlockContentChange}
-          onBlockStyleChange={handleBlockStyleChange}
-          projectId={projectId}
-        />
+        {/* 左侧面板 - 区块列表 */}
+        <div className="relative flex" style={{ width: leftPanelCollapsed ? '24px' : '240px', transition: 'width 0.3s' }}>
+          {!leftPanelCollapsed && (
+            <BlockList
+              blocks={blocks} selectedBlockId={selectedBlockId}
+              onSelectBlock={handleSelectBlockFromList} onAddBlock={handleAddBlock}
+              onDeleteBlock={handleDeleteBlock} expandedBlocks={expandedBlocks}
+              onToggleExpand={toggleBlockExpand}
+              onUpdateBlock={handleUpdateBlockFromList}
+              onGenerateChildBlocks={handleGenerateChildBlocks}
+              onGenerateFlowButtonChildBlocks={handleGenerateFlowButtonChildBlocks}
+              onSaveAsTemplate={handleSaveBlockAsTemplate}
+              projectId={projectId}
+              roleId={roleId}
+              forms={forms}
+              fields={fields}
+              dataFlows={dataFlows}
+            />
+          )}
+          {/* 左侧收起/展开按钮 */}
+          <button
+            onClick={() => setLeftPanelCollapsed(!leftPanelCollapsed)}
+            className="absolute right-0 top-1/2 transform -translate-y-1/2 translate-x-1/2 z-10 w-6 h-12 bg-white border border-gray-300 rounded-r flex items-center justify-center hover:bg-gray-100 shadow-sm"
+            title={leftPanelCollapsed ? '展开区块列表' : '收起区块列表'}
+          >
+            <span className="text-gray-500 text-xs">{leftPanelCollapsed ? '▶' : '◀'}</span>
+          </button>
+        </div>
+        
+        {/* 中间画布区域 */}
+        <div className="flex-1 relative">
+          <DesignerCanvas
+            blocks={blocks} selectedBlockId={selectedBlockId}
+            canvasType={canvasType} scale={scale} onSelectBlock={handleSelectBlock}
+            onBlockDragStart={handleBlockDragStart}
+            onBlockResizeStart={handleBlockResizeStart}
+            onCanvasClick={handleCanvasClick}
+            onBlockContentChange={handleBlockContentChange}
+            onBlockStyleChange={handleBlockStyleChange}
+            projectId={projectId}
+          />
+        </div>
+        
+        {/* 右侧面板 - 样式面板占位 */}
+        <div className="relative" style={{ width: rightPanelCollapsed ? '24px' : '0px', transition: 'width 0.3s' }}>
+          {/* 右侧收起/展开按钮 */}
+          <button
+            onClick={() => setRightPanelCollapsed(!rightPanelCollapsed)}
+            className="absolute left-0 top-1/2 transform -translate-y-1/2 -translate-x-1/2 z-10 w-6 h-12 bg-white border border-gray-300 rounded-l flex items-center justify-center hover:bg-gray-100 shadow-sm"
+            title={rightPanelCollapsed ? '展开样式面板' : '收起样式面板'}
+            style={{ display: showPanel ? 'flex' : 'none' }}
+          >
+            <span className="text-gray-500 text-xs">{rightPanelCollapsed ? '◀' : '▶'}</span>
+          </button>
+        </div>
       </div>
-      {showPanel && selectedBlock && (
+      {showPanel && selectedBlock && !rightPanelCollapsed && (
         <StylePanel
           block={selectedBlock} onUpdate={handleUpdateSelectedBlock}
           position={panelPosition} onPositionChange={setPanelPosition}
@@ -1713,6 +1814,16 @@ function PageDesigner({ projectId, roleId, page, onClose, onSave }) {
           initialContent={editorContent}
           onSave={handleEditorSave}
           title={editorTitle}
+        />
+      )}
+      {showGraphicEditor && (
+        <GraphicEditor
+          isOpen={showGraphicEditor}
+          onClose={() => { setShowGraphicEditor(false); setGraphicEditorTarget(null); }}
+          onSave={handleGraphicEditorSave}
+          targetBlock={graphicEditorTarget}
+          canvasWidth={window.StyleUtils?.getCanvasConfig(canvasType)?.width || 1600}
+          canvasHeight={window.StyleUtils?.getCanvasConfig(canvasType)?.minHeight || 800}
         />
       )}
       {mediaPreview.show && (

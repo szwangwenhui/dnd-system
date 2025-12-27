@@ -219,7 +219,7 @@ function calculateCanvasHeight(blocks, defaultMinHeight = 800) {
  * 画布配置
  */
 const CANVAS_CONFIG = {
-  PC: { width: 1200, minHeight: 800, label: 'PC端 (宽度1200)' },
+  PC: { width: 1600, minHeight: 800, label: 'PC端 (宽度1600)' },
   Mobile: { width: 360, minHeight: 640, label: '手机端 (宽度360)' }
 };
 
