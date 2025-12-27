@@ -1,14 +1,33 @@
-// Icon Manager Component
-function IconManager({ 
-  isOpen, 
-  onClose, 
-  projectIcons = [],
-  onUpdateProjectIcons,
-  pages = [],
-  blocks = []
-}) {
-  const [view, setView] = React.useState('list');
-  const [editingIcon, setEditingIcon] = React.useState(null);
+// Icon Manager Component - Floating Panel Version
+function IconManager(props) {
+  var isOpen = props.isOpen;
+  var onClose = props.onClose;
+  var projectIcons = props.projectIcons || [];
+  var onUpdateProjectIcons = props.onUpdateProjectIcons;
+  var pages = props.pages || [];
+  var blocks = props.blocks || [];
+
+  var _view = React.useState('list');
+  var view = _view[0];
+  var setView = _view[1];
+
+  var _editingIcon = React.useState(null);
+  var editingIcon = _editingIcon[0];
+  var setEditingIcon = _editingIcon[1];
+
+  // Panel position state
+  var _position = React.useState({ x: 50, y: 100 });
+  var position = _position[0];
+  var setPosition = _position[1];
+
+  // Drag state
+  var _dragging = React.useState(false);
+  var dragging = _dragging[0];
+  var setDragging = _dragging[1];
+
+  var _dragOffset = React.useState({ x: 0, y: 0 });
+  var dragOffset = _dragOffset[0];
+  var setDragOffset = _dragOffset[1];
 
   React.useEffect(function() {
     if (!isOpen) {
@@ -16,6 +35,33 @@ function IconManager({
       setEditingIcon(null);
     }
   }, [isOpen]);
+
+  // Panel drag handlers
+  var handleMouseDown = function(e) {
+    if (e.target.closest('.panel-content')) return;
+    setDragging(true);
+    setDragOffset({ x: e.clientX - position.x, y: e.clientY - position.y });
+  };
+
+  React.useEffect(function() {
+    if (!dragging) return;
+    
+    var handleMouseMove = function(e) {
+      setPosition({ x: e.clientX - dragOffset.x, y: e.clientY - dragOffset.y });
+    };
+    
+    var handleMouseUp = function() {
+      setDragging(false);
+    };
+    
+    document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('mouseup', handleMouseUp);
+    
+    return function() {
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+    };
+  }, [dragging, dragOffset]);
 
   var handleAddIcon = function() {
     setEditingIcon({
@@ -55,6 +101,7 @@ function IconManager({
   };
 
   var handleDragStart = function(e, icon) {
+    console.log('[IconManager] Drag start:', icon.name);
     e.dataTransfer.setData('application/json', JSON.stringify({
       type: 'icon',
       iconId: icon.id,
@@ -67,40 +114,69 @@ function IconManager({
 
   if (!isOpen) return null;
 
-  return React.createElement('div', {
-    className: 'fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50'
-  },
+  // Floating panel style (no overlay)
+  var panelStyle = {
+    position: 'fixed',
+    left: position.x + 'px',
+    top: position.y + 'px',
+    zIndex: 1000,
+    width: '400px',
+    maxHeight: '70vh',
+    backgroundColor: 'white',
+    borderRadius: '8px',
+    boxShadow: '0 10px 40px rgba(0,0,0,0.3)',
+    display: 'flex',
+    flexDirection: 'column'
+  };
+
+  var headerStyle = {
+    padding: '12px 16px',
+    borderBottom: '1px solid #e5e7eb',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    cursor: 'move',
+    backgroundColor: '#f9fafb',
+    borderRadius: '8px 8px 0 0'
+  };
+
+  return React.createElement('div', { style: panelStyle },
+    // Header - draggable
     React.createElement('div', {
-      className: 'bg-white rounded-lg shadow-xl w-[600px] max-h-[80vh] flex flex-col'
+      style: headerStyle,
+      onMouseDown: handleMouseDown
     },
-      React.createElement('div', {
-        className: 'px-4 py-3 border-b border-gray-200 flex items-center justify-between'
-      },
-        React.createElement('h3', { className: 'font-semibold text-gray-800' },
-          view === 'list' ? 'Icon Manager' : (editingIcon && editingIcon.id && projectIcons.find(function(i) { return i.id === editingIcon.id; }) ? 'Edit Icon' : 'Add Icon')
-        ),
+      React.createElement('h3', { style: { fontWeight: 600, color: '#1f2937', margin: 0 } },
+        view === 'list' ? '🔘 Icon Manager' : (editingIcon && projectIcons.find(function(i) { return i.id === editingIcon.id; }) ? 'Edit Icon' : 'Add Icon')
+      ),
+      React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: '8px' } },
+        React.createElement('span', { style: { fontSize: '12px', color: '#9ca3af' } }, 'Drag to move'),
         React.createElement('button', {
           onClick: onClose,
-          className: 'text-gray-400 hover:text-gray-600 text-xl'
+          style: { background: 'none', border: 'none', fontSize: '20px', color: '#9ca3af', cursor: 'pointer' }
         }, 'X')
-      ),
-      React.createElement('div', { className: 'flex-1 overflow-auto p-4' },
-        view === 'list' ?
-          React.createElement(IconListView, {
-            icons: projectIcons,
-            onAdd: handleAddIcon,
-            onEdit: handleEditIcon,
-            onDelete: handleDeleteIcon,
-            onDragStart: handleDragStart
-          }) :
-          React.createElement(IconEditView, {
-            icon: editingIcon,
-            onSave: handleSaveIcon,
-            onCancel: function() { setView('list'); setEditingIcon(null); },
-            pages: pages,
-            popupTemplates: popupTemplates
-          })
       )
+    ),
+    // Content
+    React.createElement('div', {
+      className: 'panel-content',
+      style: { flex: 1, overflow: 'auto', padding: '16px' }
+    },
+      view === 'list' ?
+        React.createElement(IconListView, {
+          icons: projectIcons,
+          onAdd: handleAddIcon,
+          onEdit: handleEditIcon,
+          onDelete: handleDeleteIcon,
+          onDragStart: handleDragStart
+        }) :
+        React.createElement(IconEditView, {
+          icon: editingIcon,
+          onSave: handleSaveIcon,
+          onCancel: function() { setView('list'); setEditingIcon(null); },
+          pages: pages,
+          popupTemplates: popupTemplates
+        })
     )
   );
 }
@@ -113,64 +189,101 @@ function IconListView(props) {
   var onDragStart = props.onDragStart;
 
   return React.createElement('div', null,
-    React.createElement('div', { className: 'mb-4' },
-      React.createElement('button', {
-        onClick: onAdd,
-        className: 'px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 flex items-center space-x-2'
-      },
-        React.createElement('span', null, '+'),
-        React.createElement('span', null, 'Add New Icon')
-      )
+    // Add button
+    React.createElement('button', {
+      onClick: onAdd,
+      style: {
+        padding: '8px 16px',
+        backgroundColor: '#3b82f6',
+        color: 'white',
+        border: 'none',
+        borderRadius: '6px',
+        cursor: 'pointer',
+        marginBottom: '16px',
+        display: 'flex',
+        alignItems: 'center',
+        gap: '8px'
+      }
+    },
+      React.createElement('span', null, '+'),
+      React.createElement('span', null, 'Add New Icon')
     ),
+    // Empty state
     icons.length === 0 ?
-      React.createElement('div', { className: 'text-center py-8 text-gray-500' },
-        React.createElement('div', { className: 'text-4xl mb-2' }, '🔘'),
-        React.createElement('p', null, 'No Icons yet. Click above to add.')
+      React.createElement('div', { style: { textAlign: 'center', padding: '32px', color: '#9ca3af' } },
+        React.createElement('div', { style: { fontSize: '32px', marginBottom: '8px' } }, '🔘'),
+        React.createElement('p', null, 'No Icons yet')
       ) :
-      React.createElement('table', { className: 'w-full border-collapse' },
-        React.createElement('thead', null,
-          React.createElement('tr', { className: 'bg-gray-50' },
-            React.createElement('th', { className: 'px-3 py-2 text-left text-sm font-medium text-gray-600 border-b' }, 'Icon'),
-            React.createElement('th', { className: 'px-3 py-2 text-left text-sm font-medium text-gray-600 border-b' }, 'Name'),
-            React.createElement('th', { className: 'px-3 py-2 text-left text-sm font-medium text-gray-600 border-b' }, 'Description'),
-            React.createElement('th', { className: 'px-3 py-2 text-center text-sm font-medium text-gray-600 border-b' }, 'Actions')
-          )
-        ),
-        React.createElement('tbody', null,
-          icons.map(function(icon) {
-            return React.createElement('tr', { key: icon.id, className: 'hover:bg-gray-50' },
-              React.createElement('td', { className: 'px-3 py-2 border-b' },
-                React.createElement('div', {
-                  draggable: true,
-                  onDragStart: function(e) { onDragStart(e, icon); },
-                  className: 'w-10 h-10 border border-gray-200 rounded cursor-move flex items-center justify-center bg-white hover:border-blue-400 hover:shadow',
-                  title: 'Drag to canvas'
-                },
-                  icon.image ?
-                    React.createElement('img', { src: icon.image.url, alt: icon.name, className: 'max-w-full max-h-full object-contain' }) :
-                    React.createElement('span', { className: 'text-gray-400 text-xs' }, 'No img')
-                )
-              ),
-              React.createElement('td', { className: 'px-3 py-2 border-b text-sm text-gray-700' }, icon.name || 'Unnamed'),
-              React.createElement('td', { className: 'px-3 py-2 border-b text-sm text-gray-500' }, icon.description || '-'),
-              React.createElement('td', { className: 'px-3 py-2 border-b text-center' },
-                React.createElement('button', {
-                  onClick: function() { onEdit(icon); },
-                  className: 'px-2 py-1 text-xs text-blue-600 hover:bg-blue-50 rounded mr-1'
-                }, 'Edit'),
-                React.createElement('button', {
-                  onClick: function() { onDelete(icon.id); },
-                  className: 'px-2 py-1 text-xs text-red-600 hover:bg-red-50 rounded'
-                }, 'Delete')
-              )
-            );
-          })
-        )
+      // Icon list
+      React.createElement('div', { style: { display: 'flex', flexDirection: 'column', gap: '8px' } },
+        icons.map(function(icon) {
+          return React.createElement('div', {
+            key: icon.id,
+            style: {
+              display: 'flex',
+              alignItems: 'center',
+              padding: '8px',
+              backgroundColor: '#f9fafb',
+              borderRadius: '6px',
+              gap: '12px'
+            }
+          },
+            // Draggable icon
+            React.createElement('div', {
+              draggable: true,
+              onDragStart: function(e) { onDragStart(e, icon); },
+              style: {
+                width: '48px',
+                height: '48px',
+                border: '2px dashed #d1d5db',
+                borderRadius: '6px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                backgroundColor: 'white',
+                cursor: 'grab'
+              },
+              title: 'Drag to canvas'
+            },
+              icon.image ?
+                React.createElement('img', {
+                  src: icon.image.url,
+                  alt: icon.name,
+                  style: { maxWidth: '40px', maxHeight: '40px', objectFit: 'contain' }
+                }) :
+                React.createElement('span', { style: { color: '#9ca3af', fontSize: '12px' } }, 'No img')
+            ),
+            // Info
+            React.createElement('div', { style: { flex: 1 } },
+              React.createElement('div', { style: { fontWeight: 500, color: '#374151' } }, icon.name || 'Unnamed'),
+              React.createElement('div', { style: { fontSize: '12px', color: '#9ca3af' } }, icon.description || '-')
+            ),
+            // Actions
+            React.createElement('div', { style: { display: 'flex', gap: '4px' } },
+              React.createElement('button', {
+                onClick: function() { onEdit(icon); },
+                style: { padding: '4px 8px', fontSize: '12px', color: '#3b82f6', background: 'none', border: 'none', cursor: 'pointer' }
+              }, 'Edit'),
+              React.createElement('button', {
+                onClick: function() { onDelete(icon.id); },
+                style: { padding: '4px 8px', fontSize: '12px', color: '#ef4444', background: 'none', border: 'none', cursor: 'pointer' }
+              }, 'Delete')
+            )
+          );
+        })
       ),
+    // Tip
     icons.length > 0 ?
-      React.createElement('div', { className: 'mt-4 p-3 bg-blue-50 rounded text-sm text-blue-700' },
-        'Tip: Hold and drag icon to canvas'
-      ) : null
+      React.createElement('div', {
+        style: {
+          marginTop: '16px',
+          padding: '12px',
+          backgroundColor: '#eff6ff',
+          borderRadius: '6px',
+          fontSize: '13px',
+          color: '#3b82f6'
+        }
+      }, '💡 Drag icon to canvas to place it') : null
   );
 }
 
@@ -190,6 +303,22 @@ function IconEditView(props) {
   var setImagePreview = _imagePreview[1];
 
   var fileInputRef = React.useRef(null);
+
+  var inputStyle = {
+    width: '100%',
+    padding: '8px 12px',
+    border: '1px solid #d1d5db',
+    borderRadius: '6px',
+    fontSize: '14px'
+  };
+
+  var labelStyle = {
+    display: 'block',
+    fontSize: '14px',
+    fontWeight: 500,
+    color: '#374151',
+    marginBottom: '4px'
+  };
 
   var handleImageUpload = function(e) {
     var file = e.target.files[0];
@@ -237,148 +366,160 @@ function IconEditView(props) {
     onSave(formData);
   };
 
-  return React.createElement('div', { className: 'space-y-4' },
+  return React.createElement('div', { style: { display: 'flex', flexDirection: 'column', gap: '16px' } },
+    // Name
     React.createElement('div', null,
-      React.createElement('label', { className: 'block text-sm font-medium text-gray-700 mb-1' }, 'Icon Name *'),
+      React.createElement('label', { style: labelStyle }, 'Icon Name *'),
       React.createElement('input', {
         type: 'text',
         value: formData.name,
         onChange: function(e) { updateField('name', e.target.value); },
-        className: 'w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:border-blue-500',
+        style: inputStyle,
         placeholder: 'e.g., Back to Home'
       })
     ),
+    // Size
     React.createElement('div', null,
-      React.createElement('label', { className: 'block text-sm font-medium text-gray-700 mb-1' }, 'Default Size'),
-      React.createElement('div', { className: 'flex items-center space-x-2' },
+      React.createElement('label', { style: labelStyle }, 'Default Size'),
+      React.createElement('div', { style: { display: 'flex', alignItems: 'center', gap: '8px' } },
         React.createElement('input', {
           type: 'number',
           value: formData.size.width,
           onChange: function(e) { updateSize('width', e.target.value); },
-          className: 'w-20 px-2 py-1 border border-gray-300 rounded text-center',
+          style: Object.assign({}, inputStyle, { width: '80px', textAlign: 'center' }),
           min: 16,
           max: 128
         }),
-        React.createElement('span', { className: 'text-gray-500' }, 'x'),
+        React.createElement('span', null, 'x'),
         React.createElement('input', {
           type: 'number',
           value: formData.size.height,
           onChange: function(e) { updateSize('height', e.target.value); },
-          className: 'w-20 px-2 py-1 border border-gray-300 rounded text-center',
+          style: Object.assign({}, inputStyle, { width: '80px', textAlign: 'center' }),
           min: 16,
           max: 128
         }),
-        React.createElement('span', { className: 'text-sm text-gray-500' }, 'px')
+        React.createElement('span', { style: { color: '#9ca3af', fontSize: '12px' } }, 'px')
       )
     ),
+    // Image
     React.createElement('div', null,
-      React.createElement('label', { className: 'block text-sm font-medium text-gray-700 mb-1' }, 'Icon Image *'),
-      React.createElement('div', { className: 'flex items-start space-x-4' },
+      React.createElement('label', { style: labelStyle }, 'Icon Image *'),
+      React.createElement('div', { style: { display: 'flex', gap: '16px' } },
         React.createElement('div', {
-          className: 'w-24 h-24 border-2 border-dashed border-gray-300 rounded flex items-center justify-center bg-gray-50 cursor-pointer hover:border-blue-400',
-          onClick: function() { fileInputRef.current && fileInputRef.current.click(); }
+          onClick: function() { fileInputRef.current && fileInputRef.current.click(); },
+          style: {
+            width: '80px',
+            height: '80px',
+            border: '2px dashed #d1d5db',
+            borderRadius: '8px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            cursor: 'pointer',
+            backgroundColor: '#f9fafb'
+          }
         },
           imagePreview ?
-            React.createElement('img', { src: imagePreview, alt: 'Preview', className: 'max-w-full max-h-full object-contain' }) :
-            React.createElement('span', { className: 'text-gray-400 text-sm text-center' }, 'Click to upload')
+            React.createElement('img', { src: imagePreview, alt: 'Preview', style: { maxWidth: '70px', maxHeight: '70px', objectFit: 'contain' } }) :
+            React.createElement('span', { style: { color: '#9ca3af', fontSize: '12px', textAlign: 'center' } }, 'Click to upload')
         ),
         React.createElement('input', {
           ref: fileInputRef,
           type: 'file',
           accept: 'image/*',
           onChange: handleImageUpload,
-          className: 'hidden'
+          style: { display: 'none' }
         }),
-        React.createElement('div', { className: 'text-sm text-gray-500' },
-          React.createElement('p', null, 'Supports JPG, PNG, GIF, SVG'),
-          React.createElement('p', null, 'Transparent background recommended')
+        React.createElement('div', { style: { fontSize: '12px', color: '#9ca3af' } },
+          React.createElement('p', null, 'JPG, PNG, GIF, SVG'),
+          React.createElement('p', null, 'Transparent BG recommended')
         )
       )
     ),
+    // Action
     React.createElement('div', null,
-      React.createElement('label', { className: 'block text-sm font-medium text-gray-700 mb-2' }, 'Click Action'),
-      React.createElement('div', { className: 'space-y-3 p-3 bg-gray-50 rounded' },
-        React.createElement('label', { className: 'flex items-start space-x-2 cursor-pointer' },
+      React.createElement('label', { style: labelStyle }, 'Click Action'),
+      React.createElement('div', { style: { padding: '12px', backgroundColor: '#f9fafb', borderRadius: '6px' } },
+        // Navigate
+        React.createElement('label', { style: { display: 'flex', alignItems: 'flex-start', gap: '8px', marginBottom: '8px', cursor: 'pointer' } },
           React.createElement('input', {
             type: 'radio',
             name: 'actionType',
             checked: formData.action.type === 'navigatePage',
             onChange: function() { updateAction('type', 'navigatePage'); },
-            className: 'mt-1'
+            style: { marginTop: '2px' }
           }),
-          React.createElement('div', { className: 'flex-1' },
-            React.createElement('span', { className: 'text-sm text-gray-700' }, 'Navigate to Page'),
+          React.createElement('div', { style: { flex: 1 } },
+            React.createElement('span', { style: { fontSize: '14px' } }, 'Navigate to Page'),
             formData.action.type === 'navigatePage' ?
               React.createElement('select', {
                 value: formData.action.targetPageId || '',
                 onChange: function(e) { updateAction('targetPageId', e.target.value); },
-                className: 'mt-1 w-full px-2 py-1 border border-gray-300 rounded text-sm'
+                style: Object.assign({}, inputStyle, { marginTop: '4px' })
               },
                 React.createElement('option', { value: '' }, 'Select Page'),
-                pages.map(function(p) {
-                  return React.createElement('option', { key: p.id, value: p.id }, p.name);
-                })
+                pages.map(function(p) { return React.createElement('option', { key: p.id, value: p.id }, p.name); })
               ) : null
           )
         ),
-        React.createElement('label', { className: 'flex items-center space-x-2 cursor-pointer' },
+        // Go Back
+        React.createElement('label', { style: { display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px', cursor: 'pointer' } },
           React.createElement('input', {
             type: 'radio',
             name: 'actionType',
             checked: formData.action.type === 'goBack',
             onChange: function() { updateAction('type', 'goBack'); }
           }),
-          React.createElement('span', { className: 'text-sm text-gray-700' }, 'Go Back')
+          React.createElement('span', { style: { fontSize: '14px' } }, 'Go Back')
         ),
-        React.createElement('label', { className: 'flex items-start space-x-2 cursor-pointer' },
+        // Open Popup
+        React.createElement('label', { style: { display: 'flex', alignItems: 'flex-start', gap: '8px', cursor: 'pointer' } },
           React.createElement('input', {
             type: 'radio',
             name: 'actionType',
             checked: formData.action.type === 'openPopup',
             onChange: function() { updateAction('type', 'openPopup'); },
-            className: 'mt-1'
+            style: { marginTop: '2px' }
           }),
-          React.createElement('div', { className: 'flex-1' },
-            React.createElement('span', { className: 'text-sm text-gray-700' }, 'Open Popup'),
+          React.createElement('div', { style: { flex: 1 } },
+            React.createElement('span', { style: { fontSize: '14px' } }, 'Open Popup'),
             formData.action.type === 'openPopup' ?
               React.createElement('select', {
                 value: formData.action.targetPopupId || '',
                 onChange: function(e) { updateAction('targetPopupId', e.target.value); },
-                className: 'mt-1 w-full px-2 py-1 border border-gray-300 rounded text-sm'
+                style: Object.assign({}, inputStyle, { marginTop: '4px' })
               },
                 React.createElement('option', { value: '' }, 'Select Popup'),
                 popupTemplates.length === 0 ?
                   React.createElement('option', { disabled: true }, 'No popup templates') :
-                  popupTemplates.map(function(b) {
-                    return React.createElement('option', { key: b.id, value: b.id }, b.id);
-                  })
+                  popupTemplates.map(function(b) { return React.createElement('option', { key: b.id, value: b.id }, b.id); })
               ) : null
           )
         )
       )
     ),
+    // Description
     React.createElement('div', null,
-      React.createElement('label', { className: 'block text-sm font-medium text-gray-700 mb-1' }, 'Description'),
+      React.createElement('label', { style: labelStyle }, 'Description'),
       React.createElement('input', {
         type: 'text',
         value: formData.description,
         onChange: function(e) { updateField('description', e.target.value.slice(0, 50)); },
-        className: 'w-full px-3 py-2 border border-gray-300 rounded focus:outline-none focus:border-blue-500',
-        placeholder: 'Brief description of Icon function',
+        style: inputStyle,
+        placeholder: 'Brief description',
         maxLength: 50
-      }),
-      React.createElement('div', { className: 'text-right text-xs text-gray-400' },
-        (formData.description ? formData.description.length : 0) + '/50'
-      )
+      })
     ),
-    React.createElement('div', { className: 'flex justify-end space-x-3 pt-4 border-t border-gray-200' },
+    // Buttons
+    React.createElement('div', { style: { display: 'flex', justifyContent: 'flex-end', gap: '8px', paddingTop: '16px', borderTop: '1px solid #e5e7eb' } },
       React.createElement('button', {
         onClick: onCancel,
-        className: 'px-4 py-2 border border-gray-300 text-gray-700 rounded hover:bg-gray-50'
+        style: { padding: '8px 16px', border: '1px solid #d1d5db', borderRadius: '6px', background: 'white', cursor: 'pointer' }
       }, 'Cancel'),
       React.createElement('button', {
         onClick: handleSubmit,
-        className: 'px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600'
+        style: { padding: '8px 16px', backgroundColor: '#3b82f6', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer' }
       }, 'Save')
     )
   );
