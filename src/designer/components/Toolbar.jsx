@@ -15,6 +15,7 @@ function DesignerToolbar({
   onOpenEditor,
   onOpenGraphicEditor,
   onOpenStylePanel,
+  onOpenIconManager,
   selectedBlockId
 }) {
   return (
@@ -62,6 +63,16 @@ function DesignerToolbar({
         >
           <span>✏️</span>
           <span>图形编辑器</span>
+        </button>
+        
+        {/* Icon按钮 */}
+        <button
+          onClick={onOpenIconManager}
+          className="px-3 py-1.5 bg-orange-100 text-orange-700 rounded hover:bg-orange-200 flex items-center space-x-1"
+          title="管理和使用Icon"
+        >
+          <span>🔘</span>
+          <span>Icon</span>
         </button>
         
         <div className="w-px h-6 bg-gray-300"></div>
