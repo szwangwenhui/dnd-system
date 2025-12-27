@@ -27,6 +27,13 @@ function PageDesigner({ projectId, roleId, page, onClose, onSave }) {
   // ===== 画布装饰层（图形编辑器绘制的内容）=====
   const [canvasDecorations, setCanvasDecorations] = React.useState(page.design?.canvasDecorations || []);
 
+  // ===== Icon实例状态 =====
+  const [iconInstances, setIconInstances] = React.useState(page.design?.iconInstances || []);
+  const [selectedIconId, setSelectedIconId] = React.useState(null);
+  const [projectIcons, setProjectIcons] = React.useState([]);  // 项目级别的Icon定义
+  const [showIconManager, setShowIconManager] = React.useState(false);
+  const [allPages, setAllPages] = React.useState([]);  // 所有页面（用于Icon设置）
+
   // ===== 面板收起/展开状态 =====
   const [leftPanelCollapsed, setLeftPanelCollapsed] = React.useState(false);
 
@@ -60,6 +67,28 @@ function PageDesigner({ projectId, roleId, page, onClose, onSave }) {
       }
     };
     loadFormsAndFields();
+  }, [projectId, roleId]);
+
+  // 加载项目Icons和所有页面
+  React.useEffect(() => {
+    const loadProjectData = async () => {
+      if (!projectId || !window.dndDB) return;
+      try {
+        // 加载项目数据获取icons
+        const project = await window.dndDB.getProjectById(projectId);
+        if (project) {
+          setProjectIcons(project.icons || []);
+        }
+        // 加载所有页面
+        const pages = await window.dndDB.getPagesByRoleId(projectId, roleId);
+        setAllPages(pages || []);
+        console.log('加载项目Icons:', project?.icons?.length || 0, '个');
+        console.log('加载页面:', pages?.length || 0, '个');
+      } catch (error) {
+        console.error('加载项目数据失败:', error);
+      }
+    };
+    loadProjectData();
   }, [projectId, roleId]);
 
   // ===== 富文本编辑器状态 =====
@@ -384,6 +413,164 @@ function PageDesigner({ projectId, roleId, page, onClose, onSave }) {
     setShowEditor(false);
     setEditorTargetBlockId(null);
   };
+
+  // ===== Icon相关处理函数 =====
+  
+  // 生成Icon实例ID
+  const generateIconInstanceId = () => `icon-inst-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+
+  // 更新项目Icons
+  const handleIconsChange = async (newIcons) => {
+    setProjectIcons(newIcons);
+    // 保存到项目
+    try {
+      const project = await window.dndDB.getProjectById(projectId);
+      if (project) {
+        await window.dndDB.updateProject({
+          ...project,
+          icons: newIcons
+        });
+        console.log('项目Icons已保存:', newIcons.length, '个');
+      }
+    } catch (error) {
+      console.error('保存项目Icons失败:', error);
+    }
+  };
+
+  // 处理Icon拖放到画布
+  const handleIconDrop = (e, dropX, dropY) => {
+    e.preventDefault();
+    try {
+      const data = JSON.parse(e.dataTransfer.getData('application/json'));
+      if (data.type !== 'icon') return;
+      
+      const icon = data.iconData;  // 使用iconData而不是icon
+      const newInstance = {
+        id: generateIconInstanceId(),
+        iconId: icon.id,
+        x: dropX,
+        y: dropY,
+        width: icon.size?.width || 32,
+        height: icon.size?.height || 32,
+        parentBlockId: null,  // 暂时先放在公共画布
+        zIndex: 9999
+      };
+      
+      setIconInstances(prev => [...prev, newInstance]);
+      setSelectedIconId(newInstance.id);
+      setSelectedBlockId(null);  // 取消区块选中
+      setHasChanges(true);
+      console.log('添加Icon实例:', newInstance);
+    } catch (error) {
+      console.error('处理Icon拖放失败:', error);
+    }
+  };
+
+  // 选中Icon
+  const handleSelectIcon = (iconId) => {
+    setSelectedIconId(iconId);
+    setSelectedBlockId(null);  // 取消区块选中
+  };
+
+  // Icon拖拽移动
+  const [iconDragState, setIconDragState] = React.useState({ isDragging: false, iconId: null, startX: 0, startY: 0, startIconX: 0, startIconY: 0 });
+
+  const handleIconDragStart = (e, iconId) => {
+    const instance = iconInstances.find(i => i.id === iconId);
+    if (!instance) return;
+    setIconDragState({
+      isDragging: true,
+      iconId,
+      startX: e.clientX,
+      startY: e.clientY,
+      startIconX: instance.x,
+      startIconY: instance.y
+    });
+    setSelectedIconId(iconId);
+    setSelectedBlockId(null);
+  };
+
+  // Icon缩放
+  const [iconResizeState, setIconResizeState] = React.useState({ isResizing: false, iconId: null, direction: null, startX: 0, startY: 0, startWidth: 0, startHeight: 0, startIconX: 0, startIconY: 0 });
+
+  const handleIconResizeStart = (e, iconId, direction) => {
+    const instance = iconInstances.find(i => i.id === iconId);
+    if (!instance) return;
+    setIconResizeState({
+      isResizing: true,
+      iconId,
+      direction,
+      startX: e.clientX,
+      startY: e.clientY,
+      startWidth: instance.width,
+      startHeight: instance.height,
+      startIconX: instance.x,
+      startIconY: instance.y
+    });
+  };
+
+  // 删除Icon实例
+  const handleDeleteIcon = (iconId) => {
+    setIconInstances(prev => prev.filter(i => i.id !== iconId));
+    if (selectedIconId === iconId) {
+      setSelectedIconId(null);
+    }
+    setHasChanges(true);
+  };
+
+  // Icon拖拽和缩放的鼠标事件处理
+  React.useEffect(() => {
+    const handleMouseMove = (e) => {
+      // Icon拖拽
+      if (iconDragState.isDragging) {
+        const dx = (e.clientX - iconDragState.startX) / (scale / 100);
+        const dy = (e.clientY - iconDragState.startY) / (scale / 100);
+        setIconInstances(prev => prev.map(inst => 
+          inst.id === iconDragState.iconId 
+            ? { ...inst, x: Math.max(0, iconDragState.startIconX + dx), y: Math.max(0, iconDragState.startIconY + dy) }
+            : inst
+        ));
+      }
+      // Icon缩放
+      if (iconResizeState.isResizing) {
+        const dx = (e.clientX - iconResizeState.startX) / (scale / 100);
+        const dy = (e.clientY - iconResizeState.startY) / (scale / 100);
+        const dir = iconResizeState.direction;
+        
+        setIconInstances(prev => prev.map(inst => {
+          if (inst.id !== iconResizeState.iconId) return inst;
+          let newWidth = iconResizeState.startWidth;
+          let newHeight = iconResizeState.startHeight;
+          let newX = iconResizeState.startIconX;
+          let newY = iconResizeState.startIconY;
+          
+          if (dir.includes('e')) newWidth = Math.max(16, iconResizeState.startWidth + dx);
+          if (dir.includes('w')) { newWidth = Math.max(16, iconResizeState.startWidth - dx); newX = iconResizeState.startIconX + dx; }
+          if (dir.includes('s')) newHeight = Math.max(16, iconResizeState.startHeight + dy);
+          if (dir.includes('n')) { newHeight = Math.max(16, iconResizeState.startHeight - dy); newY = iconResizeState.startIconY + dy; }
+          
+          return { ...inst, x: newX, y: newY, width: newWidth, height: newHeight };
+        }));
+      }
+    };
+
+    const handleMouseUp = () => {
+      if (iconDragState.isDragging || iconResizeState.isResizing) {
+        setHasChanges(true);
+      }
+      setIconDragState({ isDragging: false, iconId: null, startX: 0, startY: 0, startIconX: 0, startIconY: 0 });
+      setIconResizeState({ isResizing: false, iconId: null, direction: null, startX: 0, startY: 0, startWidth: 0, startHeight: 0, startIconX: 0, startIconY: 0 });
+    };
+
+    if (iconDragState.isDragging || iconResizeState.isResizing) {
+      document.addEventListener('mousemove', handleMouseMove);
+      document.addEventListener('mouseup', handleMouseUp);
+    }
+    return () => {
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+    };
+  }, [iconDragState, iconResizeState, scale]);
 
   // ===== 历史记录管理 =====
   const historyRef = React.useRef(new HistoryManager(50));
@@ -1368,14 +1555,15 @@ function PageDesigner({ projectId, roleId, page, onClose, onSave }) {
         design: {
           blocks,
           canvasType,
-          canvasDecorations  // 保存画布装饰层
+          canvasDecorations,
+          iconInstances  // 保存Icon实例
         },
         updatedAt: new Date().toISOString() 
       };
       
       console.log('保存页面 - blocks数量:', blocks.length);
       console.log('保存页面 - canvasDecorations数量:', canvasDecorations.length);
-      console.log('保存页面 - updatedPage.design:', updatedPage.design);
+      console.log('保存页面 - iconInstances数量:', iconInstances.length);
       
       await onSave(updatedPage);
       setHasChanges(false);
@@ -1396,7 +1584,8 @@ function PageDesigner({ projectId, roleId, page, onClose, onSave }) {
         design: {
           blocks: saveBeforeClose ? blocks : (page.design?.blocks || page.blocks || []),
           canvasType,
-          canvasDecorations: saveBeforeClose ? canvasDecorations : (page.design?.canvasDecorations || [])
+          canvasDecorations: saveBeforeClose ? canvasDecorations : (page.design?.canvasDecorations || []),
+          iconInstances: saveBeforeClose ? iconInstances : (page.design?.iconInstances || [])
         },
         designProgress: closeProgress,
         updatedAt: new Date().toISOString()
@@ -1721,6 +1910,7 @@ function PageDesigner({ projectId, roleId, page, onClose, onSave }) {
           }
           setShowPanel(true);
         }}
+        onOpenIconManager={() => setShowIconManager(true)}
         selectedBlockId={selectedBlockId}
       />
       <div className="flex-1 flex overflow-hidden">
@@ -1765,6 +1955,14 @@ function PageDesigner({ projectId, roleId, page, onClose, onSave }) {
             onBlockStyleChange={handleBlockStyleChange}
             projectId={projectId}
             canvasDecorations={canvasDecorations}
+            iconInstances={iconInstances}
+            projectIcons={projectIcons}
+            selectedIconId={selectedIconId}
+            onSelectIcon={handleSelectIcon}
+            onIconDragStart={handleIconDragStart}
+            onIconResizeStart={handleIconResizeStart}
+            onIconDrop={handleIconDrop}
+            onDeleteIcon={handleDeleteIcon}
           />
         </div>
       </div>
@@ -1883,6 +2081,18 @@ function PageDesigner({ projectId, roleId, page, onClose, onSave }) {
             setShowSaveBlockTemplate(false);
             setTemplateSourceBlock(null);
           }}
+        />
+      )}
+      
+      {/* Icon管理器 */}
+      {showIconManager && window.IconManager && (
+        <IconManager
+          isOpen={showIconManager}
+          onClose={() => setShowIconManager(false)}
+          projectIcons={projectIcons}
+          onUpdateProjectIcons={handleIconsChange}
+          pages={allPages}
+          blocks={blocks}
         />
       )}
     </div>

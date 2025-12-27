@@ -21,6 +21,10 @@ function Preview() {
   const [forms, setForms] = React.useState([]);
   const [fields, setFields] = React.useState([]);
   
+  // Icon相关状态
+  const [iconInstances, setIconInstances] = React.useState([]);
+  const [projectIcons, setProjectIcons] = React.useState([]);
+  
   // 当前登录用户状态
   const [currentUser, setCurrentUser] = React.useState(null);
   
@@ -481,6 +485,8 @@ function Preview() {
       
       setCurrentPage(page);
       setBlocks(page.design?.blocks || []);
+      setIconInstances(page.design?.iconInstances || []);
+      setProjectIcons(project.icons || []);
       
       // 加载表单和字段数据
       setForms(project.forms || []);
@@ -2887,6 +2893,68 @@ function Preview() {
               )}
             </React.Fragment>
           ))}
+          
+          {/* Icon实例渲染 */}
+          {iconInstances && iconInstances.map(instance => {
+            const icon = projectIcons.find(i => i.id === instance.iconId);
+            return window.IconInstance ? (
+              <IconInstance
+                key={instance.id}
+                instance={instance}
+                icon={icon}
+                scale={100}
+                isDesigner={false}
+                isSelected={false}
+                onClick={(inst, iconData) => {
+                  if (window.handleIconClick) {
+                    window.handleIconClick(inst, iconData, {
+                      pages,
+                      projectId,
+                      roleId,
+                      onOpenPopup: (popupId) => {
+                        // 打开弹窗：将弹窗区块层级设为可见
+                        setBlocks(prevBlocks => prevBlocks.map(b => {
+                          if (b.id === popupId) {
+                            return { ...b, style: { ...b.style, zIndex: 100 } };
+                          }
+                          return b;
+                        }));
+                      }
+                    });
+                  }
+                }}
+              />
+            ) : (
+              // 回退渲染
+              <div
+                key={instance.id}
+                style={{
+                  position: 'absolute',
+                  left: instance.x,
+                  top: instance.y,
+                  width: instance.width,
+                  height: instance.height,
+                  zIndex: instance.zIndex || 9999,
+                  cursor: 'pointer'
+                }}
+                onClick={() => {
+                  if (icon && icon.action) {
+                    if (icon.action.type === 'navigatePage' && icon.action.targetPageId) {
+                      window.location.href = `preview.html?projectId=${projectId}&roleId=${roleId}&pageId=${icon.action.targetPageId}`;
+                    } else if (icon.action.type === 'goBack') {
+                      window.history.back();
+                    }
+                  }
+                }}
+              >
+                {icon?.image?.url ? (
+                  <img src={icon.image.url} alt={icon.name} style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+                ) : (
+                  <div style={{ width: '100%', height: '100%', background: '#f3f4f6', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>🔘</div>
+                )}
+              </div>
+            );
+          })}
           
           {blocks.length === 0 && (
             <div style={{
