@@ -9,8 +9,9 @@ function DesignerCanvas({
   onBlockResizeStart,
   onCanvasClick,
   onBlockContentChange,
-  onBlockStyleChange,  // 新增：用于更新区块样式
-  projectId  // 用于加载表单数据
+  onBlockStyleChange,
+  projectId,
+  canvasDecorations = []  // 画布装饰层（图形编辑器绘制的内容）
 }) {
   // 使用共享的画布配置
   const config = window.StyleUtils?.getCanvasConfig(canvasType) || {
@@ -1199,6 +1200,16 @@ function DesignerCanvas({
         {/* 区块内容 */}
         {renderContent()}
 
+        {/* 区块内的图形元素 */}
+        {block.graphicElements && block.graphicElements.length > 0 && (
+          <svg 
+            className="absolute inset-0 pointer-events-none" 
+            style={{ width: '100%', height: '100%', zIndex: 10 }}
+          >
+            {renderGraphicElements(block.graphicElements, 0, 0, scale / 100)}
+          </svg>
+        )}
+
         {/* 缩放手柄 - 仅选中且非编辑时显示 */}
         {isSelected && !isEditing && (
           <>
@@ -1237,6 +1248,78 @@ function DesignerCanvas({
         return maxBottom;
       })();
 
+  // 渲染图形元素的SVG
+  const renderGraphicElements = (elements, offsetX = 0, offsetY = 0, scaleRatio = 1) => {
+    if (!elements || elements.length === 0) return null;
+    
+    return elements.map((el, index) => {
+      const s = scaleRatio;
+      switch (el.type) {
+        case 'path':
+          if (!el.points || el.points.length < 2) return null;
+          const pathD = el.points.map((p, i) => 
+            `${i === 0 ? 'M' : 'L'} ${(p.x + offsetX) * s} ${(p.y + offsetY) * s}`
+          ).join(' ');
+          return <path key={el.id || index} d={pathD} stroke={el.color} strokeWidth={el.brushSize * s} fill="none" strokeLinecap="round" strokeLinejoin="round" />;
+        
+        case 'line':
+          return <line key={el.id || index} x1={(el.startX + offsetX) * s} y1={(el.startY + offsetY) * s} x2={(el.endX + offsetX) * s} y2={(el.endY + offsetY) * s} stroke={el.color} strokeWidth={el.brushSize * s} strokeLinecap="round" />;
+        
+        case 'arrow':
+          const angle = Math.atan2(el.endY - el.startY, el.endX - el.startX);
+          const headLength = Math.max(10, el.brushSize * 3) * s;
+          const arrowPoints = [
+            `${(el.endX + offsetX) * s},${(el.endY + offsetY) * s}`,
+            `${(el.endX + offsetX) * s - headLength * Math.cos(angle - Math.PI / 6)},${(el.endY + offsetY) * s - headLength * Math.sin(angle - Math.PI / 6)}`,
+            `${(el.endX + offsetX) * s - headLength * Math.cos(angle + Math.PI / 6)},${(el.endY + offsetY) * s - headLength * Math.sin(angle + Math.PI / 6)}`
+          ].join(' ');
+          return (
+            <g key={el.id || index}>
+              <line x1={(el.startX + offsetX) * s} y1={(el.startY + offsetY) * s} x2={(el.endX + offsetX) * s} y2={(el.endY + offsetY) * s} stroke={el.color} strokeWidth={el.brushSize * s} strokeLinecap="round" />
+              <polygon points={arrowPoints} fill={el.color} />
+            </g>
+          );
+        
+        case 'rect':
+          return el.fill 
+            ? <rect key={el.id || index} x={(el.x + offsetX) * s} y={(el.y + offsetY) * s} width={el.w * s} height={el.h * s} fill={el.color} />
+            : <rect key={el.id || index} x={(el.x + offsetX) * s} y={(el.y + offsetY) * s} width={el.w * s} height={el.h * s} stroke={el.color} strokeWidth={el.brushSize * s} fill="none" />;
+        
+        case 'circle':
+          return el.fill
+            ? <ellipse key={el.id || index} cx={(el.cx + offsetX) * s} cy={(el.cy + offsetY) * s} rx={el.rx * s} ry={el.ry * s} fill={el.color} />
+            : <ellipse key={el.id || index} cx={(el.cx + offsetX) * s} cy={(el.cy + offsetY) * s} rx={el.rx * s} ry={el.ry * s} stroke={el.color} strokeWidth={el.brushSize * s} fill="none" />;
+        
+        case 'spray':
+          return (
+            <g key={el.id || index}>
+              {el.dots?.map((dot, i) => (
+                <circle key={i} cx={(dot.x + offsetX) * s} cy={(dot.y + offsetY) * s} r={dot.r * s} fill={el.color} />
+              ))}
+            </g>
+          );
+        
+        case 'splash':
+          // 泼墨效果用多个圆形模拟
+          const splashCircles = [];
+          const seed = el.id || index;
+          for (let i = 0; i < 30; i++) {
+            const pseudoRandom = (seed * 9301 + 49297 + i * 233) % 233280 / 233280;
+            const angle = pseudoRandom * Math.PI * 2;
+            const distance = Math.sqrt(pseudoRandom) * el.size * s;
+            const dotSize = (pseudoRandom * 5 + 2) * s;
+            splashCircles.push(
+              <circle key={i} cx={(el.x + offsetX) * s + Math.cos(angle) * distance} cy={(el.y + offsetY) * s + Math.sin(angle) * distance} r={dotSize} fill={el.color} opacity={el.style === 'ink' ? 0.6 : 1} />
+            );
+          }
+          return <g key={el.id || index}>{splashCircles}</g>;
+        
+        default:
+          return null;
+      }
+    });
+  };
+
   return (
     <div className="flex-1 overflow-auto bg-gray-200 p-4 designer-canvas-container" onClick={onCanvasClick}>
       {/* 画布尺寸提示 */}
@@ -1255,6 +1338,17 @@ function DesignerCanvas({
         }}
         onClick={onCanvasClick}
       >
+        {/* 画布装饰层（最底层） */}
+        {canvasDecorations && canvasDecorations.length > 0 && (
+          <svg 
+            className="absolute inset-0 pointer-events-none" 
+            style={{ width: '100%', height: '100%', zIndex: 0 }}
+          >
+            {renderGraphicElements(canvasDecorations, 0, 0, scale / 100)}
+          </svg>
+        )}
+        
+        {/* 区块渲染 */}
         {blocks.map(block => renderBlock(block))}
       </div>
     </div>

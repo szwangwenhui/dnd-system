@@ -24,6 +24,9 @@ function PageDesigner({ projectId, roleId, page, onClose, onSave }) {
   const [closeProgress, setCloseProgress] = React.useState(page.designProgress || 0);
   const [hasChanges, setHasChanges] = React.useState(false);
 
+  // ===== 画布装饰层（图形编辑器绘制的内容）=====
+  const [canvasDecorations, setCanvasDecorations] = React.useState(page.design?.canvasDecorations || []);
+
   // ===== 面板收起/展开状态 =====
   const [leftPanelCollapsed, setLeftPanelCollapsed] = React.useState(false);
 
@@ -350,19 +353,16 @@ function PageDesigner({ projectId, roleId, page, onClose, onSave }) {
     
     if (graphicEditorTarget) {
       // 选中了区块：把绘制内容保存到该区块的graphicElements中
-      // 这样区块在渲染时会显示这些绘制的图形
       updateBlockWithHistory(graphicEditorTarget.id, {
-        graphicElements: elements  // 保存元素数据
+        graphicElements: elements
       });
       setHasChanges(true);
     } else {
-      // 没有选中区块：保存为页面级别的装饰层
-      // 存储在page的design中，作为canvasDecorations
-      // 注意：这里我们只保存elements数据，不创建新区块
-      // 实际渲染时，Canvas组件会读取这些数据并绘制
-      console.log('保存画布装饰层，元素数量:', elements?.length);
-      // 暂时先不自动生成区块，只是关闭编辑器
-      // 后续可以扩展为保存到page.design.canvasDecorations
+      // 没有选中区块：保存为画布装饰层
+      if (elements && elements.length > 0) {
+        setCanvasDecorations(prev => [...prev, ...elements]);
+        setHasChanges(true);
+      }
     }
     
     setShowGraphicEditor(false);
@@ -1367,13 +1367,14 @@ function PageDesigner({ projectId, roleId, page, onClose, onSave }) {
         ...page, 
         design: {
           blocks,
-          canvasType
+          canvasType,
+          canvasDecorations  // 保存画布装饰层
         },
         updatedAt: new Date().toISOString() 
       };
       
       console.log('保存页面 - blocks数量:', blocks.length);
-      console.log('保存页面 - updatedPage:', updatedPage);
+      console.log('保存页面 - canvasDecorations数量:', canvasDecorations.length);
       console.log('保存页面 - updatedPage.design:', updatedPage.design);
       
       await onSave(updatedPage);
@@ -1394,7 +1395,8 @@ function PageDesigner({ projectId, roleId, page, onClose, onSave }) {
         ...page,
         design: {
           blocks: saveBeforeClose ? blocks : (page.design?.blocks || page.blocks || []),
-          canvasType
+          canvasType,
+          canvasDecorations: saveBeforeClose ? canvasDecorations : (page.design?.canvasDecorations || [])
         },
         designProgress: closeProgress,
         updatedAt: new Date().toISOString()
@@ -1762,6 +1764,7 @@ function PageDesigner({ projectId, roleId, page, onClose, onSave }) {
             onBlockContentChange={handleBlockContentChange}
             onBlockStyleChange={handleBlockStyleChange}
             projectId={projectId}
+            canvasDecorations={canvasDecorations}
           />
         </div>
       </div>

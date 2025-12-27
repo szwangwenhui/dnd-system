@@ -1,5 +1,5 @@
 // DND2 预览模块 - 主组件
-// 版本: 2024-12-26-v7 (添加表单数据全局同步、关闭弹窗事件)
+// 版本: 2024-12-26-v8 (登录后显示用户名)
 // 原文件: src/preview/Preview.jsx (2,389行)
 // 
 // Phase 3 拆分结构:
@@ -2442,6 +2442,24 @@ function Preview() {
       }
     };
 
+    // 获取按钮显示文字
+    // 如果是"登录/注册"按钮且用户已登录，显示用户名
+    let displayText = block.buttonText ?? '';
+    if (block.buttonType === 'openPopup' && block.isBuiltIn) {
+      // 检查是否已登录（从localStorage获取）
+      try {
+        const endUser = localStorage.getItem('dnd_end_user');
+        if (endUser) {
+          const user = JSON.parse(endUser);
+          if (user && user.account) {
+            displayText = user.nickname || user.account.split('@')[0] || '已登录';
+          }
+        }
+      } catch (e) {
+        console.error('读取用户信息失败:', e);
+      }
+    }
+
     return (
       <div 
         key={block.id} 
@@ -2449,7 +2467,7 @@ function Preview() {
         onClick={handleClick}
       >
         {PopupCloseButton && <PopupCloseButton />}
-        {block.buttonText ?? ''}
+        {displayText}
       </div>
     );
   };
@@ -2651,6 +2669,7 @@ function Preview() {
 
   // 获取画布配置（使用共享工具）
   const canvasType = currentPage?.design?.canvasType || 'PC';
+  const canvasDecorations = currentPage?.design?.canvasDecorations || [];
   const config = window.StyleUtils?.getCanvasConfig(canvasType) || {
     width: canvasType === 'Mobile' ? 360 : 1200,
     minHeight: canvasType === 'Mobile' ? 640 : 800
@@ -2668,6 +2687,76 @@ function Preview() {
         }, config.minHeight);
         return maxBottom;
       })();
+
+  // 渲染图形元素的SVG
+  const renderGraphicElements = (elements, offsetX = 0, offsetY = 0) => {
+    if (!elements || elements.length === 0) return null;
+    
+    return elements.map((el, index) => {
+      switch (el.type) {
+        case 'path':
+          if (!el.points || el.points.length < 2) return null;
+          const pathD = el.points.map((p, i) => 
+            `${i === 0 ? 'M' : 'L'} ${p.x + offsetX} ${p.y + offsetY}`
+          ).join(' ');
+          return <path key={el.id || index} d={pathD} stroke={el.color} strokeWidth={el.brushSize} fill="none" strokeLinecap="round" strokeLinejoin="round" />;
+        
+        case 'line':
+          return <line key={el.id || index} x1={el.startX + offsetX} y1={el.startY + offsetY} x2={el.endX + offsetX} y2={el.endY + offsetY} stroke={el.color} strokeWidth={el.brushSize} strokeLinecap="round" />;
+        
+        case 'arrow':
+          const angle = Math.atan2(el.endY - el.startY, el.endX - el.startX);
+          const headLength = Math.max(10, el.brushSize * 3);
+          const arrowPoints = [
+            `${el.endX + offsetX},${el.endY + offsetY}`,
+            `${el.endX + offsetX - headLength * Math.cos(angle - Math.PI / 6)},${el.endY + offsetY - headLength * Math.sin(angle - Math.PI / 6)}`,
+            `${el.endX + offsetX - headLength * Math.cos(angle + Math.PI / 6)},${el.endY + offsetY - headLength * Math.sin(angle + Math.PI / 6)}`
+          ].join(' ');
+          return (
+            <g key={el.id || index}>
+              <line x1={el.startX + offsetX} y1={el.startY + offsetY} x2={el.endX + offsetX} y2={el.endY + offsetY} stroke={el.color} strokeWidth={el.brushSize} strokeLinecap="round" />
+              <polygon points={arrowPoints} fill={el.color} />
+            </g>
+          );
+        
+        case 'rect':
+          return el.fill 
+            ? <rect key={el.id || index} x={el.x + offsetX} y={el.y + offsetY} width={el.w} height={el.h} fill={el.color} />
+            : <rect key={el.id || index} x={el.x + offsetX} y={el.y + offsetY} width={el.w} height={el.h} stroke={el.color} strokeWidth={el.brushSize} fill="none" />;
+        
+        case 'circle':
+          return el.fill
+            ? <ellipse key={el.id || index} cx={el.cx + offsetX} cy={el.cy + offsetY} rx={el.rx} ry={el.ry} fill={el.color} />
+            : <ellipse key={el.id || index} cx={el.cx + offsetX} cy={el.cy + offsetY} rx={el.rx} ry={el.ry} stroke={el.color} strokeWidth={el.brushSize} fill="none" />;
+        
+        case 'spray':
+          return (
+            <g key={el.id || index}>
+              {el.dots?.map((dot, i) => (
+                <circle key={i} cx={dot.x + offsetX} cy={dot.y + offsetY} r={dot.r} fill={el.color} />
+              ))}
+            </g>
+          );
+        
+        case 'splash':
+          const splashCircles = [];
+          const seed = el.id || index;
+          for (let i = 0; i < 30; i++) {
+            const pseudoRandom = (seed * 9301 + 49297 + i * 233) % 233280 / 233280;
+            const splashAngle = pseudoRandom * Math.PI * 2;
+            const distance = Math.sqrt(pseudoRandom) * el.size;
+            const dotSize = pseudoRandom * 5 + 2;
+            splashCircles.push(
+              <circle key={i} cx={el.x + offsetX + Math.cos(splashAngle) * distance} cy={el.y + offsetY + Math.sin(splashAngle) * distance} r={dotSize} fill={el.color} opacity={el.style === 'ink' ? 0.6 : 1} />
+            );
+          }
+          return <g key={el.id || index}>{splashCircles}</g>;
+        
+        default:
+          return null;
+      }
+    });
+  };
 
   return (
     <div style={{
@@ -2760,7 +2849,44 @@ function Preview() {
           backgroundColor: '#ffffff',
           position: 'relative',
         }}>
-          {blocks.map(block => renderBlock(block))}
+          {/* 画布装饰层（最底层） */}
+          {canvasDecorations && canvasDecorations.length > 0 && (
+            <svg 
+              style={{ 
+                position: 'absolute', 
+                inset: 0, 
+                width: '100%', 
+                height: '100%', 
+                pointerEvents: 'none',
+                zIndex: 0 
+              }}
+            >
+              {renderGraphicElements(canvasDecorations)}
+            </svg>
+          )}
+          
+          {blocks.map(block => (
+            <React.Fragment key={block.id}>
+              {renderBlock(block)}
+              {/* 区块内的图形元素 */}
+              {block.graphicElements && block.graphicElements.length > 0 && (
+                <svg 
+                  style={{ 
+                    position: 'absolute', 
+                    left: block.x,
+                    top: block.y,
+                    width: block.width,
+                    height: block.height,
+                    pointerEvents: 'none',
+                    zIndex: (block.style?.zIndex || 0) + 1,
+                    overflow: 'visible'
+                  }}
+                >
+                  {renderGraphicElements(block.graphicElements)}
+                </svg>
+              )}
+            </React.Fragment>
+          ))}
           
           {blocks.length === 0 && (
             <div style={{
