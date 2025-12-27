@@ -26,7 +26,6 @@ function PageDesigner({ projectId, roleId, page, onClose, onSave }) {
 
   // ===== 面板收起/展开状态 =====
   const [leftPanelCollapsed, setLeftPanelCollapsed] = React.useState(false);
-  const [rightPanelCollapsed, setRightPanelCollapsed] = React.useState(false);
 
   // ===== 区块模板状态 =====
   const [showBlockTemplateSelector, setShowBlockTemplateSelector] = React.useState(false);
@@ -1778,20 +1777,27 @@ function PageDesigner({ projectId, roleId, page, onClose, onSave }) {
           />
         </div>
         
-        {/* 右侧面板 - 样式面板占位 */}
-        <div className="relative" style={{ width: rightPanelCollapsed ? '24px' : '0px', transition: 'width 0.3s' }}>
-          {/* 右侧收起/展开按钮 */}
-          <button
-            onClick={() => setRightPanelCollapsed(!rightPanelCollapsed)}
-            className="absolute left-0 top-1/2 transform -translate-y-1/2 -translate-x-1/2 z-10 w-6 h-12 bg-white border border-gray-300 rounded-l flex items-center justify-center hover:bg-gray-100 shadow-sm"
-            title={rightPanelCollapsed ? '展开样式面板' : '收起样式面板'}
-            style={{ display: showPanel ? 'flex' : 'none' }}
-          >
-            <span className="text-gray-500 text-xs">{rightPanelCollapsed ? '◀' : '▶'}</span>
-          </button>
+        {/* 右侧面板控制按钮 */}
+        <div className="relative" style={{ width: '24px' }}>
+          {/* 右侧收起/展开按钮 - 用于控制样式面板显示 */}
+          {selectedBlock && (
+            <button
+              onClick={() => {
+                if (showPanel) {
+                  setShowPanel(false);
+                } else {
+                  setShowPanel(true);
+                }
+              }}
+              className="absolute left-0 top-1/2 transform -translate-y-1/2 -translate-x-1/2 z-10 w-6 h-12 bg-white border border-gray-300 rounded-l flex items-center justify-center hover:bg-gray-100 shadow-sm"
+              title={showPanel ? '隐藏样式面板' : '显示样式面板'}
+            >
+              <span className="text-gray-500 text-xs">{showPanel ? '▶' : '◀'}</span>
+            </button>
+          )}
         </div>
       </div>
-      {showPanel && selectedBlock && !rightPanelCollapsed && (
+      {showPanel && selectedBlock && (
         <StylePanel
           block={selectedBlock} onUpdate={handleUpdateSelectedBlock}
           position={panelPosition} onPositionChange={setPanelPosition}
