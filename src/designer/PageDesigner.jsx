@@ -1910,7 +1910,13 @@ function PageDesigner({ projectId, roleId, page, onClose, onSave }) {
           }
           setShowPanel(true);
         }}
-        onOpenIconManager={() => setShowIconManager(true)}
+        onOpenIconManager={() => {
+          console.log('[PageDesigner] onOpenIconManager 被调用');
+          console.log('[PageDesigner] 当前 showIconManager:', showIconManager);
+          console.log('[PageDesigner] window.IconManager:', window.IconManager);
+          setShowIconManager(true);
+          console.log('[PageDesigner] setShowIconManager(true) 已执行');
+        }}
         selectedBlockId={selectedBlockId}
       />
       <div className="flex-1 flex overflow-hidden">
@@ -2085,6 +2091,7 @@ function PageDesigner({ projectId, roleId, page, onClose, onSave }) {
       )}
       
       {/* Icon管理器 */}
+      {console.log('[PageDesigner] 渲染检查 - showIconManager:', showIconManager, 'window.IconManager:', !!window.IconManager)}
       {showIconManager && window.IconManager && (
         <IconManager
           isOpen={showIconManager}
@@ -2094,6 +2101,14 @@ function PageDesigner({ projectId, roleId, page, onClose, onSave }) {
           pages={allPages}
           blocks={blocks}
         />
+      )}
+      {showIconManager && !window.IconManager && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+          <div className="bg-white p-6 rounded-lg">
+            <p className="text-red-500">错误: IconManager 组件未加载</p>
+            <button onClick={() => setShowIconManager(false)} className="mt-4 px-4 py-2 bg-gray-200 rounded">关闭</button>
+          </div>
+        </div>
       )}
     </div>
   );
