@@ -1,5 +1,6 @@
 // 图形编辑器工具栏组件
 // 工具栏模式：直接在设计页画布或区块上绘图
+// 保存时：绘制的内容直接保留在画布上
 
 function GraphicEditor({ isOpen, onClose, onSave, targetBlock, canvasWidth, canvasHeight }) {
   const [tool, setTool] = React.useState('brush');
@@ -17,12 +18,10 @@ function GraphicEditor({ isOpen, onClose, onSave, targetBlock, canvasWidth, canv
   const overlayCanvasRef = React.useRef(null);
   const currentElementsRef = React.useRef([]);
 
-  // 同步elements到ref
   React.useEffect(() => {
     currentElementsRef.current = elements;
   }, [elements]);
 
-  // 获取绘图区域
   const getDrawingArea = () => {
     if (targetBlock) {
       return { x: targetBlock.x, y: targetBlock.y, width: targetBlock.width, height: targetBlock.height };
@@ -36,7 +35,7 @@ function GraphicEditor({ isOpen, onClose, onSave, targetBlock, canvasWidth, canv
     
     const designCanvas = document.querySelector('.designer-canvas-container');
     if (!designCanvas) {
-      console.error('找不到设计画布容器 .designer-canvas-container');
+      console.error('找不到设计画布容器');
       return;
     }
 
@@ -66,7 +65,6 @@ function GraphicEditor({ isOpen, onClose, onSave, targetBlock, canvasWidth, canv
     const ctx = overlay.getContext('2d');
     ctx.clearRect(0, 0, area.width, area.height);
 
-    // 添加事件监听
     overlay.addEventListener('mousedown', handleMouseDown);
     overlay.addEventListener('mousemove', handleMouseMove);
     overlay.addEventListener('mouseup', handleMouseUp);
@@ -79,13 +77,10 @@ function GraphicEditor({ isOpen, onClose, onSave, targetBlock, canvasWidth, canv
       overlay.removeEventListener('mouseup', handleMouseUp);
       overlay.removeEventListener('mouseleave', handleMouseLeave);
       overlay.removeEventListener('contextmenu', handleContextMenu);
-      if (overlay.parentNode) {
-        overlay.parentNode.removeChild(overlay);
-      }
+      // 注意：不在这里移除overlay，让它保留在DOM中
     };
   }, [isOpen, targetBlock]);
 
-  // 保存到历史
   const saveToHistory = (newElements) => {
     const els = newElements || currentElementsRef.current;
     setHistory(prev => {
@@ -96,7 +91,6 @@ function GraphicEditor({ isOpen, onClose, onSave, targetBlock, canvasWidth, canv
     setHistoryIndex(prev => prev + 1);
   };
 
-  // 重绘覆盖层
   const redrawOverlay = (elementsToDraw) => {
     const canvas = overlayCanvasRef.current;
     if (!canvas) return;
@@ -231,7 +225,6 @@ function GraphicEditor({ isOpen, onClose, onSave, targetBlock, canvasWidth, canv
     return { x: e.clientX - rect.left, y: e.clientY - rect.top };
   };
 
-  // 使用ref存储当前状态，避免闭包问题
   const stateRef = React.useRef({ tool, color, brushSize, fillMode, splashStyle, isDrawing, startPos });
   React.useEffect(() => {
     stateRef.current = { tool, color, brushSize, fillMode, splashStyle, isDrawing, startPos };
@@ -428,9 +421,25 @@ function GraphicEditor({ isOpen, onClose, onSave, targetBlock, canvasWidth, canv
     saveToHistory([]);
   };
 
+  // 保存：保留绘制内容在画布上，只关闭工具栏
   const handleSave = () => {
+    // 把覆盖层canvas的pointer-events设为none，这样它不会阻挡区块交互
     const canvas = overlayCanvasRef.current;
-    if (canvas) onSave?.(canvas.toDataURL('image/png'), elements);
+    if (canvas) {
+      canvas.style.pointerEvents = 'none';
+      canvas.style.cursor = 'default';
+    }
+    // 通知父组件保存元素数据
+    onSave?.(null, elements);
+    onClose?.();
+  };
+
+  // 取消：移除覆盖层，放弃绘制内容
+  const handleCancel = () => {
+    const canvas = overlayCanvasRef.current;
+    if (canvas && canvas.parentNode) {
+      canvas.parentNode.removeChild(canvas);
+    }
     onClose?.();
   };
 
@@ -463,9 +472,8 @@ function GraphicEditor({ isOpen, onClose, onSave, targetBlock, canvasWidth, canv
 
   return (
     <>
-      {/* 工具栏 */}
       <div className="fixed left-1/2 transform -translate-x-1/2 bg-white border border-gray-300 rounded-lg shadow-lg z-[250] flex items-center gap-2 px-3 py-2" style={{ top: '56px' }}>
-        <span className="text-sm font-medium text-gray-700 mr-2">🎨 {targetBlock ? `区块: ${targetBlock.name || targetBlock.id}` : '画布装饰'}</span>
+        <span className="text-sm font-medium text-gray-700 mr-2">✏️ {targetBlock ? `区块: ${targetBlock.name || targetBlock.id}` : '画布装饰'}</span>
         <div className="w-px h-6 bg-gray-300" />
         
         {tools.map(t => (
@@ -486,8 +494,8 @@ function GraphicEditor({ isOpen, onClose, onSave, targetBlock, canvasWidth, canv
         <button onClick={handleRedo} disabled={historyIndex >= history.length - 1} className="px-2 py-1 text-xs bg-gray-100 rounded hover:bg-gray-200 disabled:opacity-50" title="重做">↷</button>
         <button onClick={handleClear} className="px-2 py-1 text-xs bg-gray-100 rounded hover:bg-gray-200 text-red-600" title="清空">🗑️</button>
         <div className="w-px h-6 bg-gray-300" />
-        <button onClick={handleSave} className="px-3 py-1 text-xs bg-blue-500 text-white rounded hover:bg-blue-600">✓ 保存</button>
-        <button onClick={onClose} className="px-3 py-1 text-xs bg-gray-200 text-gray-700 rounded hover:bg-gray-300">✕ 取消</button>
+        <button onClick={handleSave} className="px-3 py-1 text-xs bg-blue-500 text-white rounded hover:bg-blue-600">✓ 完成</button>
+        <button onClick={handleCancel} className="px-3 py-1 text-xs bg-gray-200 text-gray-700 rounded hover:bg-gray-300">✕ 取消</button>
       </div>
 
       {contextMenu.show && (
@@ -500,4 +508,4 @@ function GraphicEditor({ isOpen, onClose, onSave, targetBlock, canvasWidth, canv
 }
 
 window.GraphicEditor = GraphicEditor;
-console.log('[DND2] GraphicEditor.jsx 加载完成 - 工具栏模式');
+console.log('[DND2] GraphicEditor.jsx 加载完成');

@@ -13,7 +13,9 @@ function DesignerToolbar({
   onClose,
   hasChanges,
   onOpenEditor,
-  onOpenGraphicEditor
+  onOpenGraphicEditor,
+  onOpenStylePanel,
+  selectedBlockId
 }) {
   return (
     <div className="h-12 bg-white border-b border-gray-200 flex items-center justify-between px-4 shadow-sm flex-shrink-0">
@@ -27,6 +29,21 @@ function DesignerToolbar({
       
       {/* 右侧：工具按钮 */}
       <div className="flex items-center space-x-3">
+        {/* 设计样式按钮 */}
+        <button
+          onClick={onOpenStylePanel}
+          className={`px-3 py-1.5 rounded flex items-center space-x-1 ${
+            selectedBlockId 
+              ? 'bg-blue-100 text-blue-700 hover:bg-blue-200' 
+              : 'bg-gray-100 text-gray-400 cursor-not-allowed'
+          }`}
+          title={selectedBlockId ? '打开样式面板' : '请先选中一个区块'}
+          disabled={!selectedBlockId}
+        >
+          <span>🎨</span>
+          <span>设计样式</span>
+        </button>
+        
         {/* 文档编辑器按钮 */}
         <button
           onClick={onOpenEditor}
@@ -43,7 +60,7 @@ function DesignerToolbar({
           className="px-3 py-1.5 bg-green-100 text-green-700 rounded hover:bg-green-200 flex items-center space-x-1"
           title="打开图形编辑器（绑图）"
         >
-          <span>🎨</span>
+          <span>✏️</span>
           <span>图形编辑器</span>
         </button>
         

@@ -346,38 +346,23 @@ function PageDesigner({ projectId, roleId, page, onClose, onSave }) {
 
   // 保存图形编辑器内容
   const handleGraphicEditorSave = (imageData, elements) => {
-    console.log('图形编辑器保存:', imageData ? '有图片数据' : '无', '元素数量:', elements?.length);
+    console.log('图形编辑器保存:', '元素数量:', elements?.length);
     
     if (graphicEditorTarget) {
-      // 保存到指定区块
+      // 选中了区块：把绘制内容保存到该区块的graphicElements中
+      // 这样区块在渲染时会显示这些绘制的图形
       updateBlockWithHistory(graphicEditorTarget.id, {
-        contentType: '图片',
-        content: { url: imageData, type: 'base64' },
-        graphicElements: elements  // 保存元素数据以便后续编辑
+        graphicElements: elements  // 保存元素数据
       });
       setHasChanges(true);
     } else {
-      // 保存为页面装饰层（创建一个新的装饰区块）
-      const canvasConfig = window.StyleUtils?.getCanvasConfig(canvasType) || { width: 1600, minHeight: 800 };
-      const newBlock = {
-        id: generateBlockId(),
-        name: '画布装饰',
-        type: '显示',
-        contentType: '图片',
-        content: { url: imageData, type: 'base64' },
-        graphicElements: elements,
-        x: 0,
-        y: 0,
-        width: canvasConfig.width,
-        height: canvasConfig.minHeight,
-        level: 0,  // 最底层
-        style: {
-          zIndex: 0,
-          pointerEvents: 'none'  // 不阻挡其他区块的交互
-        }
-      };
-      setBlocks([newBlock, ...blocks]);
-      setHasChanges(true);
+      // 没有选中区块：保存为页面级别的装饰层
+      // 存储在page的design中，作为canvasDecorations
+      // 注意：这里我们只保存elements数据，不创建新区块
+      // 实际渲染时，Canvas组件会读取这些数据并绘制
+      console.log('保存画布装饰层，元素数量:', elements?.length);
+      // 暂时先不自动生成区块，只是关闭编辑器
+      // 后续可以扩展为保存到page.design.canvasDecorations
     }
     
     setShowGraphicEditor(false);
@@ -1732,6 +1717,14 @@ function PageDesigner({ projectId, roleId, page, onClose, onSave }) {
         onClose={handleClose} hasChanges={hasChanges}
         onOpenEditor={handleOpenEditor}
         onOpenGraphicEditor={handleOpenGraphicEditor}
+        onOpenStylePanel={() => {
+          if (!selectedBlockId) {
+            alert('请先选中一个区块');
+            return;
+          }
+          setShowPanel(true);
+        }}
+        selectedBlockId={selectedBlockId}
       />
       <div className="flex-1 flex overflow-hidden">
         {/* 左侧面板 - 区块列表 */}
@@ -1775,26 +1768,6 @@ function PageDesigner({ projectId, roleId, page, onClose, onSave }) {
             onBlockStyleChange={handleBlockStyleChange}
             projectId={projectId}
           />
-        </div>
-        
-        {/* 右侧面板控制按钮 */}
-        <div className="relative" style={{ width: '24px' }}>
-          {/* 右侧收起/展开按钮 - 用于控制样式面板显示 */}
-          {selectedBlock && (
-            <button
-              onClick={() => {
-                if (showPanel) {
-                  setShowPanel(false);
-                } else {
-                  setShowPanel(true);
-                }
-              }}
-              className="absolute left-0 top-1/2 transform -translate-y-1/2 -translate-x-1/2 z-10 w-6 h-12 bg-white border border-gray-300 rounded-l flex items-center justify-center hover:bg-gray-100 shadow-sm"
-              title={showPanel ? '隐藏样式面板' : '显示样式面板'}
-            >
-              <span className="text-gray-500 text-xs">{showPanel ? '▶' : '◀'}</span>
-            </button>
-          )}
         </div>
       </div>
       {showPanel && selectedBlock && (
