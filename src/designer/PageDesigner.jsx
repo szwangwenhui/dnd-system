@@ -467,7 +467,6 @@ function PageDesigner({ projectId, roleId, page, onClose, onSave }) {
         const newBlocks = [...blocks, blockData];
         setBlocks(newBlocks);
         setSelectedBlockId(blockData.id);
-        setShowPanel(true);
         setHasChanges(true);
         saveToHistory(newBlocks);
       } catch (error) {
@@ -499,7 +498,6 @@ function PageDesigner({ projectId, roleId, page, onClose, onSave }) {
     const newBlocks = [...blocks, newBlock];
     setBlocks(newBlocks);
     setSelectedBlockId(newBlock.id);
-    setShowPanel(true);
     setHasChanges(true);
     saveToHistory(newBlocks);
   };
@@ -1156,13 +1154,11 @@ function PageDesigner({ projectId, roleId, page, onClose, onSave }) {
 
   const handleSelectBlock = (blockId) => {
     setSelectedBlockId(blockId);
-    setShowPanel(true);
   };
 
   // 从区块列表选择 - 同时滚动到区块位置
   const handleSelectBlockFromList = (blockId) => {
     setSelectedBlockId(blockId);
-    setShowPanel(true);
     
     // 滚动到区块位置（延迟执行以确保DOM更新）
     setTimeout(() => {
@@ -1228,7 +1224,6 @@ function PageDesigner({ projectId, roleId, page, onClose, onSave }) {
       startBlockX: block.x, startBlockY: block.y
     });
     setSelectedBlockId(blockId);
-    setShowPanel(true);
   };
 
   const handleBlockResizeStart = (e, blockId, direction) => {
