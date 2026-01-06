@@ -382,13 +382,13 @@ function FieldDefinition({ projectId }) {
                     )}
                   </td>
                   <td className="px-6 py-4 text-sm text-gray-600">
-                    {field.relatedForms && field.relatedForms.length > 0 ? (
+                    {Array.isArray(field.relatedForms) && field.relatedForms.length > 0 ? (
                      <div className="flex flex-wrap gap-1">
                             {field.relatedForms.map((formId, index) => {
                               // 查找表单名称
                               const formName = forms.find(f => f.id === formId)?.name || formId;
                               return (
-                               <span 
+                               <span
                                  key={index}
                                  className="px-2 py-1 text-xs bg-blue-50 text-blue-700 rounded-full"
                                  title={`表单ID: ${formId}`}
