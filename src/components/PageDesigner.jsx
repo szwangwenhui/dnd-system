@@ -22,13 +22,30 @@ function PageDesigner({ projectId, roleId, page, onClose, onSave }) {
   // 关闭确认弹窗
   const [showCloseModal, setShowCloseModal] = React.useState(false);
   const [closeProgress, setCloseProgress] = React.useState(page.designProgress || 0);
-  
+
+  // ========== 阶段1：区域数据结构 ==========
+  // 区域列表
+  const [areas, setAreas] = React.useState(page.areas || []);
+  // 是否显示区域（高亮）
+  const [showAreas, setShowAreas] = React.useState(false);
+  // 是否隐藏区域内内容
+  const [hideContentInAreas, setHideContentInAreas] = React.useState(false);
+  // 当前设计的区域ID（null = 全局模式）
+  const [currentAreaId, setCurrentAreaId] = React.useState(null);
+  // 区域列表面板是否显示
+  const [showAreaPanel, setShowAreaPanel] = React.useState(false);
+  // 添加区域弹窗
+  const [showAddAreaModal, setShowAddAreaModal] = React.useState(false);
+  // 编辑区域弹窗
+  const [showEditAreaModal, setShowEditAreaModal] = React.useState(false);
+  const [editingArea, setEditingArea] = React.useState(null);
+
   // 画布尺寸配置
   const canvasConfig = {
     PC: { width: 1200, height: 800, label: 'PC端 (1200×800)' },
     Mobile: { width: 360, height: 640, label: '手机端 (360×640)' }
   };
-  
+
   // 画布引用
   const canvasRef = React.useRef(null);
   // 是否有未保存的更改
@@ -88,6 +105,7 @@ function PageDesigner({ projectId, roleId, page, onClose, onSave }) {
       y: 10,
       width: 100,
       height: 100,
+      areaId: currentAreaId,  // 关联到当前区域
       style: {
         backgroundColor: '#ffffff',
         borderColor: '#cccccc',
@@ -96,7 +114,7 @@ function PageDesigner({ projectId, roleId, page, onClose, onSave }) {
       },
       createdAt: new Date().toISOString()
     };
-    
+
     const newBlocks = [...blocks, newBlock];
     setBlocks(newBlocks);
     setSelectedBlockId(newBlock.id);
@@ -157,12 +175,167 @@ function PageDesigner({ projectId, roleId, page, onClose, onSave }) {
     }));
   };
 
+  // ========== 阶段1：区域管理函数 ==========
+
+  // 生成区域ID
+  const generateAreaId = () => {
+    if (areas.length === 0) return `AREA-${page.id}-001`;
+    const maxNum = areas.reduce((max, area) => {
+      const num = parseInt(area.id.split('-').pop());
+      return num > max ? num : max;
+    }, 0);
+    return `AREA-${page.id}-${(maxNum + 1).toString().padStart(3, '0')}`;
+  };
+
+  // 检测两个区域是否重叠
+  const isAreaOverlap = (area1, area2) => {
+    return !(area1.x + area1.width <= area2.x ||
+             area2.x + area2.width <= area1.x ||
+             area1.y + area1.height <= area2.y ||
+             area2.y + area2.height <= area1.y);
+  };
+
+  // 检测区域是否与其他区域重叠
+  const isAreaOverlapping = (testArea, excludeAreaId = null) => {
+    return areas.some(area =>
+      area.id !== excludeAreaId && isAreaOverlap(testArea, area)
+    );
+  };
+
+  // 添加区域
+  const handleAddArea = () => {
+    const newArea = {
+      id: generateAreaId(),
+      name: '',
+      x: 0,
+      y: 0,
+      width: 300,
+      height: 300,
+      createdAt: new Date().toISOString()
+    };
+    setEditingArea(newArea);
+    setShowAddAreaModal(true);
+  };
+
+  // 确认添加区域
+  const confirmAddArea = () => {
+    if (!editingArea.name.trim()) {
+      alert('请输入区域名称');
+      return;
+    }
+    if (editingArea.name.length > 10) {
+      alert('区域名称不能超过10个汉字');
+      return;
+    }
+
+    // 检测重叠
+    if (isAreaOverlapping(editingArea)) {
+      alert('区域不能与其他区域重叠');
+      return;
+    }
+
+    const newAreas = [...areas, { ...editingArea }];
+    setAreas(newAreas);
+    setShowAddAreaModal(false);
+    setEditingArea(null);
+    setHasChanges(true);
+  };
+
+  // 编辑区域
+  const handleEditArea = (areaId) => {
+    const area = areas.find(a => a.id === areaId);
+    if (area) {
+      setEditingArea({ ...area });
+      setShowEditAreaModal(true);
+    }
+  };
+
+  // 确认编辑区域
+  const confirmEditArea = () => {
+    if (!editingArea.name.trim()) {
+      alert('请输入区域名称');
+      return;
+    }
+    if (editingArea.name.length > 10) {
+      alert('区域名称不能超过10个汉字');
+      return;
+    }
+
+    // 如果修改了位置或尺寸，检测重叠
+    const oldArea = areas.find(a => a.id === editingArea.id);
+    const positionChanged = oldArea.x !== editingArea.x || oldArea.y !== editingArea.y ||
+                          oldArea.width !== editingArea.width || oldArea.height !== editingArea.height;
+    if (positionChanged && isAreaOverlapping(editingArea, editingArea.id)) {
+      alert('区域不能与其他区域重叠');
+      return;
+    }
+
+    const newAreas = areas.map(a =>
+      a.id === editingArea.id ? { ...editingArea } : a
+    );
+    setAreas(newAreas);
+    setShowEditAreaModal(false);
+    setEditingArea(null);
+    setHasChanges(true);
+  };
+
+  // 删除区域
+  const handleDeleteArea = (areaId) => {
+    const area = areas.find(a => a.id === areaId);
+    if (!area) return;
+
+    const blockCount = blocks.filter(b => b.areaId === areaId).length;
+    if (!confirm(`确定要删除区域"${area.name}"吗？\n该区域内有 ${blockCount} 个区块，删除区域将同时删除这些区块。`)) {
+      return;
+    }
+
+    // 删除区域和其所属的区块
+    const newAreas = areas.filter(a => a.id !== areaId);
+    const newBlocks = blocks.filter(b => b.areaId !== areaId);
+
+    setAreas(newAreas);
+    setBlocks(newBlocks);
+    if (selectedBlockId && !newBlocks.find(b => b.id === selectedBlockId)) {
+      setSelectedBlockId(null);
+      setShowPanel(false);
+    }
+    setHasChanges(true);
+
+    // 如果正在设计该区域，退出设计模式
+    if (currentAreaId === areaId) {
+      setCurrentAreaId(null);
+    }
+  };
+
+  // 进入区域设计模式
+  const handleEnterAreaDesignMode = (areaId) => {
+    setCurrentAreaId(areaId);
+    setShowAreaPanel(false);
+  };
+
+  // 退出区域设计模式
+  const handleExitAreaDesignMode = () => {
+    setCurrentAreaId(null);
+  };
+
+  // 获取当前设计的区域
+  const getCurrentArea = () => {
+    return areas.find(a => a.id === currentAreaId);
+  };
+
+  // 获取当前区域内的区块
+  const getCurrentAreaBlocks = () => {
+    if (!currentAreaId) return blocks;
+    return blocks.filter(b => b.areaId === currentAreaId);
+  };
+
   // 保存设计
   const handleSave = async () => {
     try {
       const updatedPage = {
         ...page,
         blocks: blocks,
+        areas: areas,  // 阶段5：保存区域数据
         canvasType: canvasType,
         updatedAt: new Date().toISOString()
       };
@@ -190,6 +363,7 @@ function PageDesigner({ projectId, roleId, page, onClose, onSave }) {
         const updatedPage = {
           ...page,
           blocks: blocks,
+          areas: areas,  // 阶段5：保存区域数据
           designProgress: closeProgress,
           updatedAt: new Date().toISOString()
         };
@@ -232,6 +406,29 @@ function PageDesigner({ projectId, roleId, page, onClose, onSave }) {
     startBlockY: 0
   });
 
+  // ========== 阶段3：区域拖拽相关 ==========
+  const [areaDragState, setAreaDragState] = React.useState({
+    isDragging: false,
+    areaId: null,
+    startX: 0,
+    startY: 0,
+    startAreaX: 0,
+    startAreaY: 0
+  });
+
+  // ========== 阶段3：区域缩放相关 ==========
+  const [areaResizeState, setAreaResizeState] = React.useState({
+    isResizing: false,
+    areaId: null,
+    direction: '',
+    startX: 0,
+    startY: 0,
+    startWidth: 0,
+    startHeight: 0,
+    startAreaX: 0,
+    startAreaY: 0
+  });
+
   // 开始拖拽区块
   const handleBlockMouseDown = (e, blockId) => {
     if (e.target.classList.contains('resize-handle')) return;
@@ -271,6 +468,43 @@ function PageDesigner({ projectId, roleId, page, onClose, onSave }) {
     });
   };
 
+  // ========== 阶段3：开始拖拽区域 ==========
+  const handleAreaMouseDown = (e, areaId) => {
+    if (e.target.classList.contains('area-resize-handle')) return;
+
+    e.stopPropagation();
+    const area = areas.find(a => a.id === areaId);
+    if (!area) return;
+
+    setAreaDragState({
+      isDragging: true,
+      areaId: areaId,
+      startX: e.clientX,
+      startY: e.clientY,
+      startAreaX: area.x,
+      startAreaY: area.y
+    });
+  };
+
+  // ========== 阶段3：开始缩放区域 ==========
+  const handleAreaResizeMouseDown = (e, areaId, direction) => {
+    e.stopPropagation();
+    const area = areas.find(a => a.id === areaId);
+    if (!area) return;
+
+    setAreaResizeState({
+      isResizing: true,
+      areaId: areaId,
+      direction: direction,
+      startX: e.clientX,
+      startY: e.clientY,
+      startWidth: area.width,
+      startHeight: area.height,
+      startAreaX: area.x,
+      startAreaY: area.y
+    });
+  };
+
   // 鼠标移动处理
   React.useEffect(() => {
     const handleMouseMove = (e) => {
@@ -278,24 +512,34 @@ function PageDesigner({ projectId, roleId, page, onClose, onSave }) {
       if (dragState.isDragging) {
         const deltaX = (e.clientX - dragState.startX) / (scale / 100);
         const deltaY = (e.clientY - dragState.startY) / (scale / 100);
-        
-        updateBlock(dragState.blockId, {
-          x: Math.max(0, Math.round(dragState.startBlockX + deltaX)),
-          y: Math.max(0, Math.round(dragState.startBlockY + deltaY))
-        });
+
+        const block = blocks.find(b => b.id === dragState.blockId);
+        let newX = Math.max(0, Math.round(dragState.startBlockX + deltaX));
+        let newY = Math.max(0, Math.round(dragState.startBlockY + deltaY));
+
+        // 阶段3：区域边界限制
+        if (block.areaId) {
+          const area = areas.find(a => a.id === block.areaId);
+          if (area) {
+            newX = Math.max(area.x, Math.min(newX, area.x + area.width - block.width));
+            newY = Math.max(area.y, Math.min(newY, area.y + area.height - block.height));
+          }
+        }
+
+        updateBlock(dragState.blockId, { x: newX, y: newY });
       }
-      
+
       // 缩放区块
       if (resizeState.isResizing) {
         const deltaX = (e.clientX - resizeState.startX) / (scale / 100);
         const deltaY = (e.clientY - resizeState.startY) / (scale / 100);
         const dir = resizeState.direction;
-        
+
         let newWidth = resizeState.startWidth;
         let newHeight = resizeState.startHeight;
         let newX = resizeState.startBlockX;
         let newY = resizeState.startBlockY;
-        
+
         if (dir.includes('e')) newWidth = Math.max(20, resizeState.startWidth + deltaX);
         if (dir.includes('w')) {
           newWidth = Math.max(20, resizeState.startWidth - deltaX);
@@ -306,13 +550,97 @@ function PageDesigner({ projectId, roleId, page, onClose, onSave }) {
           newHeight = Math.max(20, resizeState.startHeight - deltaY);
           newY = resizeState.startBlockY + (resizeState.startHeight - newHeight);
         }
-        
+
+        // 阶段3：区域边界限制
+        const block = blocks.find(b => b.id === resizeState.blockId);
+        if (block && block.areaId) {
+          const area = areas.find(a => a.id === block.areaId);
+          if (area) {
+            // 确保区块不超出区域边界
+            newX = Math.max(area.x, Math.min(newX, area.x + area.width - newWidth));
+            newY = Math.max(area.y, Math.min(newY, area.y + area.height - newHeight));
+            newWidth = Math.min(newWidth, area.x + area.width - newX);
+            newHeight = Math.min(newHeight, area.y + area.height - newY);
+          }
+        }
+
         updateBlock(resizeState.blockId, {
           x: Math.max(0, Math.round(newX)),
           y: Math.max(0, Math.round(newY)),
           width: Math.round(newWidth),
           height: Math.round(newHeight)
         });
+      }
+
+      // ========== 阶段3：拖拽区域 ==========
+      if (areaDragState.isDragging) {
+        const deltaX = (e.clientX - areaDragState.startX) / (scale / 100);
+        const deltaY = (e.clientY - areaDragState.startY) / (scale / 100);
+
+        let newX = Math.max(0, Math.round(areaDragState.startAreaX + deltaX));
+        let newY = Math.max(0, Math.round(areaDragState.startAreaY + deltaY));
+
+        const area = areas.find(a => a.id === areaDragState.areaId);
+        if (!area) return;
+
+        // 测试新位置是否重叠
+        const testArea = {
+          ...area,
+          x: newX,
+          y: newY
+        };
+
+        if (!isAreaOverlapping(testArea, areaDragState.areaId)) {
+          setAreas(areas.map(a =>
+            a.id === areaDragState.areaId ? { ...a, x: newX, y: newY } : a
+          ));
+        }
+      }
+
+      // ========== 阶段3：缩放区域 ==========
+      if (areaResizeState.isResizing) {
+        const deltaX = (e.clientX - areaResizeState.startX) / (scale / 100);
+        const deltaY = (e.clientY - areaResizeState.startY) / (scale / 100);
+        const dir = areaResizeState.direction;
+
+        let newWidth = areaResizeState.startWidth;
+        let newHeight = areaResizeState.startHeight;
+        let newX = areaResizeState.startAreaX;
+        let newY = areaResizeState.startAreaY;
+
+        if (dir.includes('e')) newWidth = Math.max(50, areaResizeState.startWidth + deltaX);
+        if (dir.includes('w')) {
+          newWidth = Math.max(50, areaResizeState.startWidth - deltaX);
+          newX = areaResizeState.startAreaX + (areaResizeState.startWidth - newWidth);
+        }
+        if (dir.includes('s')) newHeight = Math.max(50, areaResizeState.startHeight + deltaY);
+        if (dir.includes('n')) {
+          newHeight = Math.max(50, areaResizeState.startHeight - deltaY);
+          newY = areaResizeState.startAreaY + (areaResizeState.startHeight - newHeight);
+        }
+
+        newX = Math.max(0, Math.round(newX));
+        newY = Math.max(0, Math.round(newY));
+        newWidth = Math.round(newWidth);
+        newHeight = Math.round(newHeight);
+
+        const area = areas.find(a => a.id === areaResizeState.areaId);
+        if (!area) return;
+
+        // 测试新尺寸是否重叠
+        const testArea = {
+          ...area,
+          x: newX,
+          y: newY,
+          width: newWidth,
+          height: newHeight
+        };
+
+        if (!isAreaOverlapping(testArea, areaResizeState.areaId)) {
+          setAreas(areas.map(a =>
+            a.id === areaResizeState.areaId ? { ...a, x: newX, y: newY, width: newWidth, height: newHeight } : a
+          ));
+        }
       }
 
       // 拖拽样式面板
@@ -333,6 +661,14 @@ function PageDesigner({ projectId, roleId, page, onClose, onSave }) {
         saveToHistory(blocks);
         setResizeState({ ...resizeState, isResizing: false });
       }
+      // ========== 阶段3：区域拖拽结束 ==========
+      if (areaDragState.isDragging) {
+        setAreaDragState({ ...areaDragState, isDragging: false });
+      }
+      // ========== 阶段3：区域缩放结束 ==========
+      if (areaResizeState.isResizing) {
+        setAreaResizeState({ ...areaResizeState, isResizing: false });
+      }
       if (isDraggingPanel) {
         setIsDraggingPanel(false);
       }
@@ -345,7 +681,7 @@ function PageDesigner({ projectId, roleId, page, onClose, onSave }) {
       document.removeEventListener('mousemove', handleMouseMove);
       document.removeEventListener('mouseup', handleMouseUp);
     };
-  }, [dragState, resizeState, isDraggingPanel, scale, blocks]);
+  }, [dragState, resizeState, areaDragState, areaResizeState, isDraggingPanel, scale, blocks, areas, currentAreaId]);
 
   // 点击画布空白处取消选中
   const handleCanvasClick = (e) => {
@@ -433,6 +769,36 @@ function PageDesigner({ projectId, roleId, page, onClose, onSave }) {
         </div>
         
         <div className="flex items-center space-x-3">
+          {/* 阶段4：显示区域按钮 */}
+          <div className="flex items-center space-x-2 bg-gray-100 rounded-lg p-1">
+            <button
+              onClick={() => setShowAreas(!showAreas)}
+              className={`px-3 py-1 rounded text-sm transition-colors ${
+                showAreas
+                  ? 'bg-white text-purple-600 shadow'
+                  : 'text-gray-600 hover:text-gray-900'
+              }`}
+              title="显示/隐藏区域"
+            >
+              📍 区域
+            </button>
+            {showAreas && (
+              <button
+                onClick={() => setHideContentInAreas(!hideContentInAreas)}
+                className={`px-3 py-1 rounded text-sm transition-colors ${
+                  hideContentInAreas
+                    ? 'bg-white text-orange-600 shadow'
+                    : 'bg-white text-gray-600 shadow'
+                }`}
+                title="隐藏/显示内容"
+              >
+                {hideContentInAreas ? '仅区域' : '区域+内容'}
+              </button>
+            )}
+          </div>
+
+          <div className="w-px h-6 bg-gray-300"></div>
+
           {/* 画布类型选择 */}
           <div className="flex items-center space-x-1 bg-gray-100 rounded-lg p-1">
             <button
@@ -515,27 +881,160 @@ function PageDesigner({ projectId, roleId, page, onClose, onSave }) {
 
       {/* 主体区域 */}
       <div className="flex-1 flex overflow-hidden">
-        {/* 左侧 - 区块列表 */}
-        <div className="w-48 bg-white border-r border-gray-200 flex flex-col">
-          <div className="p-3 border-b border-gray-200 flex items-center justify-between">
-            <span className="font-medium text-gray-700">区块列表</span>
+        {/* 左侧 - 区域列表 + 区块列表 */}
+        <div className="w-80 bg-white border-r border-gray-200 flex flex-col">
+          {/* 阶段2：区域列表切换按钮 */}
+          <div className="p-2 border-b border-gray-200 flex space-x-2">
             <button
-              onClick={handleAddBlock}
-              className="w-8 h-8 bg-blue-600 text-white rounded-full hover:bg-blue-700 flex items-center justify-center text-xl"
-              title="添加区块"
+              onClick={() => setShowAreaPanel(true)}
+              className={`flex-1 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                showAreaPanel ? 'bg-purple-100 text-purple-700' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+              }`}
             >
-              +
+              📍 区域列表
+            </button>
+            <button
+              onClick={() => setShowAreaPanel(false)}
+              className={`flex-1 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                !showAreaPanel ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+              }`}
+            >
+              📦 区块列表
             </button>
           </div>
-          
-          <div className="flex-1 overflow-y-auto p-2">
-            {blocks.length === 0 ? (
+
+          {/* 区域列表面板 */}
+          {showAreaPanel ? (
+            <div className="flex-1 overflow-y-auto p-2">
+              {currentAreaId ? (
+                // 阶段2：区域设计模式显示
+                <div className="space-y-4">
+                  <div className="bg-purple-50 border border-purple-200 rounded-lg p-3">
+                    <div className="font-medium text-purple-700 mb-2">当前设计的区域</div>
+                    {(() => {
+                      const currentArea = getCurrentArea();
+                      return currentArea ? (
+                        <>
+                          <div className="text-sm text-gray-600">
+                            <strong>区域编号：</strong>{currentArea.id}
+                          </div>
+                          <div className="text-sm text-gray-600">
+                            <strong>区域名称：</strong>{currentArea.name}
+                          </div>
+                          <div className="text-sm text-gray-600">
+                            <strong>几何数据：</strong>({currentArea.x}, {currentArea.y}) {currentArea.width}*{currentArea.height}
+                          </div>
+                        </>
+                      ) : null;
+                    })()}
+                  </div>
+                  <button
+                    onClick={handleExitAreaDesignMode}
+                    className="w-full px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700"
+                  >
+                    ← 退出区域设计模式
+                  </button>
+                </div>
+              ) : (
+                // 正常模式：显示所有区域
+                <>
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="font-medium text-gray-700">区域列表</span>
+                    <button
+                      onClick={handleAddArea}
+                      className="px-3 py-1 bg-purple-600 text-white rounded text-sm hover:bg-purple-700"
+                    >
+                      + 添加新区域
+                    </button>
+                  </div>
+
+                  {areas.length === 0 ? (
+                    <div className="text-center text-gray-400 text-sm py-8">
+                      暂无区域<br/>点击上方按钮添加
+                    </div>
+                  ) : (
+                    <div className="overflow-hidden rounded-lg border border-gray-200">
+                      <table className="min-w-full divide-y divide-gray-200">
+                        <thead className="bg-gray-50">
+                          <tr>
+                            <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">区域编号</th>
+                            <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">区域名称</th>
+                            <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">几何数据</th>
+                            <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase">操作</th>
+                          </tr>
+                        </thead>
+                        <tbody className="bg-white divide-y divide-gray-200">
+                          {areas.map(area => (
+                            <tr key={area.id} className="hover:bg-gray-50">
+                              <td className="px-3 py-2 whitespace-nowrap text-sm text-gray-900 font-mono">{area.id}</td>
+                              <td className="px-3 py-2 whitespace-nowrap text-sm text-gray-900">{area.name}</td>
+                              <td className="px-3 py-2 whitespace-nowrap text-sm text-gray-600">
+                                ({area.x}, {area.y}) {area.width}*{area.height}
+                              </td>
+                              <td className="px-3 py-2 whitespace-nowrap text-sm text-center space-x-1">
+                                <button
+                                  onClick={() => handleEditArea(area.id)}
+                                  className="text-blue-600 hover:text-blue-900"
+                                  title="修改"
+                                >
+                                  修改
+                                </button>
+                                <button
+                                  onClick={() => handleEnterAreaDesignMode(area.id)}
+                                  className="text-purple-600 hover:text-purple-900"
+                                  title="设计区域"
+                                >
+                                  设计
+                                </button>
+                                <button
+                                  onClick={() => handleDeleteArea(area.id)}
+                                  className="text-red-600 hover:text-red-900"
+                                  title="删除"
+                                >
+                                  删除
+                                </button>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </>
+              )}
+            </div>
+          ) : (
+            // 区块列表面板
+            <>
+              <div className="p-3 border-b border-gray-200 flex items-center justify-between">
+                <span className="font-medium text-gray-700">
+                  {currentAreaId ? `区块列表 (${getCurrentArea()?.name})` : '区块列表'}
+                </span>
+                {currentAreaId && (
+                  <button
+                    onClick={handleExitAreaDesignMode}
+                    className="text-xs text-purple-600 hover:text-purple-900"
+                  >
+                    退出
+                  </button>
+                )}
+                <button
+                  onClick={handleAddBlock}
+                  className="w-8 h-8 bg-blue-600 text-white rounded-full hover:bg-blue-700 flex items-center justify-center text-xl"
+                  title="添加区块"
+                >
+                  +
+                </button>
+              </div>
+
+              <div className="flex-1 overflow-y-auto p-2">
+            {getCurrentAreaBlocks().length === 0 ? (
               <div className="text-center text-gray-400 text-sm py-4">
                 暂无区块<br/>点击上方 + 添加
               </div>
             ) : (
               <div className="space-y-1">
-                {blocks.map(block => (
+                {getCurrentAreaBlocks().map(block => (
                   <div key={block.id} className="border border-gray-200 rounded">
                     <div
                       className={`flex items-center justify-between px-2 py-1.5 cursor-pointer hover:bg-gray-50 ${
@@ -584,6 +1083,8 @@ function PageDesigner({ projectId, roleId, page, onClose, onSave }) {
               </div>
             )}
           </div>
+          </>
+        )}
         </div>
 
         {/* 中间 - 画布区域 */}
@@ -604,7 +1105,41 @@ function PageDesigner({ projectId, roleId, page, onClose, onSave }) {
             }}
             onClick={handleCanvasClick}
           >
-            {blocks.map(block => renderBlock(block))}
+            {/* 阶段4：渲染区域（仅在显示区域模式下）*/}
+            {showAreas && !currentAreaId && areas.map(area => (
+              <div
+                key={area.id}
+                className="absolute border-2 border-dashed bg-gray-200 cursor-move"
+                style={{
+                  left: area.x * (scale / 100),
+                  top: area.y * (scale / 100),
+                  width: area.width * (scale / 100),
+                  height: area.height * (scale / 100),
+                  opacity: 0.3,
+                  zIndex: 0,
+                  borderColor: '#9ca3af'
+                }}
+                onMouseDown={(e) => handleAreaMouseDown(e, area.id)}
+              >
+                {/* 区域标签 */}
+                <div className="absolute -top-4 left-0 text-xs bg-gray-700 text-white px-1 rounded whitespace-nowrap">
+                  {area.name} ({area.id})
+                </div>
+
+                {/* 区域缩放手柄 */}
+                <div className="area-resize-handle absolute -top-1 -left-1 w-3 h-3 bg-purple-500 cursor-nw-resize"
+                     onMouseDown={(e) => handleAreaResizeMouseDown(e, area.id, 'nw')} />
+                <div className="area-resize-handle absolute -top-1 -right-1 w-3 h-3 bg-purple-500 cursor-ne-resize"
+                     onMouseDown={(e) => handleAreaResizeMouseDown(e, area.id, 'ne')} />
+                <div className="area-resize-handle absolute -bottom-1 -left-1 w-3 h-3 bg-purple-500 cursor-sw-resize"
+                     onMouseDown={(e) => handleAreaResizeMouseDown(e, area.id, 'sw')} />
+                <div className="area-resize-handle absolute -bottom-1 -right-1 w-3 h-3 bg-purple-500 cursor-se-resize"
+                     onMouseDown={(e) => handleAreaResizeMouseDown(e, area.id, 'se')} />
+              </div>
+            ))}
+
+            {/* 渲染区块 */}
+            {!hideContentInAreas && getCurrentAreaBlocks().map(block => renderBlock(block))}
           </div>
         </div>
       </div>
@@ -769,6 +1304,146 @@ function PageDesigner({ projectId, roleId, page, onClose, onSave }) {
                 })}
                 className="w-full px-2 py-1 border border-gray-300 rounded text-sm"
               />
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 阶段2：添加区域弹窗 */}
+      {showAddAreaModal && editingArea && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[70]">
+          <div className="bg-white rounded-lg shadow-xl w-96 p-6">
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">添加新区域</h3>
+
+            <div className="space-y-4">
+              {/* 区域名称 */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  区域名称 <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  value={editingArea.name}
+                  onChange={(e) => setEditingArea({ ...editingArea, name: e.target.value.slice(0, 10) })}
+                  placeholder="10个汉字以内"
+                  className="w-full px-3 py-2 border border-gray-300 rounded text-sm"
+                  maxLength={10}
+                />
+              </div>
+
+              {/* 几何数据 */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  几何数据 (X, Y, 宽×高)
+                </label>
+                <div className="grid grid-cols-4 gap-2">
+                  <div>
+                    <span className="text-xs text-gray-500">X</span>
+                    <input
+                      type="number"
+                      value={editingArea.x}
+                      onChange={(e) => setEditingArea({ ...editingArea, x: parseInt(e.target.value) || 0 })}
+                      className="w-full px-2 py-1 border border-gray-300 rounded text-sm"
+                      min="0"
+                    />
+                  </div>
+                  <div>
+                    <span className="text-xs text-gray-500">Y</span>
+                    <input
+                      type="number"
+                      value={editingArea.y}
+                      onChange={(e) => setEditingArea({ ...editingArea, y: parseInt(e.target.value) || 0 })}
+                      className="w-full px-2 py-1 border border-gray-300 rounded text-sm"
+                      min="0"
+                    />
+                  </div>
+                  <div>
+                    <span className="text-xs text-gray-500">宽</span>
+                    <input
+                      type="number"
+                      value={editingArea.width}
+                      onChange={(e) => setEditingArea({ ...editingArea, width: Math.max(50, parseInt(e.target.value) || 50) })}
+                      className="w-full px-2 py-1 border border-gray-300 rounded text-sm"
+                      min="50"
+                    />
+                  </div>
+                  <div>
+                    <span className="text-xs text-gray-500">高</span>
+                    <input
+                      type="number"
+                      value={editingArea.height}
+                      onChange={(e) => setEditingArea({ ...editingArea, height: Math.max(50, parseInt(e.target.value) || 50) })}
+                      className="w-full px-2 py-1 border border-gray-300 rounded text-sm"
+                      min="50"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div className="text-xs text-gray-500">
+                初始数据：(0, 0) 300×300，区域拖拽后系统自动更新
+              </div>
+            </div>
+
+            <div className="flex justify-end space-x-3 mt-6">
+              <button
+                onClick={() => {
+                  setShowAddAreaModal(false);
+                  setEditingArea(null);
+                }}
+                className="px-4 py-2 border border-gray-300 rounded text-gray-700 hover:bg-gray-100"
+              >
+                取消
+              </button>
+              <button
+                onClick={confirmAddArea}
+                className="px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-700"
+              >
+                确认添加
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 阶段2：编辑区域弹窗 */}
+      {showEditAreaModal && editingArea && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[70]">
+          <div className="bg-white rounded-lg shadow-xl w-96 p-6">
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">修改区域</h3>
+
+            <div className="space-y-4">
+              {/* 区域名称 */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  区域名称 <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  value={editingArea.name}
+                  onChange={(e) => setEditingArea({ ...editingArea, name: e.target.value.slice(0, 10) })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded text-sm"
+                  maxLength={10}
+                />
+              </div>
+            </div>
+
+            <div className="flex justify-end space-x-3 mt-6">
+              <button
+                onClick={() => {
+                  setShowEditAreaModal(false);
+                  setEditingArea(null);
+                }}
+                className="px-4 py-2 border border-gray-300 rounded text-gray-700 hover:bg-gray-100"
+              >
+                取消
+              </button>
+              <button
+                onClick={confirmEditArea}
+                className="px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-700"
+              >
+                确认修改
+              </button>
             </div>
           </div>
         </div>
