@@ -1,6 +1,6 @@
 // 子表管理器组件
 function SubTableManager({ projectId, form, fields, forms, onClose, onSuccess }) {
-  const [step, setStep] = React.useState(1); // 1: 选择截取方式, 2: 配置横向, 3: 配置纵向, 4: 确认
+  const [step, setStep] = React.useState(1); // 0: 选择操作目标表(入口1), 1: 选择截取方式, 2: 配置横向, 3: 配置纵向, 4: 确认
   const [sourceFormId, setSourceFormId] = React.useState('');
   const [subType, setSubType] = React.useState(''); // 'horizontal', 'vertical', 'mixed'
   
@@ -18,6 +18,14 @@ function SubTableManager({ projectId, form, fields, forms, onClose, onSuccess })
   const [tableName, setTableName] = React.useState('');
   const [loading, setLoading] = React.useState(false);
   const [error, setError] = React.useState('');
+
+  // 初始化：如果是入口2（从表单详情页进入），直接使用该表单
+  React.useEffect(() => {
+    if (form && form.id) {
+      setSourceFormId(form.id);
+      setStep(1); // 跳过选择操作目标表步骤
+    }
+  }, [form]);
 
   // 过滤出对象表单
   const objectForms = forms.filter(f => f.type === '对象表单' && !f.subType);
@@ -148,6 +156,15 @@ function SubTableManager({ projectId, form, fields, forms, onClose, onSuccess })
   // 下一步
   const handleNext = () => {
     setError('');
+    if (step === 0) {
+      // 入口1：选择操作目标表
+      if (!sourceFormId) {
+        setError('请选择操作目标表');
+        return;
+      }
+      setStep(1);
+      return;
+    }
     if (step === 1) {
       if (!sourceFormId) {
         setError('请选择操作目标表');
@@ -197,7 +214,12 @@ function SubTableManager({ projectId, form, fields, forms, onClose, onSuccess })
   // 上一步
   const handlePrev = () => {
     setError('');
-    if (step === 2) {
+    if (step === 1) {
+      // 如果是从入口1进入的，可以回到step 0重新选择表单
+      if (!form) {
+        setStep(0);
+      }
+    } else if (step === 2) {
       setStep(1);
     } else if (step === 3) {
       if (subType === 'mixed') {
@@ -229,9 +251,10 @@ function SubTableManager({ projectId, form, fields, forms, onClose, onSuccess })
       error && React.createElement('div', { className: 'error-message' }, error),
       
       React.createElement('div', { className: 'modal-body' },
-        // 第1步：选择截取方式
-        step === 1 && React.createElement('div', { className: 'step step-1' },
-          React.createElement('h4', null, '第1步：选择操作目标表和截取方式'),
+        // 第0步：选择操作目标表（入口1）
+        step === 0 && React.createElement('div', { className: 'step step-0' },
+          React.createElement('h4', null, '第1步：选择操作目标表'),
+          React.createElement('p', { className: 'hint' }, '选择要从中截取数据的源表单'),
           React.createElement('div', { className: 'form-group' },
             React.createElement('label', null, '操作目标表：'),
             React.createElement('select', {
@@ -243,7 +266,13 @@ function SubTableManager({ projectId, form, fields, forms, onClose, onSuccess })
                 React.createElement('option', { key: f.id, value: f.id }, f.name)
               )
             )
-          ),
+          )
+        ),
+
+        // 第1步：选择截取方式
+        step === 1 && React.createElement('div', { className: 'step step-1' },
+          React.createElement('h4', null, !form ? '第2步：选择截取方式' : '第1步：选择截取方式'),
+          React.createElement('p', { className: 'hint' }, '请选择要截取的方式'),
           sourceForm && React.createElement('div', { className: 'form-group' },
             React.createElement('label', null, '截取方式：'),
             React.createElement('div', { className: 'checkbox-group' },
@@ -269,7 +298,7 @@ function SubTableManager({ projectId, form, fields, forms, onClose, onSuccess })
         
         // 第2步：配置横向截取
         step === 2 && React.createElement('div', { className: 'step step-2' },
-          React.createElement('h4', null, '第2步：选择横向截取字段'),
+          React.createElement('h4', null, !form ? '第3步：选择横向截取字段' : '第2步：选择横向截取字段'),
           React.createElement('p', { className: 'hint' }, '请选择要包含在子表中的字段（非主键字段）'),
           
           nonAttributeFields.length > 0 && React.createElement('div', { className: 'field-group' },
@@ -303,7 +332,7 @@ function SubTableManager({ projectId, form, fields, forms, onClose, onSuccess })
         
         // 第3步：配置纵向截取
         step === 3 && React.createElement('div', { className: 'step step-3' },
-          React.createElement('h4', null, '第3步：选择纵向截取标准'),
+          React.createElement('h4', null, !form ? '第4步：选择纵向截取标准' : '第3步：选择纵向截取标准'),
           
           React.createElement('div', { className: 'form-group' },
             React.createElement('label', null, '标准字段：'),
@@ -402,7 +431,7 @@ function SubTableManager({ projectId, form, fields, forms, onClose, onSuccess })
         
         // 第4步：确认
         step === 4 && React.createElement('div', { className: 'step step-4' },
-          React.createElement('h4', null, '第4步：确认信息'),
+          React.createElement('h4', null, !form ? '第5步：确认信息' : '第4步：确认信息'),
           React.createElement('div', { className: 'summary' },
             React.createElement('p', null, React.createElement('strong', null, '源表单：'), sourceForm?.name),
             React.createElement('p', null,

@@ -1,12 +1,20 @@
 // 再造表管理器组件
 function RebuildTableManager({ projectId, form, fields, forms, onClose, onSuccess }) {
-  const [step, setStep] = React.useState(1); // 1: 选择配置, 2: 确认
+  const [step, setStep] = React.useState(1); // 0: 选择操作目标表(入口1), 1: 选择配置, 2: 确认
   const [sourceFormId, setSourceFormId] = React.useState('');
   const [targetFieldId, setTargetFieldId] = React.useState(''); // 标的字段
   const [aggregationType, setAggregationType] = React.useState('count'); // 聚合方式
   const [tableName, setTableName] = React.useState('');
   const [loading, setLoading] = React.useState(false);
   const [error, setError] = React.useState('');
+
+  // 初始化：如果是入口2（从表单详情页进入），直接使用该表单
+  React.useEffect(() => {
+    if (form && form.id) {
+      setSourceFormId(form.id);
+      setStep(1); // 跳过选择操作目标表步骤
+    }
+  }, [form]);
 
   // 过滤出对象表单
   const objectForms = forms.filter(f => f.type === '对象表单' && !f.subType);
@@ -82,6 +90,15 @@ function RebuildTableManager({ projectId, form, fields, forms, onClose, onSucces
   // 下一步
   const handleNext = () => {
     setError('');
+    if (step === 0) {
+      // 入口1：选择操作目标表
+      if (!sourceFormId) {
+        setError('请选择操作目标表');
+        return;
+      }
+      setStep(1);
+      return;
+    }
     if (step === 1) {
       if (!sourceFormId) {
         setError('请选择操作目标表');
@@ -102,7 +119,12 @@ function RebuildTableManager({ projectId, form, fields, forms, onClose, onSucces
   // 上一步
   const handlePrev = () => {
     setError('');
-    if (step === 2) {
+    if (step === 1) {
+      // 如果是从入口1进入的，可以回到step 0重新选择表单
+      if (!form) {
+        setStep(0);
+      }
+    } else if (step === 2) {
       setStep(1);
     }
   };
@@ -120,12 +142,30 @@ function RebuildTableManager({ projectId, form, fields, forms, onClose, onSucces
       error && React.createElement('div', { className: 'error-message' }, error),
       
       React.createElement('div', { className: 'modal-body' },
-        // 第1步：选择配置
-        step === 1 && React.createElement('div', { className: 'step step-1' },
-          React.createElement('h4', null, '第1步：选择操作目标表和配置'),
-          
+        // 第0步：选择操作目标表（入口1）
+        step === 0 && React.createElement('div', { className: 'step step-0' },
+          React.createElement('h4', null, '第1步：选择操作目标表'),
+          React.createElement('p', { className: 'hint' }, '选择要从中生成再造表的源表单'),
           React.createElement('div', { className: 'form-group' },
             React.createElement('label', null, '操作目标表：'),
+            React.createElement('select', {
+              value: sourceFormId,
+              onChange: (e) => setSourceFormId(e.target.value)
+            },
+              React.createElement('option', { value: '' }, '请选择表单'),
+              objectForms.map(f =>
+                React.createElement('option', { key: f.id, value: f.id }, f.name)
+              )
+            )
+          )
+        ),
+
+        // 第1步：选择配置
+        step === 1 && React.createElement('div', { className: 'step step-1' },
+          React.createElement('h4', null, !form ? '第2步：选择配置' : '第1步：选择配置'),
+          
+          sourceForm && React.createElement('div', { className: 'form-group' },
+            React.createElement('label', null, '标的字段：'),
             React.createElement('select', {
               value: sourceFormId,
               onChange: (e) => setSourceFormId(e.target.value)
@@ -182,7 +222,7 @@ function RebuildTableManager({ projectId, form, fields, forms, onClose, onSucces
         
         // 第2步：确认
         step === 2 && React.createElement('div', { className: 'step step-2' },
-          React.createElement('h4', null, '第2步：确认信息'),
+          React.createElement('h4', null, !form ? '第3步：确认信息' : '第2步：确认信息'),
           React.createElement('div', { className: 'summary' },
             React.createElement('p', null, React.createElement('strong', null, '源表单：'), sourceForm?.name),
             React.createElement('p', null,

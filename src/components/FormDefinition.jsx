@@ -17,6 +17,10 @@ function FormDefinition({ projectId }) {
   const [showViewerModal, setShowViewerModal] = React.useState(false);
   const [viewerForm, setViewerForm] = React.useState(null);
 
+  // 子表和再造表管理器状态（入口1：从定义表单进入）
+  const [showSubTableManager, setShowSubTableManager] = React.useState(false);
+  const [showRebuildTableManager, setShowRebuildTableManager] = React.useState(false);
+
   // 加载表单列表和字段列表
   React.useEffect(() => {
     loadFormsAndFields();
@@ -61,10 +65,12 @@ function FormDefinition({ projectId }) {
     setSelectedSubType(subType);
     setShowSubTypeModal(false);
 
-    if (subType === '子表' || subType === '再造表') {
-      // 子表和再造表需要在表单查看器中创建
-      alert(`${subType}需要先选择一个现有对象表单，然后在表单查看器中通过功能按钮创建。\n\n创建位置：表单列表 -> 点击查看表单 -> 工具栏中的"${subType === '子表' ? '🔗 子表' : '🔄 再造表'}"按钮`);
-      setShowSubTypeModal(true); // 重新显示选择弹窗
+    if (subType === '子表') {
+      // 入口1：打开子表管理器（需要选择操作目标表）
+      setShowSubTableManager(true);
+    } else if (subType === '再造表') {
+      // 入口1：打开再造表管理器（需要选择操作目标表）
+      setShowRebuildTableManager(true);
     } else {
       // 基础表、衍生表、合表进入构建流程
       setShowFormBuilder(true);
@@ -525,6 +531,30 @@ function FormDefinition({ projectId }) {
           fields={fields}
           forms={forms}
           onClose={closeViewerModal}
+        />
+      )}
+
+      {/* 子表管理器（入口1：从定义表单进入） */}
+      {showSubTableManager && (
+        <SubTableManager
+          projectId={projectId}
+          form={null} // 入口1不需要指定表单
+          fields={fields}
+          forms={forms}
+          onClose={() => setShowSubTableManager(false)}
+          onSuccess={loadFormsAndFields}
+        />
+      )}
+
+      {/* 再造表管理器（入口1：从定义表单进入） */}
+      {showRebuildTableManager && (
+        <RebuildTableManager
+          projectId={projectId}
+          form={null} // 入口1不需要指定表单
+          fields={fields}
+          forms={forms}
+          onClose={() => setShowRebuildTableManager(false)}
+          onSuccess={loadFormsAndFields}
         />
       )}
     </div>
