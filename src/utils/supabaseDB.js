@@ -1146,6 +1146,179 @@
         errors,
         warnings
       };
+    },
+
+    // ==================== 聚合运算 ====================
+
+    // 判断是否为数值型字段
+    isNumericField(field) {
+      if (!field) return false;
+      return ['整数', '浮点数', '日期/时间'].includes(field.type);
+    },
+
+    // 判断是否支持排序
+    isSortableField(field) {
+      if (!field) return false;
+      return this.isNumericField(field) || field.type === '字符串';
+    },
+
+    // 获取表单数据
+    async getFormData(formId) {
+      const forms = await this.getFormsByProjectId(this.currentProjectId);
+      const form = forms.find(f => f.id === formId);
+      return form?.data || [];
+    },
+
+    // 求记录数
+    async countFormRecords(formId) {
+      const data = await this.getFormData(formId);
+      return data.length;
+    },
+
+    // 求和
+    async sumFormField(formId, fieldId) {
+      const data = await this.getFormData(formId);
+      const numericValues = data
+        .map(record => parseFloat(record[fieldId]))
+        .filter(value => !isNaN(value));
+      return numericValues.reduce((sum, val) => sum + val, 0);
+    },
+
+    // 求平均值
+    async avgFormField(formId, fieldId) {
+      const data = await this.getFormData(formId);
+      const numericValues = data
+        .map(record => parseFloat(record[fieldId]))
+        .filter(value => !isNaN(value));
+      if (numericValues.length === 0) return 0;
+      const sum = numericValues.reduce((sum, val) => sum + val, 0);
+      return sum / numericValues.length;
+    },
+
+    // 求最大值（返回数值和对应的主键）
+    async maxFormField(formId, fieldId) {
+      const data = await this.getFormData(formId);
+      const primaryKey = this.getFormPrimaryKey(formId);
+      
+      let maxRecord = null;
+      let maxValue = -Infinity;
+
+      for (const record of data) {
+        const value = parseFloat(record[fieldId]);
+        if (!isNaN(value) && value > maxValue) {
+          maxValue = value;
+          maxRecord = record;
+        }
+      }
+
+      if (!maxRecord) return null;
+      return {
+        value: maxValue,
+        primaryKey: primaryKey ? maxRecord[primaryKey] : maxRecord.id
+      };
+    },
+
+    // 求最小值（返回数值和对应的主键）
+    async minFormField(formId, fieldId) {
+      const data = await this.getFormData(formId);
+      const primaryKey = this.getFormPrimaryKey(formId);
+      
+      let minRecord = null;
+      let minValue = Infinity;
+
+      for (const record of data) {
+        const value = parseFloat(record[fieldId]);
+        if (!isNaN(value) && value < minValue) {
+          minValue = value;
+          minRecord = record;
+        }
+      }
+
+      if (!minRecord) return null;
+      return {
+        value: minValue,
+        primaryKey: primaryKey ? minRecord[primaryKey] : minRecord.id
+      };
+    },
+
+    // 求中位数
+    async medianFormField(formId, fieldId) {
+      const data = await this.getFormData(formId);
+      const numericValues = data
+        .map(record => parseFloat(record[fieldId]))
+        .filter(value => !isNaN(value))
+        .sort((a, b) => a - b);
+
+      if (numericValues.length === 0) return 0;
+
+      const mid = Math.floor(numericValues.length / 2);
+      if (numericValues.length % 2 === 0) {
+        return (numericValues[mid - 1] + numericValues[mid]) / 2;
+      } else {
+        return numericValues[mid];
+      }
+    },
+
+    // 排序表单数据
+    async sortFormRecords(formId, fieldId, order = 'asc') {
+      const data = await this.getFormData(formId);
+      const sortedData = [...data].sort((a, b) => {
+        const valueA = a[fieldId];
+        const valueB = b[fieldId];
+
+        // 数字排序
+        if (typeof valueA === 'number' && typeof valueB === 'number') {
+          return order === 'asc' ? valueA - valueB : valueB - valueA;
+        }
+
+        // 字符串排序（拼音序或字母序）
+        const strA = String(valueA || '');
+        const strB = String(valueB || '');
+        return order === 'asc' 
+          ? strA.localeCompare(strB, 'zh-CN') 
+          : strB.localeCompare(strA, 'zh-CN');
+      });
+
+      return sortedData;
+    },
+
+    // 获取表单主键
+    getFormPrimaryKey(formId) {
+      const forms = this.forms || [];
+      const form = forms.find(f => f.id === formId);
+      return form?.structure?.primaryKey || null;
+    },
+
+    // 设置当前项目ID（用于内部方法）
+    setCurrentProjectId(projectId) {
+      this.currentProjectId = projectId;
+      this.forms = []; // 清空缓存的表单列表
+    },
+
+    // 获取表单列表（带缓存）
+    async getForms() {
+      if (!this.forms || this.forms.length === 0) {
+        this.forms = await this.getFormsByProjectId(this.currentProjectId);
+      }
+      return this.forms;
+    },
+
+    // 复制表单（用于另存为功能）
+    async copyForm(projectId, sourceFormId, newName) {
+      const forms = await this.getFormsByProjectId(projectId);
+      const sourceForm = forms.find(f => f.id === sourceFormId);
+      if (!sourceForm) throw new Error('源表单不存在');
+
+      const newForm = {
+        ...sourceForm,
+        id: this.generateFormId({ forms }),
+        name: newName,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      };
+
+      await this.addForm(projectId, newForm);
+      return newForm;
     }
   };
 

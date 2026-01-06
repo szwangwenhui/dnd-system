@@ -5,7 +5,15 @@ function FormViewer({ projectId, form, fields, forms, onClose }) {
   const [derivedData, setDerivedData] = React.useState([]); // 衍生表的计算数据
   const [baseFormData, setBaseFormData] = React.useState([]); // 基础表数据
   const [loading, setLoading] = React.useState(false);
-  
+
+  // 聚合运算相关状态
+  const [showAggregationManager, setShowAggregationManager] = React.useState(false);
+  const [aggregationResult, setAggregationResult] = React.useState(null);
+  const [sortedData, setSortedData] = React.useState(null);
+  const [sortConfig, setSortConfig] = React.useState(null);
+  const [showSaveAsDialog, setShowSaveAsDialog] = React.useState(false);
+  const [newFormName, setNewFormName] = React.useState('');
+
   // 编辑对话框状态
   const [editDialog, setEditDialog] = React.useState({ show: false, record: null });
   const [editFormData, setEditFormData] = React.useState({});
@@ -343,6 +351,9 @@ function FormViewer({ projectId, form, fields, forms, onClose }) {
 
   // 获取表单数据
   const getFormData = () => {
+    if (sortedData) {
+      return sortedData;
+    }
     if (isMergedForm()) {
       return mergedData;
     }
@@ -350,6 +361,110 @@ function FormViewer({ projectId, form, fields, forms, onClose }) {
       return derivedData;
     }
     return baseFormData;
+  };
+
+  // 处理聚合运算结果
+  const handleAggregationResult = (result) => {
+    setAggregationResult(result);
+    setShowAggregationManager(false);
+  };
+
+  // 处理排序结果
+  const handleSortResult = (result) => {
+    setSortedData(result.data);
+    setSortConfig(result);
+    setShowAggregationManager(false);
+  };
+
+  // 处理另存为
+  const handleSaveAs = async () => {
+    if (!newFormName.trim()) {
+      alert('请输入表单名称');
+      return;
+    }
+
+    if (newFormName.length > 10) {
+      alert('表单名称不能超过10个字符');
+      return;
+    }
+
+    try {
+      await window.dndDB.copyForm(projectId, form.id, newFormName);
+      alert('另存为成功！');
+      setShowSaveAsDialog(false);
+      setNewFormName('');
+      // 这里可以刷新表单列表，需要在父组件实现
+      onClose();
+    } catch (error) {
+      alert('另存为失败：' + error.message);
+    }
+  };
+
+  // 清除聚合和排序状态
+  const clearAggregationAndSort = () => {
+    setAggregationResult(null);
+    setSortedData(null);
+    setSortConfig(null);
+  };
+
+  // 渲染聚合行
+  const renderAggregationRow = (displayFields) => {
+    if (!aggregationResult) return null;
+
+    const { type, results, label } = aggregationResult;
+
+    return (
+      <tr className="bg-blue-100 border-b-2 border-blue-200">
+        <td className="px-3 py-3 text-sm font-bold text-blue-800">
+          {label}
+        </td>
+        {displayFields.map((f) => {
+          const field = fields.find(field => field.id === f.fieldId);
+          const isNumeric = window.dndDB.isNumericField(field);
+          const result = results[f.fieldId];
+
+          return (
+            <td
+              key={f.fieldId}
+              className={`px-3 py-3 text-sm font-mono ${
+                isNumeric ? 'text-blue-900' : 'text-gray-400'
+              }`}
+            >
+              {isNumeric ? (
+                type === 'max' || type === 'min' ? (
+                  <span>
+                    {result?.primaryKey}:{' '}
+                    {result?.value !== undefined && result?.value !== null
+                      ? typeof result.value === 'number'
+                        ? Number.isInteger(result.value)
+                          ? result.value
+                          : result.value.toFixed(2)
+                        : result.value
+                      : '-'}
+                  </span>
+                ) : (
+                  result !== undefined && result !== null
+                    ? typeof result === 'number'
+                      ? Number.isInteger(result)
+                        ? result
+                        : result.toFixed(2)
+                      : result
+                    : '-'
+                )
+              ) : (
+                <span className="italic">NA</span>
+              )}
+            </td>
+          );
+        })}
+        {/* 操作列（如果是基础表且有操作栏） */}
+        {form.structure?.actionColumn?.enabled && (
+          <td className="px-3 py-3 text-sm text-gray-400">
+            -
+          </td>
+        )}
+      </tr>
+    );
   };
 
   // 渲染结构视图
@@ -607,8 +722,8 @@ function FormViewer({ projectId, form, fields, forms, onClose }) {
             <tr>
               <th className="px-3 py-2 text-left text-xs font-medium text-gray-500">#</th>
               {displayFields.map((f, idx) => (
-                <th 
-                  key={idx} 
+                <th
+                  key={idx}
                   className={`px-3 py-2 text-left text-xs font-medium ${
                     f.isDerivedField ? 'text-pink-600 bg-pink-50' : 'text-gray-500'
                   }`}
@@ -625,15 +740,18 @@ function FormViewer({ projectId, form, fields, forms, onClose }) {
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-200">
+            {/* 聚合运算结果行 */}
+            {renderAggregationRow(displayFields)}
+            {/* 数据行 */}
             {sortedData.map((record, idx) => (
               <tr key={record.id || idx} className={`hover:bg-gray-50 ${record._isTop ? 'bg-yellow-50' : ''}`}>
                 <td className="px-3 py-2 text-sm text-gray-400">
                   {record._isTop && <span className="text-yellow-500 mr-1">📌</span>}
-                  {idx + 1}
+                  {aggregationResult ? idx : idx + 1}
                 </td>
                 {displayFields.map((f, fIdx) => (
-                  <td 
-                    key={fIdx} 
+                  <td
+                    key={fIdx}
                     className={`px-3 py-2 text-sm ${
                       f.isDerivedField ? 'text-pink-600 bg-pink-50 font-medium' : 'text-gray-900'
                     }`}
@@ -669,7 +787,7 @@ function FormViewer({ projectId, form, fields, forms, onClose }) {
                           className="px-2 py-1 text-xs text-white rounded hover:opacity-80"
                           style={{ backgroundColor: actionColumn.buttons.top.color || '#f59e0b' }}
                         >
-                          {record._isTop 
+                          {record._isTop
                             ? (actionColumn.buttons.top.textOn || '取消置顶')
                             : (actionColumn.buttons.top.textOff || '置顶')
                           }
@@ -725,30 +843,65 @@ function FormViewer({ projectId, form, fields, forms, onClose }) {
                 <span className="text-sm text-gray-500">
                   {getFormData().length} 条数据
                 </span>
+                {sortConfig && (
+                  <span className="px-2 py-0.5 text-xs rounded bg-purple-100 text-purple-700">
+                    已按 {fields.find(f => f.id === sortConfig.fieldId)?.name || sortConfig.fieldId}
+                    {sortConfig.order === 'asc' ? ' 升序' : ' 降序'}
+                  </span>
+                )}
               </div>
             </div>
-            {/* 视图切换 */}
-            <div className="flex bg-gray-100 rounded-lg p-1">
-              <button
-                onClick={() => setViewMode('data')}
-                className={`px-3 py-1 text-sm rounded ${
-                  viewMode === 'data' 
-                    ? 'bg-white shadow text-gray-900' 
-                    : 'text-gray-600 hover:text-gray-900'
-                }`}
-              >
-                数据
-              </button>
-              <button
-                onClick={() => setViewMode('structure')}
-                className={`px-3 py-1 text-sm rounded ${
-                  viewMode === 'structure' 
-                    ? 'bg-white shadow text-gray-900' 
-                    : 'text-gray-600 hover:text-gray-900'
-                }`}
-              >
-                结构
-              </button>
+            <div className="flex items-center space-x-2">
+              {/* 聚合运算按钮 */}
+              {viewMode === 'data' && !isMergedForm() && (
+                <button
+                  onClick={() => setShowAggregationManager(true)}
+                  className="px-3 py-1.5 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center gap-1"
+                >
+                  📊 聚合运算
+                </button>
+              )}
+              {/* 另存为按钮（仅在排序时显示） */}
+              {sortConfig && (
+                <button
+                  onClick={() => setShowSaveAsDialog(true)}
+                  className="px-3 py-1.5 text-sm bg-green-600 text-white rounded-lg hover:bg-green-700 flex items-center gap-1"
+                >
+                  💾 另存为
+                </button>
+              )}
+              {/* 清除按钮（有聚合或排序时显示） */}
+              {(aggregationResult || sortConfig) && (
+                <button
+                  onClick={clearAggregationAndSort}
+                  className="px-3 py-1.5 text-sm bg-gray-500 text-white rounded-lg hover:bg-gray-600"
+                >
+                  清除
+                </button>
+              )}
+              {/* 视图切换 */}
+              <div className="flex bg-gray-100 rounded-lg p-1">
+                <button
+                  onClick={() => setViewMode('data')}
+                  className={`px-3 py-1 text-sm rounded ${
+                    viewMode === 'data'
+                      ? 'bg-white shadow text-gray-900'
+                      : 'text-gray-600 hover:text-gray-900'
+                  }`}
+                >
+                  数据
+                </button>
+                <button
+                  onClick={() => setViewMode('structure')}
+                  className={`px-3 py-1 text-sm rounded ${
+                    viewMode === 'structure'
+                      ? 'bg-white shadow text-gray-900'
+                      : 'text-gray-600 hover:text-gray-900'
+                  }`}
+                >
+                  结构
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -778,14 +931,14 @@ function FormViewer({ projectId, form, fields, forms, onClose }) {
               <h3 className="text-lg font-semibold">✏️ 编辑数据</h3>
               <p className="text-sm text-blue-100 mt-1">修改基础字段数据</p>
             </div>
-            
+
             {/* 表单内容 */}
             <div className="flex-1 overflow-y-auto p-6">
               <div className="space-y-4">
                 {getFormFields().filter(f => f.isSourceField).map((fieldConfig, idx) => {
                   const fieldInfo = fields.find(f => f.id === fieldConfig.fieldId);
                   const isPK = fieldConfig.isPrimaryKey;
-                  
+
                   return (
                     <div key={idx} className={`p-3 rounded border ${isPK ? 'bg-yellow-50 border-yellow-200' : 'bg-gray-50 border-gray-200'}`}>
                       <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -816,7 +969,7 @@ function FormViewer({ projectId, form, fields, forms, onClose }) {
                 })}
               </div>
             </div>
-            
+
             {/* 底部按钮 */}
             <div className="px-6 py-4 border-t border-gray-200 flex justify-end space-x-3">
               <button
@@ -832,6 +985,85 @@ function FormViewer({ projectId, form, fields, forms, onClose }) {
                 className={`px-4 py-2 rounded text-white ${saving ? 'bg-blue-400 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700'}`}
               >
                 {saving ? '保存中...' : '保存'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 聚合运算管理器 */}
+      {showAggregationManager && (
+        <AggregationManager
+          projectId={projectId}
+          form={form}
+          fields={fields}
+          onAggregationResult={handleAggregationResult}
+          onSortResult={handleSortResult}
+          onClose={() => setShowAggregationManager(false)}
+        />
+      )}
+
+      {/* 另存为对话框 */}
+      {showSaveAsDialog && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[60]">
+          <div className="bg-white rounded-lg shadow-xl w-full max-w-md mx-4">
+            {/* 标题 */}
+            <div className="px-6 py-4 border-b border-gray-200 bg-green-600 text-white rounded-t-lg">
+              <h3 className="text-lg font-semibold">💾 另存为新表单</h3>
+              <p className="text-sm text-green-100 mt-1">保存排序后的数据为新表单</p>
+            </div>
+
+            {/* 表单内容 */}
+            <div className="p-6 space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  表单名称 <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  value={newFormName}
+                  onChange={(e) => setNewFormName(e.target.value)}
+                  maxLength={10}
+                  placeholder="请输入表单名称（10字以内）"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
+                  autoFocus
+                />
+                <p className="mt-1 text-xs text-gray-500">
+                  已输入 {newFormName.length}/10 个字符
+                </p>
+              </div>
+
+              <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
+                <h4 className="text-sm font-medium text-gray-700 mb-2">保存说明</h4>
+                <ul className="text-xs text-gray-600 space-y-1">
+                  <li>• 新表单将包含原表单的完整结构</li>
+                  <li>• 数据将按当前排序顺序保存</li>
+                  <li>• 原表单不受影响</li>
+                </ul>
+              </div>
+            </div>
+
+            {/* 底部按钮 */}
+            <div className="px-6 py-4 border-t border-gray-200 flex justify-end space-x-3">
+              <button
+                onClick={() => {
+                  setShowSaveAsDialog(false);
+                  setNewFormName('');
+                }}
+                className="px-4 py-2 border border-gray-300 text-gray-700 rounded hover:bg-gray-50"
+              >
+                取消
+              </button>
+              <button
+                onClick={handleSaveAs}
+                disabled={!newFormName.trim()}
+                className={`px-4 py-2 rounded text-white ${
+                  !newFormName.trim()
+                    ? 'bg-gray-400 cursor-not-allowed'
+                    : 'bg-green-600 hover:bg-green-700'
+                }`}
+              >
+                确认保存
               </button>
             </div>
           </div>
