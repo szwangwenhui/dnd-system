@@ -9,6 +9,7 @@ function AppDesigner() {
   const [roleId, setRoleId] = React.useState(null);
   const [pageId, setPageId] = React.useState(null);
   const [pageName, setPageName] = React.useState('');
+  const [page, setPage] = React.useState(null);
 
   // 从 URL 参数获取信息
   React.useEffect(() => {
@@ -18,17 +19,49 @@ function AppDesigner() {
     const pgId = params.get('pageId');
     const pgName = params.get('pageName') || '未知页面';
 
-    if (pid && rid) {
+    if (pid && rid && pgId) {
       setProjectId(pid);
       setRoleId(rid);
       setPageId(pgId);
       setPageName(decodeURIComponent(pgName));
-      setLoading(false);
     } else {
       alert('缺少必要参数，请从主页进入设计器');
       window.location.href = './index.html';
     }
   }, []);
+
+  // 加载页面数据
+  React.useEffect(() => {
+    const loadPage = async () => {
+      if (!projectId || !roleId || !pageId) return;
+
+      // 等待 window.dndDB 初始化
+      if (!window.dndDB) {
+        setTimeout(loadPage, 100);
+        return;
+      }
+
+      try {
+        const pages = await window.dndDB.getPagesByRoleId(projectId, roleId);
+        const currentPage = pages.find(p => p.id === pageId);
+
+        if (!currentPage) {
+          alert('页面不存在');
+          window.location.href = './index.html';
+          return;
+        }
+
+        setPage(currentPage);
+        setLoading(false);
+      } catch (error) {
+        console.error('加载页面失败:', error);
+        alert('加载页面失败：' + error.message);
+        setLoading(false);
+      }
+    };
+
+    loadPage();
+  }, [projectId, roleId, pageId]);
 
   // 返回主页
   const goHome = () => {
@@ -170,7 +203,13 @@ function AppDesigner() {
           <window.PageDesigner
             projectId={projectId}
             roleId={roleId}
-            pageId={pageId}
+            page={page}
+            onClose={goHome}
+            onSave={async (updatedPage) => {
+              // 保存页面数据
+              if (!window.dndDB) return;
+              await window.dndDB.updatePage(projectId, roleId, pageId, updatedPage);
+            }}
           />
         ) : (
           <div style={{
