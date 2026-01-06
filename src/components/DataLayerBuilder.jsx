@@ -3,9 +3,6 @@ function DataLayerBuilder({ projectId, roleId, onBack }) {
   const [project, setProject] = React.useState(null);
   const [role, setRole] = React.useState(null);
   const [activeTab, setActiveTab] = React.useState('fields'); // fields, forms, dataflows, pages
-  
-  // 流程编辑器状态
-  const [editingFlow, setEditingFlow] = React.useState(null);
 
   // 加载项目和角色信息
   React.useEffect(() => {
@@ -20,7 +17,7 @@ function DataLayerBuilder({ projectId, roleId, onBack }) {
         return;
       }
       setProject(proj);
-      
+
       const foundRole = proj.roles?.find(r => r.id === roleId);
       setRole(foundRole);
     } catch (error) {
@@ -30,12 +27,9 @@ function DataLayerBuilder({ projectId, roleId, onBack }) {
 
   // 进入流程编辑器
   const handleDesignFlow = (flow) => {
-    setEditingFlow(flow);
-  };
-
-  // 从流程编辑器返回
-  const handleBackFromFlowEditor = () => {
-    setEditingFlow(null);
+    // 跳转到独立的流程编辑器页面
+    const flowEditorUrl = `floweditor.html?projectId=${projectId}&flowId=${flow.id}&flowName=${encodeURIComponent(flow.name)}&mode=design`;
+    window.location.href = flowEditorUrl;
   };
 
   if (!project || !role) {
@@ -46,18 +40,6 @@ function DataLayerBuilder({ projectId, roleId, onBack }) {
           <p className="mt-4 text-gray-600">正在加载...</p>
         </div>
       </div>
-    );
-  }
-
-  // 如果正在编辑流程，显示流程编辑器
-  if (editingFlow) {
-    return (
-      <FlowEditor
-        projectId={projectId}
-        flowId={editingFlow.id}
-        flowName={editingFlow.name}
-        onBack={handleBackFromFlowEditor}
-      />
     );
   }
 
@@ -141,7 +123,11 @@ function DataLayerBuilder({ projectId, roleId, onBack }) {
               定义数据流程
             </button>
             <button
-              onClick={() => setActiveTab('statistics')}
+              onClick={() => {
+                // 跳转到独立的统计页面
+                const statisticsUrl = `statistics.html?projectId=${projectId}`;
+                window.location.href = statisticsUrl;
+              }}
               className={`py-4 px-1 border-b-2 font-medium text-sm transition-colors ${
                 activeTab === 'statistics'
                   ? 'border-blue-500 text-blue-600'
@@ -169,7 +155,12 @@ function DataLayerBuilder({ projectId, roleId, onBack }) {
         {activeTab === 'fields' && <FieldDefinition projectId={projectId} />}
         {activeTab === 'forms' && <FormDefinition projectId={projectId} />}
         {activeTab === 'dataflows' && <DataFlowDefinition projectId={projectId} onDesignFlow={handleDesignFlow} />}
-        {activeTab === 'statistics' && <StatisticsModule projectId={projectId} />}
+        {activeTab === 'statistics' && (
+          <div className="text-center py-12">
+            <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mb-4"></div>
+            <p className="text-gray-600">正在跳转到统计分析页面...</p>
+          </div>
+        )}
         {activeTab === "pages" && <PageDefinition key={roleId} projectId={projectId} roleId={roleId} />}
       </div>
     </div>

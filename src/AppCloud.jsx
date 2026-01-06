@@ -413,9 +413,7 @@ function App() {
             projectId={selectedProject.id}
             onBack={goBack}
             onDataLayerClick={(role) => {
-              // 跳转到统计模块页面
-              const statisticsUrl = `statistics.html?projectId=${selectedProject.id}&roleId=${role.id}`;
-              window.location.href = statisticsUrl;
+              navigateTo('dataLayer', selectedProject, role);
             }}
             onPageDesignClick={(role) => {
               navigateTo('pages', selectedProject, role);

@@ -119,13 +119,14 @@
 3. 自动跳转到 `designer.html?projectId=xxx&roleId=xxx&pageId=xxx&pageName=xxx`
 
 ### 进入流程编辑器
-1. 选择项目 → 角色管理 → 数据层构建
-2. 点击某个流程的"设计"按钮
-3. 自动跳转到 `floweditor.html?projectId=xxx&flowId=xxx&flowName=xxx`
+1. 选择项目 → 角色管理 → 数据层规划
+2. 点击"定义数据流程"标签
+3. 在流程列表中点击某个流程的"设计"按钮
+4. 自动跳转到 `floweditor.html?projectId=xxx&flowId=xxx&flowName=xxx`
 
 ### 进入统计分析
-1. 选择项目 → 角色管理 → 数据层构建
-2. 点击角色卡片上的"数据层构建"按钮
+1. 选择项目 → 角色管理 → 数据层规划
+2. 点击"统计分析"标签
 3. 自动跳转到 `statistics.html?projectId=xxx`
 
 ## URL 参数说明
@@ -214,7 +215,33 @@
 - [ ] 统计模块功能完整可用
 - [ ] 能够返回主页
 
-## 版本记录
+## 问题修复
+
+### v2.0.1（2025-01-06）
+**问题**：优化后点击角色的"数据层规划"按钮指向了统计分析页面，而不是数据层规划页面。
+
+**原因**：在优化过程中错误地将 `onDataLayerClick` 回调改为跳转到 `statistics.html`，但实际上应该保持在 `index.html` 内切换到 dataLayer 视图。
+
+**修复**：
+- ✅ 恢复 `AppCloud.jsx` 中 `onDataLayerClick` 的原始逻辑
+- ✅ `DataLayerBuilder` 保持在 `index.html` 内显示
+- ✅ "定义数据流程"标签中的"设计"按钮跳转到 `floweditor.html`
+- ✅ "统计分析"标签直接跳转到 `statistics.html`
+
+**当前导航逻辑**：
+```
+index.html（主页）
+  ↓
+角色管理
+  ↓
+  ├─→ 页面规划 → index.html 内的 pages 视图
+  ├─→ 数据层规划 → index.html 内的 dataLayer 视图
+  │     ├─→ 定义字段
+  │     ├─→ 定义表单
+  │     ├─→ 定义数据流程 → 点击"设计" → floweditor.html
+  │     └─→ 统计分析 → 直接跳转 → statistics.html
+  └─→ 定义页面 → 点击"设计" → designer.html
+```
 
 ### v2.0.0（2025-01-06）
 - ✅ 完成 HTML 入口拆分
