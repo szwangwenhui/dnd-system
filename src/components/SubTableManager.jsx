@@ -19,8 +19,8 @@ function SubTableManager({ projectId, form, fields, forms, onClose, onSuccess })
   const [loading, setLoading] = React.useState(false);
   const [error, setError] = React.useState('');
 
-  // 过滤出对象表单
-  const objectForms = forms.filter(f => f.type === '对象表单' && !f.subType);
+  // 过滤出对象表单（排除子表和再造表本身，避免循环引用）
+  const objectForms = forms.filter(f => f.type === '对象表单' && !['子表', '再造表'].includes(f.subType));
   const sourceForm = sourceFormId ? forms.find(f => f.id === sourceFormId) : null;
   
   // 获取源表单的字段（排除主键）

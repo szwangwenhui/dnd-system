@@ -8,8 +8,8 @@ function RebuildTableManager({ projectId, form, fields, forms, onClose, onSucces
   const [loading, setLoading] = React.useState(false);
   const [error, setError] = React.useState('');
 
-  // 过滤出对象表单
-  const objectForms = forms.filter(f => f.type === '对象表单' && !f.subType);
+  // 过滤出对象表单（排除子表和再造表本身，避免循环引用）
+  const objectForms = forms.filter(f => f.type === '对象表单' && !['子表', '再造表'].includes(f.subType));
   const sourceForm = sourceFormId ? forms.find(f => f.id === sourceFormId) : null;
 
   // 获取源表单的所有字段
@@ -25,9 +25,11 @@ function RebuildTableManager({ projectId, form, fields, forms, onClose, onSucces
     return sourceFormFields.filter(f => f.type === '属性表单' || ['文本', '选项'].includes(f.type));
   }, [sourceFormFields]);
 
-  // 数值类字段（用于聚合运算）
+  // 数值类字段（用于聚合运算）- 支持多种数值类型
   const numericFields = React.useMemo(() => {
-    return sourceFormFields.filter(f => ['数字', '金额', '数量'].includes(f.type));
+    return sourceFormFields.filter(f =>
+      ['数字', '金额', '数量', '整数', '小数', '浮点数'].includes(f.type)
+    );
   }, [sourceFormFields]);
 
   // 聚合方式选项

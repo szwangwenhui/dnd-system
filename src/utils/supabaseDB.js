@@ -1473,10 +1473,10 @@
       const targetField = sourceFields.find(f => f.id === targetFieldId);
       if (!targetField) throw new Error('标的字段不存在');
 
-      // 获取数值类字段（用于聚合运算）
+      // 获取数值类字段（用于聚合运算）- 支持多种数值类型
       const numericFields = allFormFields.filter(f => {
         const fieldDef = sourceFields.find(sf => sf.id === f.fieldId);
-        return fieldDef && ['数字', '金额', '数量'].includes(fieldDef.type);
+        return fieldDef && ['数字', '金额', '数量', '整数', '小数', '浮点数'].includes(fieldDef.type);
       });
 
       // 获取标的字段的所有唯一值
