@@ -198,6 +198,7 @@
         forms: project.forms || [],
         data_flows: project.dataFlows || [],
         statistics: project.statistics || [],
+        business_categories: project.businessCategories || [],
         page_templates: project.pageTemplates || [],
         block_templates: project.blockTemplates || []
       };
