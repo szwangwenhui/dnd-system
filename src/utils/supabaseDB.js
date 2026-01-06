@@ -1162,22 +1162,15 @@
       return this.isNumericField(field) || field.type === '字符串';
     },
 
-    // 获取表单数据
-    async getFormData(formId) {
-      const forms = await this.getFormsByProjectId(this.currentProjectId);
-      const form = forms.find(f => f.id === formId);
-      return form?.data || [];
-    },
-
     // 求记录数
-    async countFormRecords(formId) {
-      const data = await this.getFormData(formId);
+    async countFormRecords(projectId, formId) {
+      const data = await this.getFormData(projectId, formId);
       return data.length;
     },
 
     // 求和
-    async sumFormField(formId, fieldId) {
-      const data = await this.getFormData(formId);
+    async sumFormField(projectId, formId, fieldId) {
+      const data = await this.getFormData(projectId, formId);
       const numericValues = data
         .map(record => parseFloat(record[fieldId]))
         .filter(value => !isNaN(value));
@@ -1185,8 +1178,8 @@
     },
 
     // 求平均值
-    async avgFormField(formId, fieldId) {
-      const data = await this.getFormData(formId);
+    async avgFormField(projectId, formId, fieldId) {
+      const data = await this.getFormData(projectId, formId);
       const numericValues = data
         .map(record => parseFloat(record[fieldId]))
         .filter(value => !isNaN(value));
@@ -1196,10 +1189,10 @@
     },
 
     // 求最大值（返回数值和对应的主键）
-    async maxFormField(formId, fieldId) {
-      const data = await this.getFormData(formId);
-      const primaryKey = this.getFormPrimaryKey(formId);
-      
+    async maxFormField(projectId, formId, fieldId) {
+      const data = await this.getFormData(projectId, formId);
+      const primaryKey = await this.getFormPrimaryKey(projectId, formId);
+
       let maxRecord = null;
       let maxValue = -Infinity;
 
@@ -1219,9 +1212,9 @@
     },
 
     // 求最小值（返回数值和对应的主键）
-    async minFormField(formId, fieldId) {
-      const data = await this.getFormData(formId);
-      const primaryKey = this.getFormPrimaryKey(formId);
+    async minFormField(projectId, formId, fieldId) {
+      const data = await this.getFormData(projectId, formId);
+      const primaryKey = await this.getFormPrimaryKey(projectId, formId);
       
       let minRecord = null;
       let minValue = Infinity;
@@ -1242,8 +1235,8 @@
     },
 
     // 求中位数
-    async medianFormField(formId, fieldId) {
-      const data = await this.getFormData(formId);
+    async medianFormField(projectId, formId, fieldId) {
+      const data = await this.getFormData(projectId, formId);
       const numericValues = data
         .map(record => parseFloat(record[fieldId]))
         .filter(value => !isNaN(value))
@@ -1260,8 +1253,8 @@
     },
 
     // 排序表单数据
-    async sortFormRecords(formId, fieldId, order = 'asc') {
-      const data = await this.getFormData(formId);
+    async sortFormRecords(projectId, formId, fieldId, order = 'asc') {
+      const data = await this.getFormData(projectId, formId);
       const sortedData = [...data].sort((a, b) => {
         const valueA = a[fieldId];
         const valueB = b[fieldId];
@@ -1283,29 +1276,19 @@
     },
 
     // 获取表单主键
-    getFormPrimaryKey(formId) {
-      const forms = this.forms || [];
-      const form = forms.find(f => f.id === formId);
+    async getFormPrimaryKey(projectId, formId) {
+      const project = await this.getProjectById(projectId);
+      if (!project) return null;
+      const form = project.forms?.find(f => f.id === formId);
       return form?.structure?.primaryKey || null;
-    },
-
-    // 设置当前项目ID（用于内部方法）
-    setCurrentProjectId(projectId) {
-      this.currentProjectId = projectId;
-      this.forms = []; // 清空缓存的表单列表
-    },
-
-    // 获取表单列表（带缓存）
-    async getForms() {
-      if (!this.forms || this.forms.length === 0) {
-        this.forms = await this.getFormsByProjectId(this.currentProjectId);
-      }
-      return this.forms;
     },
 
     // 复制表单（用于另存为功能）
     async copyForm(projectId, sourceFormId, newName) {
-      const forms = await this.getFormsByProjectId(projectId);
+      const project = await this.getProjectById(projectId);
+      if (!project) throw new Error('项目不存在');
+
+      const forms = project.forms || [];
       const sourceForm = forms.find(f => f.id === sourceFormId);
       if (!sourceForm) throw new Error('源表单不存在');
 

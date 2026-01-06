@@ -43,28 +43,27 @@ function AggregationManager({ projectId, form, fields, onAggregationResult, onSo
   const executeAggregation = async (type) => {
     setLoading(true);
     try {
-      window.dndDB.setCurrentProjectId(projectId);
       const results = {};
 
       for (const field of numericFields) {
         switch (type) {
           case 'count':
-            results[field.fieldId] = await window.dndDB.countFormRecords(form.id);
+            results[field.fieldId] = await window.dndDB.countFormRecords(projectId, form.id);
             break;
           case 'sum':
-            results[field.fieldId] = await window.dndDB.sumFormField(form.id, field.fieldId);
+            results[field.fieldId] = await window.dndDB.sumFormField(projectId, form.id, field.fieldId);
             break;
           case 'avg':
-            results[field.fieldId] = await window.dndDB.avgFormField(form.id, field.fieldId);
+            results[field.fieldId] = await window.dndDB.avgFormField(projectId, form.id, field.fieldId);
             break;
           case 'max':
-            results[field.fieldId] = await window.dndDB.maxFormField(form.id, field.fieldId);
+            results[field.fieldId] = await window.dndDB.maxFormField(projectId, form.id, field.fieldId);
             break;
           case 'min':
-            results[field.fieldId] = await window.dndDB.minFormField(form.id, field.fieldId);
+            results[field.fieldId] = await window.dndDB.minFormField(projectId, form.id, field.fieldId);
             break;
           case 'median':
-            results[field.fieldId] = await window.dndDB.medianFormField(form.id, field.fieldId);
+            results[field.fieldId] = await window.dndDB.medianFormField(projectId, form.id, field.fieldId);
             break;
         }
       }
@@ -90,8 +89,7 @@ function AggregationManager({ projectId, form, fields, onAggregationResult, onSo
 
     setLoading(true);
     try {
-      window.dndDB.setCurrentProjectId(projectId);
-      const sortedData = await window.dndDB.sortFormRecords(form.id, sortField, sortOrder);
+      const sortedData = await window.dndDB.sortFormRecords(projectId, form.id, sortField, sortOrder);
       onSortResult({
         fieldId: sortField,
         order: sortOrder,
