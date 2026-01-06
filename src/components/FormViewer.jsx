@@ -14,10 +14,6 @@ function FormViewer({ projectId, form, fields, forms, onClose }) {
   const [showSaveAsDialog, setShowSaveAsDialog] = React.useState(false);
   const [newFormName, setNewFormName] = React.useState('');
 
-  // 子表和再造表相关状态
-  const [showSubTableManager, setShowSubTableManager] = React.useState(false);
-  const [showRebuildTableManager, setShowRebuildTableManager] = React.useState(false);
-
   // 编辑对话框状态
   const [editDialog, setEditDialog] = React.useState({ show: false, record: null });
   const [editFormData, setEditFormData] = React.useState({});
@@ -865,24 +861,6 @@ function FormViewer({ projectId, form, fields, forms, onClose }) {
                   📊 聚合运算
                 </button>
               )}
-              {/* 子表按钮 */}
-              {viewMode === 'data' && form.type === '对象表单' && !isDerivedForm() && !isMergedForm() && (
-                <button
-                  onClick={() => setShowSubTableManager(true)}
-                  className="px-3 py-1.5 text-sm bg-purple-600 text-white rounded-lg hover:bg-purple-700 flex items-center gap-1"
-                >
-                  🔗 构建子表
-                </button>
-              )}
-              {/* 再造表按钮 */}
-              {viewMode === 'data' && form.type === '对象表单' && !isDerivedForm() && !isMergedForm() && (
-                <button
-                  onClick={() => setShowRebuildTableManager(true)}
-                  className="px-3 py-1.5 text-sm bg-orange-600 text-white rounded-lg hover:bg-orange-700 flex items-center gap-1"
-                >
-                  🔄 构建再造表
-                </button>
-              )}
               {/* 另存为按钮（仅在排序时显示） */}
               {sortConfig && (
                 <button
@@ -1090,36 +1068,6 @@ function FormViewer({ projectId, form, fields, forms, onClose }) {
             </div>
           </div>
         </div>
-      )}
-
-      {/* 子表管理器 */}
-      {showSubTableManager && (
-        <SubTableManager
-          projectId={projectId}
-          form={form}
-          fields={fields}
-          forms={forms}
-          onClose={() => setShowSubTableManager(false)}
-          onSuccess={() => {
-            setShowSubTableManager(false);
-            // 重新加载表单列表
-          }}
-        />
-      )}
-
-      {/* 再造表管理器 */}
-      {showRebuildTableManager && (
-        <RebuildTableManager
-          projectId={projectId}
-          form={form}
-          fields={fields}
-          forms={forms}
-          onClose={() => setShowRebuildTableManager(false)}
-          onSuccess={() => {
-            setShowRebuildTableManager(false);
-            // 重新加载表单列表
-          }}
-        />
       )}
     </div>
   );
