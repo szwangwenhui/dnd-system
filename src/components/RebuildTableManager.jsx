@@ -257,7 +257,7 @@ function RebuildTableManager({ projectId, form, fields, forms, onClose, onSucces
       ),
       
       React.createElement('div', { className: 'modal-footer' },
-        step > 1 && React.createElement('button', {
+        step >= 1 && React.createElement('button', {
           className: 'btn-secondary',
           onClick: handlePrev
         }, '上一步'),

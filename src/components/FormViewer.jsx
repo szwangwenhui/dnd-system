@@ -866,21 +866,21 @@ function FormViewer({ projectId, form, fields, forms, onClose }) {
                 </button>
               )}
               {/* 子表按钮 */}
-              {viewMode === 'data' && form.type === '对象表单' && !form.subType && (
+              {viewMode === 'data' && form.type === '对象表单' && !isDerivedForm() && !isMergedForm() && (
                 <button
                   onClick={() => setShowSubTableManager(true)}
                   className="px-3 py-1.5 text-sm bg-purple-600 text-white rounded-lg hover:bg-purple-700 flex items-center gap-1"
                 >
-                  🔗 子表
+                  🔗 构建子表
                 </button>
               )}
               {/* 再造表按钮 */}
-              {viewMode === 'data' && form.type === '对象表单' && !form.subType && (
+              {viewMode === 'data' && form.type === '对象表单' && !isDerivedForm() && !isMergedForm() && (
                 <button
                   onClick={() => setShowRebuildTableManager(true)}
                   className="px-3 py-1.5 text-sm bg-orange-600 text-white rounded-lg hover:bg-orange-700 flex items-center gap-1"
                 >
-                  🔄 再造表
+                  🔄 构建再造表
                 </button>
               )}
               {/* 另存为按钮（仅在排序时显示） */}
