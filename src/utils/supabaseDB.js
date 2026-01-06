@@ -1302,6 +1302,282 @@
 
       await this.addForm(projectId, newForm);
       return newForm;
+    },
+
+    // ==================== 子表功能 ====================
+    
+    // 检查是否为属性字段
+    isAttributeField(fieldId, fields) {
+      const field = fields.find(f => f.id === fieldId);
+      return field?.type === '属性表单';
+    },
+
+    // 获取属性字段的所有层级
+    getAttributeFieldLevels(fieldId, fields) {
+      const levels = [];
+      const field = fields.find(f => f.id === fieldId);
+      if (!field || field.type !== '属性表单') return levels;
+
+      // 获取属性字段的relatedForms，这是包含所有层级ID的数组
+      const relatedForms = field.relatedForms || [];
+      if (Array.isArray(relatedForms)) {
+        relatedForms.forEach(formId => {
+          const formField = fields.find(f => f.id === formId);
+          if (formField) {
+            levels.push({
+              fieldId: formField.id,
+              name: formField.name,
+              level: relatedForms.indexOf(formId)
+            });
+          }
+        });
+      }
+      return levels;
+    },
+
+    // 生成子表名称
+    generateSubTableName(sourceFormName, criteria) {
+      const field = criteria.field;
+      const values = criteria.values || [];
+      if (values.length === 1) {
+        return `${sourceFormName}-${field.name}-${values[0]}`;
+      } else {
+        return `${sourceFormName}-${field.name}(${values.length}个值)`;
+      }
+    },
+
+    // 创建子表
+    async createSubTable(projectId, config) {
+      const {
+        sourceFormId,
+        subType, // 'horizontal' (横向), 'vertical' (纵向), 'mixed' (混合)
+        selectedFields, // 横向选择的字段（不包含主键）
+        criteria, // 纵向截取条件 { fieldId, operator, values }
+        tableName
+      } = config;
+
+      const project = await this.getProjectById(projectId);
+      if (!project) throw new Error('项目不存在');
+
+      const sourceForm = project.forms.find(f => f.id === sourceFormId);
+      if (!sourceForm) throw new Error('源表单不存在');
+
+      const sourceFields = project.fields || [];
+      const allFormFields = sourceForm.structure?.fields || [];
+      
+      // 获取完整的字段对象
+      const selectedFieldObjects = allFormFields
+        .filter(f => selectedFields.includes(f.fieldId))
+        .map(f => {
+          const fieldDef = sourceFields.find(sf => sf.id === f.fieldId);
+          return { ...f, ...fieldDef };
+        });
+
+      // 过滤数据
+      let filteredData = [...(sourceForm.data || [])];
+
+      // 如果有纵向截取条件
+      if (criteria && subType !== 'horizontal') {
+        const criteriaField = sourceFields.find(f => f.id === criteria.fieldId);
+        if (!criteriaField) throw new Error('标准字段不存在');
+
+        if (criteria.operator === 'equals') {
+          // 单选或多选等于
+          filteredData = filteredData.filter(record => {
+            const fieldValue = record[criteria.fieldId];
+            return criteria.values.includes(fieldValue);
+          });
+        } else if (criteria.operator === 'range') {
+          // 范围选择（针对数字类型）
+          const [min, max] = criteria.values;
+          filteredData = filteredData.filter(record => {
+            const fieldValue = record[criteria.fieldId];
+            return fieldValue >= min && fieldValue <= max;
+          });
+        }
+      }
+
+      // 如果有横向截取，只保留选中的字段
+      let dataForNewTable = filteredData;
+      if (subType === 'horizontal' || subType === 'mixed') {
+        const fieldIdsToKeep = new Set(selectedFields);
+        if (sourceForm.structure?.primaryKey) {
+          fieldIdsToKeep.add(sourceForm.structure.primaryKey);
+        }
+
+        dataForNewTable = filteredData.map(record => {
+          const newRecord = {};
+          fieldIdsToKeep.forEach(fieldId => {
+            if (record[fieldId] !== undefined) {
+              newRecord[fieldId] = record[fieldId];
+            }
+          });
+          return newRecord;
+        });
+      }
+
+      // 构建新表单的结构
+      const newFormFields = subType === 'horizontal' || subType === 'mixed'
+        ? allFormFields.filter(f => selectedFields.includes(f.fieldId))
+        : allFormFields;
+
+      // 构建表单名称
+      const formName = tableName || this.generateSubTableName(
+        sourceForm.name,
+        criteria ? { field: sourceFields.find(f => f.id === criteria.fieldId), values: criteria.values } : {}
+      );
+
+      const newForm = {
+        id: this.generateFormId({ forms: project.forms }),
+        name: formName,
+        type: '对象表单',
+        subType: '子表',
+        formNature: '用户表单',
+        structure: {
+          primaryKey: sourceForm.structure?.primaryKey,
+          primaryKeyType: sourceForm.structure?.primaryKeyType,
+          fields: newFormFields
+        },
+        data: dataForNewTable,
+        sourceFormId: sourceFormId, // 记录源表单
+        subTableConfig: config, // 记录子表配置
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      };
+
+      await this.addForm(projectId, newForm);
+      return newForm;
+    },
+
+    // ==================== 再造表功能 ====================
+
+    // 创建再造表
+    async createRebuildTable(projectId, config) {
+      const {
+        sourceFormId,
+        targetFieldId, // 标的字段（通常是属性字段）
+        aggregationType, // 聚合方式：'count', 'sum', 'avg', 'max', 'min', 'median'
+        tableName
+      } = config;
+
+      const project = await this.getProjectById(projectId);
+      if (!project) throw new Error('项目不存在');
+
+      const sourceForm = project.forms.find(f => f.id === sourceFormId);
+      if (!sourceForm) throw new Error('源表单不存在');
+
+      const sourceFields = project.fields || [];
+      const allFormFields = sourceForm.structure?.fields || [];
+      
+      // 获取标的字段
+      const targetField = sourceFields.find(f => f.id === targetFieldId);
+      if (!targetField) throw new Error('标的字段不存在');
+
+      // 获取数值类字段（用于聚合运算）
+      const numericFields = allFormFields.filter(f => {
+        const fieldDef = sourceFields.find(sf => sf.id === f.fieldId);
+        return fieldDef && ['数字', '金额', '数量'].includes(fieldDef.type);
+      });
+
+      // 获取标的字段的所有唯一值
+      const uniqueValues = [...new Set(
+        (sourceForm.data || []).map(record => record[targetFieldId]).filter(v => v !== undefined && v !== null)
+      )];
+
+      // 为每个唯一值生成子表并进行聚合运算
+      const rebuildData = [];
+
+      for (const value of uniqueValues) {
+        // 生成子表（值为value的记录）
+        const subTableData = (sourceForm.data || []).filter(
+          record => record[targetFieldId] === value
+        );
+
+        // 对每个数值字段进行聚合运算
+        const aggregatedRecord = {
+          id: `REBUILD-${Date.now()}-${rebuildData.length}`,
+          [targetFieldId]: value // 标的字段的值作为主键
+        };
+
+        numericFields.forEach(field => {
+          const fieldId = field.fieldId;
+          const values = subTableData
+            .map(record => record[fieldId])
+            .filter(v => v !== undefined && v !== null && !isNaN(Number(v)));
+
+          let aggregatedValue = null;
+          if (values.length > 0) {
+            const numericValues = values.map(v => Number(v));
+            switch (aggregationType) {
+              case 'count':
+                aggregatedValue = values.length;
+                break;
+              case 'sum':
+                aggregatedValue = numericValues.reduce((sum, v) => sum + v, 0);
+                break;
+              case 'avg':
+                aggregatedValue = numericValues.reduce((sum, v) => sum + v, 0) / numericValues.length;
+                break;
+              case 'max':
+                aggregatedValue = Math.max(...numericValues);
+                break;
+              case 'min':
+                aggregatedValue = Math.min(...numericValues);
+                break;
+              case 'median':
+                sortedValues = [...numericValues].sort((a, b) => a - b);
+                const mid = Math.floor(sortedValues.length / 2);
+                aggregatedValue = sortedValues.length % 2
+                  ? sortedValues[mid]
+                  : (sortedValues[mid - 1] + sortedValues[mid]) / 2;
+                break;
+              default:
+                aggregatedValue = null;
+            }
+          }
+
+          aggregatedRecord[fieldId] = aggregatedValue;
+        });
+
+        rebuildData.push(aggregatedRecord);
+      }
+
+      // 构建新表单的结构
+      // 主键是标的字段
+      // 字段包括：标的字段 + 数值类字段
+      const newFormFields = [
+        {
+          fieldId: targetFieldId,
+          required: true,
+          order: 0
+        },
+        ...numericFields.map((f, index) => ({
+          fieldId: f.fieldId,
+          required: false,
+          order: index + 1
+        }))
+      ];
+
+      const newForm = {
+        id: this.generateFormId({ forms: project.forms }),
+        name: tableName || `${sourceForm.name}-再造表`,
+        type: '对象表单',
+        subType: '再造表',
+        formNature: '用户表单',
+        structure: {
+          primaryKey: targetFieldId,
+          primaryKeyType: targetField.type === '数字' ? 'number' : 'string',
+          fields: newFormFields
+        },
+        data: rebuildData,
+        sourceFormId: sourceFormId,
+        rebuildTableConfig: config,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      };
+
+      await this.addForm(projectId, newForm);
+      return newForm;
     }
   };
 
