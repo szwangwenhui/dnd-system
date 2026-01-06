@@ -704,9 +704,6 @@ function PageDesigner({ projectId, roleId, page, onClose, onSave }) {
     setHasChanges(true);
     saveToHistory(newBlocks);
   };
-    setHasChanges(true);
-    saveToHistory(newBlocks);
-  };
 
   // 保存区块为模板
   const handleSaveBlockAsTemplate = (block) => {
