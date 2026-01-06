@@ -47,6 +47,16 @@ function PageDesigner({ projectId, roleId, page, onClose, onSave }) {
   const [fields, setFields] = React.useState([]);
   const [dataFlows, setDataFlows] = React.useState([]);
 
+  // ===== 区域数据 =====
+  const [areas, setAreas] = React.useState(page.areas || []);
+  const [showAreas, setShowAreas] = React.useState(false);
+  const [hideContentInAreas, setHideContentInAreas] = React.useState(false);
+  const [currentAreaId, setCurrentAreaId] = React.useState(null);
+  const [showAreaPanel, setShowAreaPanel] = React.useState(false);
+  const [showAddAreaModal, setShowAddAreaModal] = React.useState(false);
+  const [showEditAreaModal, setShowEditAreaModal] = React.useState(false);
+  const [editingArea, setEditingArea] = React.useState(null);
+
   // 加载表单、字段和流程数据
   React.useEffect(() => {
     const loadFormsAndFields = async () => {
@@ -646,14 +656,18 @@ function PageDesigner({ projectId, roleId, page, onClose, onSave }) {
             y: 10
           }
         );
-        
+
         // 生成新的区块ID
         blockData.id = generateBlockId();
+        blockData.areaId = currentAreaId;  // 关联到当前区域
         blockData.createdAt = new Date().toISOString();
-        
+
         const newBlocks = [...blocks, blockData];
         setBlocks(newBlocks);
         setSelectedBlockId(blockData.id);
+        setShowPanel(true);
+        setHasChanges(true);
+        saveToHistory(newBlocks);
         setHasChanges(true);
         saveToHistory(newBlocks);
       } catch (error) {
@@ -669,6 +683,7 @@ function PageDesigner({ projectId, roleId, page, onClose, onSave }) {
       type: '显示',
       level: 1,         // 层级：1=顶级，2=二级，3=三级...
       parentId: null,   // 父区块ID，level=1时为null
+      areaId: currentAreaId,  // 关联到当前区域
       x: 10,
       y: 10,
       width: 100,
@@ -685,6 +700,10 @@ function PageDesigner({ projectId, roleId, page, onClose, onSave }) {
     const newBlocks = [...blocks, newBlock];
     setBlocks(newBlocks);
     setSelectedBlockId(newBlock.id);
+    setShowPanel(true);
+    setHasChanges(true);
+    saveToHistory(newBlocks);
+  };
     setHasChanges(true);
     saveToHistory(newBlocks);
   };
@@ -699,7 +718,7 @@ function PageDesigner({ projectId, roleId, page, onClose, onSave }) {
   const handleConfirmSaveBlockTemplate = async (name, description) => {
     try {
       const block = templateSourceBlock;
-      
+
       const template = {
         name,
         description,
@@ -721,7 +740,7 @@ function PageDesigner({ projectId, roleId, page, onClose, onSave }) {
           buttonConfig: block.buttonConfig || null
         }
       };
-      
+
       await window.dndDB.addBlockTemplate(projectId, template);
       alert('区块模板保存成功！');
       setShowSaveBlockTemplate(false);
@@ -729,6 +748,160 @@ function PageDesigner({ projectId, roleId, page, onClose, onSave }) {
     } catch (error) {
       alert('保存模板失败：' + error.message);
     }
+  };
+
+  // ========== 区域管理函数 ==========
+
+  // 生成区域ID
+  const generateAreaId = () => {
+    if (areas.length === 0) return `AREA-${page.id}-001`;
+    const maxNum = areas.reduce((max, area) => {
+      const num = parseInt(area.id.split('-').pop());
+      return num > max ? num : max;
+    }, 0);
+    return `AREA-${page.id}-${(maxNum + 1).toString().padStart(3, '0')}`;
+  };
+
+  // 检测两个区域是否重叠
+  const isAreaOverlap = (area1, area2) => {
+    return !(area1.x + area1.width <= area2.x ||
+             area2.x + area2.width <= area1.x ||
+             area1.y + area1.height <= area2.y ||
+             area2.y + area2.height <= area1.y);
+  };
+
+  // 检测区域是否与其他区域重叠
+  const isAreaOverlapping = (testArea, excludeAreaId = null) => {
+    return areas.some(area =>
+      area.id !== excludeAreaId && isAreaOverlap(testArea, area)
+    );
+  };
+
+  // 添加区域
+  const handleAddArea = () => {
+    const newArea = {
+      id: generateAreaId(),
+      name: '',
+      x: 0,
+      y: 0,
+      width: 300,
+      height: 300,
+      createdAt: new Date().toISOString()
+    };
+    setEditingArea(newArea);
+    setShowAddAreaModal(true);
+  };
+
+  // 确认添加区域
+  const confirmAddArea = () => {
+    if (!editingArea.name.trim()) {
+      alert('请输入区域名称');
+      return;
+    }
+    if (editingArea.name.length > 10) {
+      alert('区域名称不能超过10个汉字');
+      return;
+    }
+
+    // 检测重叠
+    if (isAreaOverlapping(editingArea)) {
+      alert('区域不能与其他区域重叠');
+      return;
+    }
+
+    const newAreas = [...areas, { ...editingArea }];
+    setAreas(newAreas);
+    setShowAddAreaModal(false);
+    setEditingArea(null);
+    setHasChanges(true);
+  };
+
+  // 编辑区域
+  const handleEditArea = (areaId) => {
+    const area = areas.find(a => a.id === areaId);
+    if (area) {
+      setEditingArea({ ...area });
+      setShowEditAreaModal(true);
+    }
+  };
+
+  // 确认编辑区域
+  const confirmEditArea = () => {
+    if (!editingArea.name.trim()) {
+      alert('请输入区域名称');
+      return;
+    }
+    if (editingArea.name.length > 10) {
+      alert('区域名称不能超过10个汉字');
+      return;
+    }
+
+    // 如果修改了位置或尺寸，检测重叠
+    const oldArea = areas.find(a => a.id === editingArea.id);
+    const positionChanged = oldArea.x !== editingArea.x || oldArea.y !== editingArea.y ||
+                          oldArea.width !== editingArea.width || oldArea.height !== editingArea.height;
+    if (positionChanged && isAreaOverlapping(editingArea, editingArea.id)) {
+      alert('区域不能与其他区域重叠');
+      return;
+    }
+
+    const newAreas = areas.map(a =>
+      a.id === editingArea.id ? { ...editingArea } : a
+    );
+    setAreas(newAreas);
+    setShowEditAreaModal(false);
+    setEditingArea(null);
+    setHasChanges(true);
+  };
+
+  // 删除区域
+  const handleDeleteArea = (areaId) => {
+    const area = areas.find(a => a.id === areaId);
+    if (!area) return;
+
+    const blockCount = blocks.filter(b => b.areaId === areaId).length;
+    if (!confirm(`确定要删除区域"${area.name}"吗？\n该区域内有 ${blockCount} 个区块，删除区域将同时删除这些区块。`)) {
+      return;
+    }
+
+    // 删除区域和其所属的区块
+    const newAreas = areas.filter(a => a.id !== areaId);
+    const newBlocks = blocks.filter(b => b.areaId !== areaId);
+
+    setAreas(newAreas);
+    setBlocks(newBlocks);
+    if (selectedBlockId && !newBlocks.find(b => b.id === selectedBlockId)) {
+      setSelectedBlockId(null);
+      setShowPanel(false);
+    }
+    setHasChanges(true);
+
+    // 如果正在设计该区域，退出设计模式
+    if (currentAreaId === areaId) {
+      setCurrentAreaId(null);
+    }
+  };
+
+  // 进入区域设计模式
+  const handleEnterAreaDesignMode = (areaId) => {
+    setCurrentAreaId(areaId);
+    setShowAreaPanel(false);
+  };
+
+  // 退出区域设计模式
+  const handleExitAreaDesignMode = () => {
+    setCurrentAreaId(null);
+  };
+
+  // 获取当前设计的区域
+  const getCurrentArea = () => {
+    return areas.find(a => a.id === currentAreaId);
+  };
+
+  // 获取当前区域内的区块
+  const getCurrentAreaBlocks = () => {
+    if (!currentAreaId) return blocks;
+    return blocks.filter(b => b.areaId === currentAreaId);
   };
 
   const handleDeleteBlock = (blockId) => {
@@ -1550,21 +1723,23 @@ function PageDesigner({ projectId, roleId, page, onClose, onSave }) {
   // ===== 保存和关闭 =====
   const handleSave = async () => {
     try {
-      const updatedPage = { 
-        ...page, 
+      const updatedPage = {
+        ...page,
         design: {
           blocks,
+          areas,  // 保存区域数据
           canvasType,
           canvasDecorations,
           iconInstances  // 保存Icon实例
         },
-        updatedAt: new Date().toISOString() 
+        updatedAt: new Date().toISOString()
       };
-      
+
       console.log('保存页面 - blocks数量:', blocks.length);
+      console.log('保存页面 - areas数量:', areas.length);
       console.log('保存页面 - canvasDecorations数量:', canvasDecorations.length);
       console.log('保存页面 - iconInstances数量:', iconInstances.length);
-      
+
       await onSave(updatedPage);
       setHasChanges(false);
       alert('保存成功！');
@@ -1583,6 +1758,7 @@ function PageDesigner({ projectId, roleId, page, onClose, onSave }) {
         ...page,
         design: {
           blocks: saveBeforeClose ? blocks : (page.design?.blocks || page.blocks || []),
+          areas: saveBeforeClose ? areas : (page.design?.areas || []),
           canvasType,
           canvasDecorations: saveBeforeClose ? canvasDecorations : (page.design?.canvasDecorations || []),
           iconInstances: saveBeforeClose ? iconInstances : (page.design?.iconInstances || [])
@@ -1918,32 +2094,158 @@ function PageDesigner({ projectId, roleId, page, onClose, onSave }) {
           console.log('[PageDesigner] setShowIconManager(true) 已执行');
         }}
         selectedBlockId={selectedBlockId}
+        showAreas={showAreas} setShowAreas={setShowAreas}
+        hideContentInAreas={hideContentInAreas} setHideContentInAreas={setHideContentInAreas}
       />
       <div className="flex-1 flex overflow-hidden">
-        {/* 左侧面板 - 区块列表 */}
+        {/* 左侧面板 - 区域列表/区块列表 */}
         <div className="relative flex" style={{ width: leftPanelCollapsed ? '24px' : '240px', transition: 'width 0.3s' }}>
           {!leftPanelCollapsed && (
-            <BlockList
-              blocks={blocks} selectedBlockId={selectedBlockId}
-              onSelectBlock={handleSelectBlockFromList} onAddBlock={handleAddBlock}
-              onDeleteBlock={handleDeleteBlock} expandedBlocks={expandedBlocks}
-              onToggleExpand={toggleBlockExpand}
-              onUpdateBlock={handleUpdateBlockFromList}
-              onGenerateChildBlocks={handleGenerateChildBlocks}
-              onGenerateFlowButtonChildBlocks={handleGenerateFlowButtonChildBlocks}
-              onSaveAsTemplate={handleSaveBlockAsTemplate}
-              projectId={projectId}
-              roleId={roleId}
-              forms={forms}
-              fields={fields}
-              dataFlows={dataFlows}
-            />
+            <>
+              {/* 区域列表/区块列表切换按钮 */}
+              <div className="p-2 border-b border-gray-200 flex space-x-2">
+                <button
+                  onClick={() => setShowAreaPanel(true)}
+                  className={`flex-1 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                    showAreaPanel ? 'bg-purple-100 text-purple-700' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  }`}
+                >
+                  📍 区域列表
+                </button>
+                <button
+                  onClick={() => setShowAreaPanel(false)}
+                  className={`flex-1 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                    !showAreaPanel ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  }`}
+                >
+                  📦 区块列表
+                </button>
+              </div>
+
+              {/* 区域列表面板 */}
+              {showAreaPanel ? (
+                <div className="flex-1 overflow-y-auto p-2">
+                  {currentAreaId ? (
+                    // 区域设计模式显示
+                    <div className="space-y-4">
+                      <div className="bg-purple-50 border border-purple-200 rounded-lg p-3">
+                        <div className="font-medium text-purple-700 mb-2">当前设计的区域</div>
+                        {(() => {
+                          const currentArea = getCurrentArea();
+                          return currentArea ? (
+                            <>
+                              <div className="text-sm text-gray-600">
+                                <strong>区域编号：</strong>{currentArea.id}
+                              </div>
+                              <div className="text-sm text-gray-600">
+                                <strong>区域名称：</strong>{currentArea.name}
+                              </div>
+                              <div className="text-sm text-gray-600">
+                                <strong>几何数据：</strong>({currentArea.x}, {currentArea.y}) {currentArea.width}*{currentArea.height}
+                              </div>
+                            </>
+                          ) : null;
+                        })()}
+                      </div>
+                      <button
+                        onClick={handleExitAreaDesignMode}
+                        className="w-full px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700"
+                      >
+                        ← 退出区域设计模式
+                      </button>
+                    </div>
+                  ) : (
+                    // 正常模式：显示所有区域
+                    <>
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="font-medium text-gray-700">区域列表</span>
+                        <button
+                          onClick={handleAddArea}
+                          className="px-3 py-1 bg-purple-600 text-white rounded text-sm hover:bg-purple-700"
+                        >
+                          + 添加新区域
+                        </button>
+                      </div>
+
+                      {areas.length === 0 ? (
+                        <div className="text-center text-gray-400 text-sm py-8">
+                          暂无区域<br/>点击上方按钮添加
+                        </div>
+                      ) : (
+                        <div className="overflow-hidden rounded-lg border border-gray-200">
+                          <table className="min-w-full divide-y divide-gray-200">
+                            <thead className="bg-gray-50">
+                              <tr>
+                                <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">区域编号</th>
+                                <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">区域名称</th>
+                                <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">操作</th>
+                              </tr>
+                            </thead>
+                            <tbody className="bg-white divide-y divide-gray-200">
+                              {areas.map(area => (
+                                <tr key={area.id} className="hover:bg-gray-50">
+                                  <td className="px-3 py-2 whitespace-nowrap text-sm text-gray-900 font-mono">{area.id}</td>
+                                  <td className="px-3 py-2 whitespace-nowrap text-sm text-gray-900">{area.name}</td>
+                                  <td className="px-3 py-2 whitespace-nowrap text-sm text-center space-x-1">
+                                    <button
+                                      onClick={() => handleEditArea(area.id)}
+                                      className="text-blue-600 hover:text-blue-900"
+                                      title="修改"
+                                    >
+                                      修改
+                                    </button>
+                                    <button
+                                      onClick={() => handleEnterAreaDesignMode(area.id)}
+                                      className="text-purple-600 hover:text-purple-900"
+                                      title="设计"
+                                    >
+                                      设计
+                                    </button>
+                                    <button
+                                      onClick={() => handleDeleteArea(area.id)}
+                                      className="text-red-600 hover:text-red-900"
+                                      title="删除"
+                                    >
+                                      删除
+                                    </button>
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      )}
+                    </>
+                  )}
+                </div>
+              ) : (
+                // 区块列表面板
+                <BlockList
+                  blocks={currentAreaId ? getCurrentAreaBlocks() : blocks}
+                  selectedBlockId={selectedBlockId}
+                  onSelectBlock={handleSelectBlockFromList}
+                  onAddBlock={handleAddBlock}
+                  onDeleteBlock={handleDeleteBlock}
+                  expandedBlocks={expandedBlocks}
+                  onToggleExpand={toggleBlockExpand}
+                  onUpdateBlock={handleUpdateBlockFromList}
+                  onGenerateChildBlocks={handleGenerateChildBlocks}
+                  onGenerateFlowButtonChildBlocks={handleGenerateFlowButtonChildBlocks}
+                  onSaveAsTemplate={handleSaveBlockAsTemplate}
+                  projectId={projectId}
+                  roleId={roleId}
+                  forms={forms}
+                  fields={fields}
+                  dataFlows={dataFlows}
+                />
+              )}
+            </>
           )}
           {/* 左侧收起/展开按钮 */}
           <button
             onClick={() => setLeftPanelCollapsed(!leftPanelCollapsed)}
             className="absolute right-0 top-1/2 transform -translate-y-1/2 translate-x-1/2 z-10 w-6 h-12 bg-white border border-gray-300 rounded-r flex items-center justify-center hover:bg-gray-100 shadow-sm"
-            title={leftPanelCollapsed ? '展开区块列表' : '收起区块列表'}
+            title={leftPanelCollapsed ? '展开列表' : '收起列表'}
           >
             <span className="text-gray-500 text-xs">{leftPanelCollapsed ? '▶' : '◀'}</span>
           </button>
@@ -1952,7 +2254,8 @@ function PageDesigner({ projectId, roleId, page, onClose, onSave }) {
         {/* 中间画布区域 */}
         <div className="flex-1 relative">
           <DesignerCanvas
-            blocks={blocks} selectedBlockId={selectedBlockId}
+            blocks={currentAreaId ? getCurrentAreaBlocks() : blocks}
+            selectedBlockId={selectedBlockId}
             canvasType={canvasType} scale={scale} onSelectBlock={handleSelectBlock}
             onBlockDragStart={handleBlockDragStart}
             onBlockResizeStart={handleBlockResizeStart}
@@ -1969,6 +2272,10 @@ function PageDesigner({ projectId, roleId, page, onClose, onSave }) {
             onIconResizeStart={handleIconResizeStart}
             onIconDrop={handleIconDrop}
             onDeleteIcon={handleDeleteIcon}
+            areas={areas}
+            showAreas={showAreas}
+            hideContentInAreas={hideContentInAreas}
+            currentAreaId={currentAreaId}
           />
         </div>
       </div>
@@ -1979,6 +2286,146 @@ function PageDesigner({ projectId, roleId, page, onClose, onSave }) {
           onClose={() => setShowPanel(false)}
         />
       )}
+      {/* 添加区域弹窗 */}
+      {showAddAreaModal && editingArea && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[70]">
+          <div className="bg-white rounded-lg shadow-xl w-96 p-6">
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">添加新区域</h3>
+
+            <div className="space-y-4">
+              {/* 区域名称 */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  区域名称 <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  value={editingArea.name}
+                  onChange={(e) => setEditingArea({ ...editingArea, name: e.target.value.slice(0, 10) })}
+                  placeholder="10个汉字以内"
+                  className="w-full px-3 py-2 border border-gray-300 rounded text-sm"
+                  maxLength={10}
+                />
+              </div>
+
+              {/* 几何数据 */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  几何数据 (X, Y, 宽×高)
+                </label>
+                <div className="grid grid-cols-4 gap-2">
+                  <div>
+                    <span className="text-xs text-gray-500">X</span>
+                    <input
+                      type="number"
+                      value={editingArea.x}
+                      onChange={(e) => setEditingArea({ ...editingArea, x: parseInt(e.target.value) || 0 })}
+                      className="w-full px-2 py-1 border border-gray-300 rounded text-sm"
+                      min="0"
+                    />
+                  </div>
+                  <div>
+                    <span className="text-xs text-gray-500">Y</span>
+                    <input
+                      type="number"
+                      value={editingArea.y}
+                      onChange={(e) => setEditingArea({ ...editingArea, y: parseInt(e.target.value) || 0 })}
+                      className="w-full px-2 py-1 border border-gray-300 rounded text-sm"
+                      min="0"
+                    />
+                  </div>
+                  <div>
+                    <span className="text-xs text-gray-500">宽</span>
+                    <input
+                      type="number"
+                      value={editingArea.width}
+                      onChange={(e) => setEditingArea({ ...editingArea, width: Math.max(50, parseInt(e.target.value) || 50) })}
+                      className="w-full px-2 py-1 border border-gray-300 rounded text-sm"
+                      min="50"
+                    />
+                  </div>
+                  <div>
+                    <span className="text-xs text-gray-500">高</span>
+                    <input
+                      type="number"
+                      value={editingArea.height}
+                      onChange={(e) => setEditingArea({ ...editingArea, height: Math.max(50, parseInt(e.target.value) || 50) })}
+                      className="w-full px-2 py-1 border border-gray-300 rounded text-sm"
+                      min="50"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div className="text-xs text-gray-500">
+                初始数据：(0, 0) 300×300，区域拖拽后系统自动更新
+              </div>
+            </div>
+
+            <div className="flex justify-end space-x-3 mt-6">
+              <button
+                onClick={() => {
+                  setShowAddAreaModal(false);
+                  setEditingArea(null);
+                }}
+                className="px-4 py-2 border border-gray-300 rounded text-gray-700 hover:bg-gray-100"
+              >
+                取消
+              </button>
+              <button
+                onClick={confirmAddArea}
+                className="px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-700"
+              >
+                确认添加
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 编辑区域弹窗 */}
+      {showEditAreaModal && editingArea && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[70]">
+          <div className="bg-white rounded-lg shadow-xl w-96 p-6">
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">修改区域</h3>
+
+            <div className="space-y-4">
+              {/* 区域名称 */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  区域名称 <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  value={editingArea.name}
+                  onChange={(e) => setEditingArea({ ...editingArea, name: e.target.value.slice(0, 10) })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded text-sm"
+                  maxLength={10}
+                />
+              </div>
+            </div>
+
+            <div className="flex justify-end space-x-3 mt-6">
+              <button
+                onClick={() => {
+                  setShowEditAreaModal(false);
+                  setEditingArea(null);
+                }}
+                className="px-4 py-2 border border-gray-300 rounded text-gray-700 hover:bg-gray-100"
+              >
+                取消
+              </button>
+              <button
+                onClick={confirmEditArea}
+                className="px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-700"
+              >
+                确认修改
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {showCloseModal && (
         <CloseConfirmModal
           hasChanges={hasChanges}

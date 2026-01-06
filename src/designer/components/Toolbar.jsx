@@ -17,6 +17,10 @@ function DesignerToolbar(props) {
   var onOpenStylePanel = props.onOpenStylePanel;
   var onOpenIconManager = props.onOpenIconManager;
   var selectedBlockId = props.selectedBlockId;
+  var showAreas = props.showAreas || false;
+  var setShowAreas = props.setShowAreas || function() {};
+  var hideContentInAreas = props.hideContentInAreas || false;
+  var setHideContentInAreas = props.setHideContentInAreas || function() {};
 
   return React.createElement('div', {
     className: 'h-12 bg-white border-b border-gray-200 flex items-center justify-between px-4 shadow-sm flex-shrink-0'
@@ -28,6 +32,20 @@ function DesignerToolbar(props) {
       hasChanges ? React.createElement('span', { className: 'text-orange-500 text-sm' }, ' Unsaved') : null
     ),
     React.createElement('div', { className: 'flex items-center space-x-3' },
+      // 显示区域按钮
+      React.createElement('div', { className: 'flex items-center space-x-2 bg-gray-100 rounded-lg p-1' },
+        React.createElement('button', {
+          onClick: function() { setShowAreas(!showAreas); },
+          className: showAreas ? 'px-3 py-1 rounded text-sm transition-colors bg-white text-purple-600 shadow' : 'px-3 py-1 rounded text-sm transition-colors text-gray-600 hover:text-gray-900',
+          title: '显示/隐藏区域'
+        }, '📍 区域'),
+        showAreas ? React.createElement('button', {
+          onClick: function() { setHideContentInAreas(!hideContentInAreas); },
+          className: hideContentInAreas ? 'px-3 py-1 rounded text-sm transition-colors bg-white text-orange-600 shadow' : 'px-3 py-1 rounded text-sm transition-colors bg-white text-gray-600 shadow',
+          title: '隐藏/显示内容'
+        }, hideContentInAreas ? '仅区域' : '区域+内容') : null
+      ),
+      React.createElement('div', { className: 'w-px h-6 bg-gray-300' }),
       React.createElement('button', {
         onClick: onOpenStylePanel,
         className: selectedBlockId ? 'px-3 py-1.5 rounded flex items-center space-x-1 bg-blue-100 text-blue-700 hover:bg-blue-200' : 'px-3 py-1.5 rounded flex items-center space-x-1 bg-gray-100 text-gray-400 cursor-not-allowed',

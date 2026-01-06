@@ -1,8 +1,8 @@
 // 画布组件
-function DesignerCanvas({ 
-  blocks, 
-  selectedBlockId, 
-  canvasType, 
+function DesignerCanvas({
+  blocks,
+  selectedBlockId,
+  canvasType,
   scale,
   onSelectBlock,
   onBlockDragStart,
@@ -11,7 +11,11 @@ function DesignerCanvas({
   onBlockContentChange,
   onBlockStyleChange,
   projectId,
-  canvasDecorations = []  // 画布装饰层（图形编辑器绘制的内容）
+  canvasDecorations = [],  // 画布装饰层（图形编辑器绘制的内容）
+  areas = [],
+  showAreas = false,
+  hideContentInAreas = false,
+  currentAreaId = null
 }) {
   // 使用共享的画布配置
   const config = window.StyleUtils?.getCanvasConfig(canvasType) || {
@@ -1340,16 +1344,38 @@ function DesignerCanvas({
       >
         {/* 画布装饰层（最底层） */}
         {canvasDecorations && canvasDecorations.length > 0 && (
-          <svg 
-            className="absolute inset-0 pointer-events-none" 
+          <svg
+            className="absolute inset-0 pointer-events-none"
             style={{ width: '100%', height: '100%', zIndex: 0 }}
           >
             {renderGraphicElements(canvasDecorations, 0, 0, scale / 100)}
           </svg>
         )}
-        
+
+        {/* 区域渲染（仅在显示区域模式下） */}
+        {showAreas && !currentAreaId && areas.map(area => (
+          <div
+            key={area.id}
+            className="absolute border-2 border-dashed bg-gray-200"
+            style={{
+              left: area.x * (scale / 100),
+              top: area.y * (scale / 100),
+              width: area.width * (scale / 100),
+              height: area.height * (scale / 100),
+              opacity: 0.3,
+              zIndex: 0,
+              borderColor: '#9ca3af'
+            }}
+          >
+            {/* 区域标签 */}
+            <div className="absolute -top-4 left-0 text-xs bg-gray-700 text-white px-1 rounded whitespace-nowrap">
+              {area.name} ({area.id})
+            </div>
+          </div>
+        ))}
+
         {/* 区块渲染 */}
-        {blocks.map(block => renderBlock(block))}
+        {!hideContentInAreas && blocks.map(block => renderBlock(block))}
       </div>
     </div>
   );
