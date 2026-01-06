@@ -56,11 +56,19 @@ function FormDefinition({ projectId }) {
     }
   };
 
-  // 选择对象表子类型（基础表 / 衍生表 / 合表）
+  // 选择对象表子类型（基础表 / 衍生表 / 合表 / 子表 / 再造表）
   const handleSubTypeSelect = (subType) => {
     setSelectedSubType(subType);
     setShowSubTypeModal(false);
-    setShowFormBuilder(true);
+
+    if (subType === '子表' || subType === '再造表') {
+      // 子表和再造表需要在表单查看器中创建
+      alert(`${subType}需要先选择一个现有对象表单，然后在表单查看器中通过功能按钮创建。\n\n创建位置：表单列表 -> 点击查看表单 -> 工具栏中的"${subType === '子表' ? '🔗 子表' : '🔄 再造表'}"按钮`);
+      setShowSubTypeModal(true); // 重新显示选择弹窗
+    } else {
+      // 基础表、衍生表、合表进入构建流程
+      setShowFormBuilder(true);
+    }
   };
 
   // 关闭表单构建器
@@ -206,6 +214,8 @@ function FormDefinition({ projectId }) {
                       form.subType === '关联基础表' ? 'bg-yellow-100 text-yellow-800' :
                       form.subType === '合表' ? 'bg-orange-100 text-orange-800' :
                       form.subType === '衍生表' ? 'bg-pink-100 text-pink-800' :
+                      form.subType === '子表' ? 'bg-purple-100 text-purple-800' :
+                      form.subType === '再造表' ? 'bg-indigo-100 text-indigo-800' :
                       'bg-gray-100 text-gray-800'
                     }`}>
                       {form.subType || '-'}
@@ -295,7 +305,7 @@ function FormDefinition({ projectId }) {
         </div>
       )}
 
-      {/* 第二步：选择对象表子类型（基础表 / 衍生表 / 合表） */}
+      {/* 第二步：选择对象表子类型（基础表 / 衍生表 / 合表 / 子表 / 再造表） */}
       {showSubTypeModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg shadow-xl w-full max-w-md mx-4">
@@ -331,6 +341,32 @@ function FormDefinition({ projectId }) {
                 <div className="font-medium text-gray-900">合表</div>
                 <div className="text-sm text-gray-500 mt-1">
                   合并主键相同的多个表单，虚拟表（不物理存储）
+                </div>
+              </button>
+
+              <div className="border-t border-gray-200 pt-4 mt-4">
+                <div className="text-sm text-gray-500 mb-3">
+                  以下类型需在表单查看器中通过功能按钮创建
+                </div>
+              </div>
+
+              <button
+                onClick={() => handleSubTypeSelect('子表')}
+                className="w-full px-6 py-4 text-left border-2 border-gray-200 rounded-lg hover:border-purple-500 hover:bg-purple-50 transition-all"
+              >
+                <div className="font-medium text-gray-900">子表</div>
+                <div className="text-sm text-gray-500 mt-1">
+                  截取原表的一部分数据（横向/纵向/混合截取）
+                </div>
+              </button>
+              
+              <button
+                onClick={() => handleSubTypeSelect('再造表')}
+                className="w-full px-6 py-4 text-left border-2 border-gray-200 rounded-lg hover:border-indigo-500 hover:bg-indigo-50 transition-all"
+              >
+                <div className="font-medium text-gray-900">再造表</div>
+                <div className="text-sm text-gray-500 mt-1">
+                  按字段分组后聚合运算，生成新表
                 </div>
               </button>
             </div>
