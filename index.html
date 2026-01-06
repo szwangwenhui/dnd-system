@@ -19,29 +19,11 @@
   <!-- Supabase SDK -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   
-  <!-- html2canvas (用于截图反馈) -->
-  <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
-  
-  <!-- SheetJS (用于解析Excel文件) -->
-  <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
-  
-  <!-- Quill 富文本编辑器 -->
-  <link href="https://cdn.quilljs.com/1.3.7/quill.snow.css" rel="stylesheet">
-  <script src="https://cdn.quilljs.com/1.3.7/quill.min.js"></script>
-  
   <style>
     body {
       margin: 0;
       padding: 0;
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
-    }
-    /* Quill编辑器样式调整 */
-    .ql-container {
-      font-size: 14px;
-      min-height: 350px;
-    }
-    .ql-editor {
-      min-height: 350px;
     }
     /* 滚动条样式 */
     ::-webkit-scrollbar {
@@ -58,10 +40,6 @@
     ::-webkit-scrollbar-thumb:hover {
       background: #a1a1a1;
     }
-    /* 弹窗关闭按钮 - hover时显示 */
-    .popup-block:hover .popup-close-btn {
-      opacity: 1 !important;
-    }
   </style>
 </head>
 <body>
@@ -70,30 +48,11 @@
   <!-- ========== Supabase 配置（公测版） ========== -->
   <script src="./src/config/supabase.js"></script>
   
-  <!-- ========== Supabase 数据库模块（替代原IndexedDB） ========== -->
+  <!-- ========== Supabase 数据库模块 ========== -->
   <script src="./src/utils/supabaseDB.js"></script>
   
   <!-- 参数读取工具 -->
   <script src="./src/utils/paramUtils.js"></script>
-  
-  <script src="./src/utils/StatisticsEngine.js"></script>
-  <script src="./src/utils/expressionEngine.js"></script>
-  <script src="./src/utils/testEnvBuilder.js"></script>
-  
-  <!-- 原语表达式模块 -->
-  <script src="./src/primitiveExpr/primitives.js"></script>
-  <script src="./src/primitiveExpr/PrimitiveEngine.js"></script>
-  <script type="text/babel" src="./src/primitiveExpr/PrimitiveExprEditor.jsx"></script>
-  <script type="text/babel" src="./src/primitiveExpr/PrimitiveExprTest.jsx"></script>
-  
-  <!-- 流程执行引擎 -->
-  <script src="./src/flowEngine/index.js"></script>
-  <script src="./src/flowEngine/dataNodes.js"></script>
-  <script src="./src/flowEngine/branchNodes.js"></script>
-  <script src="./src/flowEngine/loopNodes.js"></script>
-  
-  <!-- 共享模块（必须在设计器和预览组件之前加载） -->
-  <script src="./src/shared/styleUtils.js"></script>
   
   <!-- 用户认证模块 -->
   <script src="./src/auth/systemForms.js"></script>
@@ -129,109 +88,7 @@
   <script type="text/babel" src="./src/components/PageParamsConfig.jsx"></script>
   
   <script type="text/babel" src="./src/components/PageDefinition.jsx"></script>
-  
-  <!-- 统计模块 -->
-  <script type="text/babel" src="./src/components/statistics/SearchFilterPanel.jsx"></script>
-  <script type="text/babel" src="./src/components/statistics/StatisticsChart.jsx"></script>
-  <script type="text/babel" src="./src/components/statistics/StatisticsDependency.jsx"></script>
-  <script type="text/babel" src="./src/components/statistics/StatisticsPreview.jsx"></script>
-  <script type="text/babel" src="./src/components/statistics/StatisticsWizard.jsx"></script>
-  <script type="text/babel" src="./src/components/statistics/StatisticsViewer.jsx"></script>
-  <script type="text/babel" src="./src/components/statistics/StatisticsModule.jsx"></script>
-  <script type="text/babel" src="./src/components/statistics/index.jsx"></script>
   <script type="text/babel" src="./src/components/DataLayerBuilder.jsx"></script>
-  
-  <!-- 页面设计器模块 -->
-  <script src="./src/designer/utils/historyManager.js"></script>
-  <script src="./src/designer/styles/presets.js"></script>
-  <script type="text/babel" src="./src/designer/panels/BoxModelPanel.jsx"></script>
-  <script type="text/babel" src="./src/designer/panels/TypographyPanel.jsx"></script>
-  <script type="text/babel" src="./src/designer/panels/BackgroundPanel.jsx"></script>
-  <script type="text/babel" src="./src/designer/panels/BorderPanel.jsx"></script>
-  <script type="text/babel" src="./src/designer/panels/ShadowPanel.jsx"></script>
-  <script type="text/babel" src="./src/designer/panels/PositionPanel.jsx"></script>
-  <script type="text/babel" src="./src/designer/panels/FlexPanel.jsx"></script>
-  <script type="text/babel" src="./src/designer/panels/GridPanel.jsx"></script>
-  <script type="text/babel" src="./src/designer/panels/TransitionPanel.jsx"></script>
-  <script type="text/babel" src="./src/designer/panels/InteractionPanel.jsx"></script>
-  <script type="text/babel" src="./src/designer/panels/PresetPanel.jsx"></script>
-  <script type="text/babel" src="./src/designer/panels/DataBindingPanel.jsx"></script>
-  
-  <!-- 按钮模块 -->
-  <script src="./src/designer/buttons/ButtonRegistry.js"></script>
-  <script type="text/babel" src="./src/designer/buttons/ButtonConfig.jsx"></script>
-  <script type="text/babel" src="./src/designer/buttons/ButtonRenderer.jsx"></script>
-  <script type="text/babel" src="./src/designer/buttons/FlowDialogRenderer.jsx"></script>
-  <script type="text/babel" src="./src/designer/buttons/FlowSelectionRenderer.jsx"></script>
-  <script type="text/babel" src="./src/designer/buttons/types/NavigateButton.jsx"></script>
-  <script type="text/babel" src="./src/designer/buttons/types/BackButton.jsx"></script>
-  <script type="text/babel" src="./src/designer/buttons/types/PopupButton.jsx"></script>
-  <script type="text/babel" src="./src/designer/buttons/types/FlowButton.jsx"></script>
-  
-  <script type="text/babel" src="./src/designer/components/Toolbar.jsx"></script>
-  <script type="text/babel" src="./src/designer/components/GraphicEditor.jsx"></script>
-  <script src="./src/designer/components/IconManager.jsx"></script>
-  <script type="text/babel" src="./src/designer/components/IconInstance.jsx"></script>
-  <script type="text/babel" src="./src/designer/components/BlockList.jsx"></script>
-  <script type="text/babel" src="./src/designer/components/Canvas.jsx"></script>
-  <script type="text/babel" src="./src/designer/components/StylePanel.jsx"></script>
-  <script type="text/babel" src="./src/designer/components/RichTextEditor.jsx"></script>
-  <script type="text/babel" src="./src/designer/components/MediaPreview.jsx"></script>
-  <script type="text/babel" src="./src/designer/components/FormDisplayConfig.jsx"></script>
-  <script type="text/babel" src="./src/designer/components/InteractionConfig.jsx"></script>
-  <script type="text/babel" src="./src/designer/components/DataEntryDialog.jsx"></script>
-  <script type="text/babel" src="./src/designer/components/DataEditDialog.jsx"></script>
-  
-  <!-- 页面设计器核心 -->
-  <script src="./src/designer/designerUtils.js"></script>
-  <script type="text/babel" src="./src/designer/useDesignerState.js"></script>
-  <script type="text/babel" src="./src/designer/useDragResize.js"></script>
-  <script type="text/babel" src="./src/designer/CloseConfirmModal.jsx"></script>
-  <script type="text/babel" src="./src/designer/PageDesigner.jsx"></script>
-  
-  <!-- 原语系统 -->
-  <script src="./src/primitives/index.js"></script>
-  
-  <!-- 流程编辑器 - 共享组件 -->
-  <script type="text/babel" src="./src/flowEditor/shared/PrimaryKeySelector.jsx"></script>
-  <script type="text/babel" src="./src/flowEditor/shared/ConditionEditor.jsx"></script>
-  <script type="text/babel" src="./src/flowEditor/shared/FieldMapper.jsx"></script>
-  
-  <!-- 流程编辑器 - 配置表单 -->
-  <script type="text/babel" src="./src/flowEditor/configForms/StartNodeConfigForm.jsx"></script>
-  <script type="text/babel" src="./src/flowEditor/configForms/EndNodeConfigForm.jsx"></script>
-  <script type="text/babel" src="./src/flowEditor/configForms/ReadNodeConfigForm.jsx"></script>
-  <script type="text/babel" src="./src/flowEditor/configForms/WriteNodeConfigForm.jsx"></script>
-  <script type="text/babel" src="./src/flowEditor/configForms/UpdateNodeConfigForm.jsx"></script>
-  <script type="text/babel" src="./src/flowEditor/configForms/DeleteNodeConfigForm.jsx"></script>
-  <script type="text/babel" src="./src/flowEditor/configForms/BinaryBranchConfigForm.jsx"></script>
-  <script type="text/babel" src="./src/flowEditor/configForms/MultiBranchConfigForm.jsx"></script>
-  <script type="text/babel" src="./src/flowEditor/configForms/PromptConfigForm.jsx"></script>
-  <script type="text/babel" src="./src/flowEditor/configForms/JumpConfigForm.jsx"></script>
-  <script type="text/babel" src="./src/flowEditor/configForms/LoopConfigForm.jsx"></script>
-  <script type="text/babel" src="./src/flowEditor/configForms/LoopStartConfigForm.jsx"></script>
-  <script type="text/babel" src="./src/flowEditor/configForms/LoopEndConfigForm.jsx"></script>
-  <script type="text/babel" src="./src/flowEditor/configForms/WaitConfigForm.jsx"></script>
-  <script type="text/babel" src="./src/flowEditor/configForms/BreakConfigForm.jsx"></script>
-  <script type="text/babel" src="./src/flowEditor/configForms/ExistCheckConfigForm.jsx"></script>
-  <script type="text/babel" src="./src/flowEditor/configForms/FormatCheckConfigForm.jsx"></script>
-  <script type="text/babel" src="./src/flowEditor/configForms/PropCheckConfigForm.jsx"></script>
-  <script type="text/babel" src="./src/flowEditor/configForms/CalculateConfigForm.jsx"></script>
-  <script type="text/babel" src="./src/flowEditor/configForms/AggregateConfigForm.jsx"></script>
-  <script type="text/babel" src="./src/flowEditor/configForms/ApiCallConfigForm.jsx"></script>
-  <script type="text/babel" src="./src/flowEditor/configForms/SubFlowConfigForm.jsx"></script>
-  
-  <!-- 流程编辑器 - 连接点计算工具 -->
-  <script src="./src/flowEditor/FlowConnectionUtils.js"></script>
-  
-  <!-- 流程编辑器 - 组件 -->
-  <script type="text/babel" src="./src/flowEditor/components/VariableSelector.jsx"></script>
-  <script type="text/babel" src="./src/flowEditor/components/VariableManagerPanel.jsx"></script>
-  <script type="text/babel" src="./src/flowEditor/components/PrimitiveToolbar.jsx"></script>
-  <script type="text/babel" src="./src/flowEditor/components/FlowNode.jsx"></script>
-  <script type="text/babel" src="./src/flowEditor/components/NodePropertiesPanel.jsx"></script>
-  <script type="text/babel" src="./src/flowEditor/components/NodeEditorDialog.jsx"></script>
-  <script type="text/babel" src="./src/flowEditor/FlowEditor.jsx"></script>
   
   <!-- ========== 公测版新增组件 ========== -->
   <script type="text/babel" src="./src/components/LoginPage.jsx"></script>

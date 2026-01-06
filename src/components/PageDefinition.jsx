@@ -261,21 +261,9 @@ function PageDefinition({ projectId, roleId }) {
 
   // 打开设计器（从数据库加载最新数据）
   const openDesigner = async (page) => {
-    try {
-      const freshPages = await window.dndDB.getPagesByRoleId(projectId, roleId);
-      const freshPage = freshPages.find(p => p.id === page.id);
-      if (freshPage) {
-        console.log('设计页面：加载最新数据', freshPage.design?.blocks?.map(b => ({ id: b.id, zIndex: b.style?.zIndex })));
-        setDesigningPage(freshPage);
-        setPages(freshPages);
-      } else {
-        setDesigningPage(page);
-      }
-    } catch (error) {
-      console.error('加载最新页面数据失败:', error);
-      setDesigningPage(page);
-    }
-    setShowDesigner(true);
+    // 跳转到独立的设计器页面
+    const designerUrl = `designer.html?projectId=${projectId}&roleId=${roleId}&pageId=${page.id}&pageName=${encodeURIComponent(page.name)}`;
+    window.location.href = designerUrl;
   };
 
   // 点击"设为模板"按钮

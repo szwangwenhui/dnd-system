@@ -191,8 +191,9 @@ function DataFlowDefinition({ projectId, onDesignFlow }) {
   };
 
   const handleDesign = (flow) => {
-    if (onDesignFlow) { onDesignFlow(flow); }
-    else { alert('数据流程编辑器正在开发中，敬请期待！'); }
+    // 跳转到独立的流程编辑器页面
+    const flowEditorUrl = `floweditor.html?projectId=${projectId}&flowId=${flow.id}&flowName=${encodeURIComponent(flow.name)}&mode=design`;
+    window.location.href = flowEditorUrl;
   };
 
   const getTriggerTypeText = (type) => {

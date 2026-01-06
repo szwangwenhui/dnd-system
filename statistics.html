@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DND 统计分析 - 公测版</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect fill='%23667eea' width='100' height='100' rx='20'/><text x='50' y='65' font-size='40' fill='white' text-anchor='middle' font-weight='bold'>DND</text></svg>">
+  
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  
+  <!-- React & ReactDOM -->
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+  
+  <!-- Babel Standalone -->
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  
+  <!-- Supabase SDK -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  
+  <!-- SheetJS (用于解析Excel文件) -->
+  <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
+  
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
+    }
+    /* 滚动条样式 */
+    ::-webkit-scrollbar {
+      width: 8px;
+      height: 8px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #f1f1f1;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #c1c1c1;
+      border-radius: 4px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #a1a1a1;
+    }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+  
+  <!-- ========== Supabase 配置 ========== -->
+  <script src="./src/config/supabase.js"></script>
+  
+  <!-- ========== Supabase 数据库模块 ========== -->
+  <script src="./src/utils/supabaseDB.js"></script>
+  
+  <!-- 参数读取工具 -->
+  <script src="./src/utils/paramUtils.js"></script>
+  
+  <!-- 统计引擎和表达式引擎 -->
+  <script src="./src/utils/StatisticsEngine.js"></script>
+  <script src="./src/utils/expressionEngine.js"></script>
+  <script src="./src/utils/testEnvBuilder.js"></script>
+  
+  <!-- 表达式构建器 -->
+  <script type="text/babel" src="./src/components/ExpressionBuilder.jsx"></script>
+  <script type="text/babel" src="./src/components/VariableExpressionBuilder.jsx"></script>
+  
+  <!-- 统计模块 -->
+  <script type="text/babel" src="./src/components/statistics/SearchFilterPanel.jsx"></script>
+  <script type="text/babel" src="./src/components/statistics/StatisticsChart.jsx"></script>
+  <script type="text/babel" src="./src/components/statistics/StatisticsDependency.jsx"></script>
+  <script type="text/babel" src="./src/components/statistics/StatisticsPreview.jsx"></script>
+  <script type="text/babel" src="./src/components/statistics/StatisticsWizard.jsx"></script>
+  <script type="text/babel" src="./src/components/statistics/StatisticsViewer.jsx"></script>
+  <script type="text/babel" src="./src/components/statistics/StatisticsModule.jsx"></script>
+  <script type="text/babel" src="./src/components/statistics/index.jsx"></script>
+  
+  <!-- 数据层构建器 -->
+  <script type="text/babel" src="./src/components/DataLayerBuilder.jsx"></script>
+  
+  <!-- ========== 主应用入口（统计模块版） ========== -->
+  <script type="text/babel" src="./src/AppStatistics.jsx"></script>
+</body>
+</html>
