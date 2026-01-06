@@ -2,27 +2,35 @@
 function FieldDefinition({ projectId }) {
   const [fields, setFields] = React.useState([]);
   const [forms, setForms] = React.useState([]);
+  const [businessCategories, setBusinessCategories] = React.useState([]);
+  const [showCategoryModal, setShowCategoryModal] = React.useState(false);
   const [showModal, setShowModal] = React.useState(false);
   const [editingField, setEditingField] = React.useState(null);
+  const [filterRole, setFilterRole] = React.useState('');
+  const [filterType, setFilterType] = React.useState('');
+  const [filterNature, setFilterNature] = React.useState('');
+  const [filterCategory, setFilterCategory] = React.useState('');
   const [formData, setFormData] = React.useState({
     name: '',
     role: '非主键',
     type: '字符串',
     length: '',
     unique: false,
-    nature: '基础字段'
+    nature: '基础字段',
+    businessCategoryId: ''
   });
 
   // 加载字段列表
   React.useEffect(() => {
     loadFields();
+    loadBusinessCategories();
   }, [projectId]);
 
   const loadFields = async () => {
     try {
       const fieldList = await window.dndDB.getFieldsByProjectId(projectId);
       setFields(fieldList);
-    
+
       // 同时加载表单列表（用于显示关联表单名称）
       const formList = await window.dndDB.getFormsByProjectId(projectId);
       setForms(formList);
@@ -30,6 +38,24 @@ function FieldDefinition({ projectId }) {
       alert('加载字段失败：' + error);
     }
   };
+
+  const loadBusinessCategories = async () => {
+    try {
+      const categoryList = await window.dndDB.getBusinessCategoriesByProjectId(projectId);
+      setBusinessCategories(categoryList);
+    } catch (error) {
+      console.error('加载业务分类失败:', error);
+    }
+  };
+
+  // 过滤字段
+  const filteredFields = fields.filter(field => {
+    if (filterRole && field.role !== filterRole) return false;
+    if (filterType && field.type !== filterType) return false;
+    if (filterNature && field.nature !== filterNature) return false;
+    if (filterCategory && field.businessCategoryId !== filterCategory) return false;
+    return true;
+  });
 
 
   // 打开新建模态框
@@ -41,7 +67,8 @@ function FieldDefinition({ projectId }) {
       type: '字符串',
       length: '',
       unique: false,
-      nature: '基础字段'
+      nature: '基础字段',
+      businessCategoryId: ''
     });
     setShowModal(true);
   };
@@ -55,7 +82,8 @@ function FieldDefinition({ projectId }) {
       type: field.type,
       length: field.length || '',
       unique: field.unique,
-      nature: field.nature || '基础字段'
+      nature: field.nature || '基础字段',
+      businessCategoryId: field.businessCategoryId || ''
     });
     setShowModal(true);
   };
@@ -124,7 +152,8 @@ function FieldDefinition({ projectId }) {
         type: formData.type,
         length: formData.type === '字符串' && formData.length ? parseInt(formData.length) : null,
         unique: formData.unique,
-        nature: formData.nature
+        nature: formData.nature,
+        businessCategoryId: formData.businessCategoryId || null
       };
 
       if (editingField) {
@@ -162,14 +191,97 @@ function FieldDefinition({ projectId }) {
   return (
     <div>
       {/* 操作栏 */}
-      <div className="mb-6 flex justify-between items-center">
-        <h3 className="text-lg font-semibold text-gray-800">字段库（全局共享）</h3>
+      <div className="mb-6 flex flex-wrap gap-2 items-center justify-between">
+        <div className="flex items-center gap-2">
+          <h3 className="text-lg font-semibold text-gray-800">字段库（全局共享）</h3>
+          <button
+            onClick={() => setShowCategoryModal(true)}
+            className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+          >
+            业务分类
+          </button>
+        </div>
         <button
           onClick={openCreateModal}
           className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
         >
           + 添加新字段
         </button>
+      </div>
+
+      {/* 检索区 */}
+      <div className="mb-4 bg-white shadow rounded-lg p-4">
+        <div className="flex flex-wrap gap-3">
+          <div className="flex-1 min-w-48">
+            <label className="block text-xs font-medium text-gray-700 mb-1">字段角色</label>
+            <select
+              value={filterRole}
+              onChange={(e) => setFilterRole(e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="">全部</option>
+              <option value="主键">主键</option>
+              <option value="非主键">非主键</option>
+            </select>
+          </div>
+          <div className="flex-1 min-w-48">
+            <label className="block text-xs font-medium text-gray-700 mb-1">字段类型</label>
+            <select
+              value={filterType}
+              onChange={(e) => setFilterType(e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="">全部</option>
+              <option value="字符串">字符串</option>
+              <option value="整数">整数</option>
+              <option value="浮点数">浮点数</option>
+              <option value="逻辑">逻辑</option>
+              <option value="日期/时间">日期/时间</option>
+              <option value="文件">文件</option>
+              <option value="富文本">富文本</option>
+              <option value="JSON">JSON</option>
+            </select>
+          </div>
+          <div className="flex-1 min-w-48">
+            <label className="block text-xs font-medium text-gray-700 mb-1">字段性质</label>
+            <select
+              value={filterNature}
+              onChange={(e) => setFilterNature(e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="">全部</option>
+              <option value="基础字段">基础字段</option>
+              <option value="衍生字段">衍生字段</option>
+              <option value="属性字段">属性字段</option>
+            </select>
+          </div>
+          <div className="flex-1 min-w-48">
+            <label className="block text-xs font-medium text-gray-700 mb-1">业务分类</label>
+            <select
+              value={filterCategory}
+              onChange={(e) => setFilterCategory(e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="">全部</option>
+              {businessCategories.map(cat => (
+                <option key={cat.id} value={cat.id}>{cat.name}</option>
+              ))}
+            </select>
+          </div>
+          <div className="flex items-end">
+            <button
+              onClick={() => {
+                setFilterRole('');
+                setFilterType('');
+                setFilterNature('');
+                setFilterCategory('');
+              }}
+              className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-100 text-sm"
+            >
+              重置筛选
+            </button>
+          </div>
+        </div>
       </div>
 
       {/* 字段表格 */}
@@ -193,6 +305,9 @@ function FieldDefinition({ projectId }) {
                 字段性质
               </th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                业务分类
+              </th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 约束
               </th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -204,14 +319,14 @@ function FieldDefinition({ projectId }) {
             </tr>
           </thead>
           <tbody className="bg-white divide-y divide-gray-200">
-            {fields.length === 0 ? (
+            {filteredFields.length === 0 ? (
               <tr>
-                <td colSpan="8" className="px-6 py-12 text-center text-gray-500">
+                <td colSpan="9" className="px-6 py-12 text-center text-gray-500">
                   暂无字段，点击右上角"添加新字段"开始创建
                 </td>
               </tr>
             ) : (
-              fields.map(field => (
+              filteredFields.map(field => (
                 <tr key={field.id} className="hover:bg-gray-50">
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-mono">
                     {field.id}
@@ -221,8 +336,8 @@ function FieldDefinition({ projectId }) {
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
                     <span className={`px-2 py-1 text-xs font-semibold rounded-full ${
-                      field.role === '主键' 
-                        ? 'bg-blue-100 text-blue-800' 
+                      field.role === '主键'
+                        ? 'bg-blue-100 text-blue-800'
                         : 'bg-gray-100 text-gray-800'
                     }`}>
                       {field.role}
@@ -236,14 +351,28 @@ function FieldDefinition({ projectId }) {
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
                     <span className={`px-2 py-1 text-xs font-semibold rounded-full ${
-                      field.nature === '衍生字段' 
-                        ? 'bg-pink-100 text-pink-800' 
+                      field.nature === '衍生字段'
+                        ? 'bg-pink-100 text-pink-800'
                         : field.nature === '属性字段'
                         ? 'bg-purple-100 text-purple-800'
                         : 'bg-green-100 text-green-800'
                     }`}>
                       {field.nature || '基础字段'}
                     </span>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                    {field.businessCategoryId ? (
+                      (() => {
+                        const category = businessCategories.find(c => c.id === field.businessCategoryId);
+                        return category ? (
+                          <span className="px-2 py-1 text-xs font-semibold rounded-full bg-orange-100 text-orange-800">
+                            {category.name}
+                          </span>
+                        ) : null;
+                      })()
+                    ) : (
+                      <span className="text-gray-400 text-xs">未分类</span>
+                    )}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
                     {field.unique && (
@@ -310,6 +439,29 @@ function FieldDefinition({ projectId }) {
           </div>
         </div>
       </div>
+
+      {/* 业务分类管理模态框 */}
+      {showCategoryModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg shadow-xl w-full max-w-5xl mx-4 max-h-[90vh] flex flex-col">
+            <div className="px-6 py-4 border-b border-gray-200 flex justify-between items-center">
+              <h3 className="text-lg font-semibold text-gray-900">业务分类管理</h3>
+              <button
+                onClick={() => setShowCategoryModal(false)}
+                className="text-gray-400 hover:text-gray-600 transition-colors"
+              >
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            <div className="flex-1 overflow-auto">
+              <BusinessCategoryManager projectId={projectId} />
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* 新建/编辑字段模态框 */}
       {showModal && (
@@ -484,6 +636,31 @@ function FieldDefinition({ projectId }) {
                     基础字段：数据来自外部输入；衍生字段：通过计算得出；属性字段：组成属性表的字段（如地区、类别）
                   </p>
                 </div>
+
+                {/* 业务分类 */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    业务分类
+                  </label>
+                  <select
+                    name="businessCategoryId"
+                    value={formData.businessCategoryId}
+                    onChange={handleInputChange}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  >
+                    <option value="">请选择业务分类</option>
+                    {businessCategories.map(category => (
+                      <option key={category.id} value={category.id}>
+                        {category.name}
+                      </option>
+                    ))}
+                  </select>
+                  <p className="mt-1 text-xs text-gray-500">
+                    根据业务属性对字段进行分类，方便查找和管理
+                  </p>
+                </div>
+
+
 
 
                 {editingField && (

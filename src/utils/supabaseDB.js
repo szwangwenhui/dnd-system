@@ -109,17 +109,25 @@
         }]
       };
 
+      // 创建默认的"系统字段"业务分类
+      const defaultBusinessCategory = {
+        id: 'BCAT-001',
+        name: '系统字段',
+        description: '系统内置字段，不可删除',
+        createdAt: new Date().toISOString()
+      };
+
       // 系统用户字段
       const systemFields = [
-        { id: 'SYS-FLD-001', name: '用户ID', type: '数字', nature: '系统字段', isSystemField: true },
-        { id: 'SYS-FLD-002', name: '账号', type: '文本', nature: '系统字段', isSystemField: true },
-        { id: 'SYS-FLD-009', name: '密码', type: '密码', nature: '系统字段', isSystemField: true },
-        { id: 'SYS-FLD-003', name: '昵称', type: '文本', nature: '系统字段', isSystemField: true },
-        { id: 'SYS-FLD-004', name: '头像', type: '文本', nature: '系统字段', isSystemField: true },
-        { id: 'SYS-FLD-005', name: '角色', type: '文本', nature: '系统字段', isSystemField: true },
-        { id: 'SYS-FLD-006', name: '状态', type: '文本', nature: '系统字段', isSystemField: true },
-        { id: 'SYS-FLD-007', name: '注册时间', type: '文本', nature: '系统字段', isSystemField: true },
-        { id: 'SYS-FLD-008', name: '最后登录', type: '文本', nature: '系统字段', isSystemField: true }
+        { id: 'SYS-FLD-001', name: '用户ID', type: '数字', nature: '系统字段', isSystemField: true, businessCategoryId: 'BCAT-001' },
+        { id: 'SYS-FLD-002', name: '账号', type: '文本', nature: '系统字段', isSystemField: true, businessCategoryId: 'BCAT-001' },
+        { id: 'SYS-FLD-009', name: '密码', type: '密码', nature: '系统字段', isSystemField: true, businessCategoryId: 'BCAT-001' },
+        { id: 'SYS-FLD-003', name: '昵称', type: '文本', nature: '系统字段', isSystemField: true, businessCategoryId: 'BCAT-001' },
+        { id: 'SYS-FLD-004', name: '头像', type: '文本', nature: '系统字段', isSystemField: true, businessCategoryId: 'BCAT-001' },
+        { id: 'SYS-FLD-005', name: '角色', type: '文本', nature: '系统字段', isSystemField: true, businessCategoryId: 'BCAT-001' },
+        { id: 'SYS-FLD-006', name: '状态', type: '文本', nature: '系统字段', isSystemField: true, businessCategoryId: 'BCAT-001' },
+        { id: 'SYS-FLD-007', name: '注册时间', type: '文本', nature: '系统字段', isSystemField: true, businessCategoryId: 'BCAT-001' },
+        { id: 'SYS-FLD-008', name: '最后登录', type: '文本', nature: '系统字段', isSystemField: true, businessCategoryId: 'BCAT-001' }
       ].map(f => ({ ...f, createdAt: new Date().toISOString() }));
 
       // 预置管理员账号数据
@@ -163,6 +171,7 @@
         forms: project.forms || [systemUserForm],
         data_flows: project.dataFlows || [],
         statistics: project.statistics || [],
+        business_categories: project.businessCategories || [defaultBusinessCategory],
         page_templates: project.pageTemplates || [],
         block_templates: project.blockTemplates || []
       };
@@ -228,6 +237,7 @@
         forms: dbProject.forms || [],
         dataFlows: dbProject.data_flows || [],
         statistics: dbProject.statistics || [],
+        businessCategories: dbProject.business_categories || [],
         pageTemplates: dbProject.page_templates || [],
         blockTemplates: dbProject.block_templates || [],
         createdAt: dbProject.created_at,
@@ -302,6 +312,74 @@
       project.fields[idx].relatedForms = relatedForms;
       await this.updateProject(project);
       return project.fields[idx];
+    },
+
+    // ==================== 业务分类管理 ====================
+
+    // 获取项目的所有业务分类
+    async getBusinessCategoriesByProjectId(projectId) {
+      const project = await this.getProjectById(projectId);
+      return project?.businessCategories || [];
+    },
+
+    // 生成业务分类ID
+    generateBusinessCategoryId(project) {
+      const categories = project.businessCategories || [];
+      if (categories.length === 0) return 'BCAT-001';
+
+      const maxNum = categories.reduce((max, c) => {
+        const match = c.id?.match(/BCAT-(\d+)/);
+        const num = match ? parseInt(match[1]) : 0;
+        return num > max ? num : max;
+      }, 0);
+
+      return `BCAT-${(maxNum + 1).toString().padStart(3, '0')}`;
+    },
+
+    // 添加业务分类
+    async addBusinessCategory(projectId, category) {
+      const project = await this.getProjectById(projectId);
+      if (!project) throw new Error('项目不存在');
+
+      const categories = project.businessCategories || [];
+      const newCategory = {
+        ...category,
+        id: category.id || this.generateBusinessCategoryId(project),
+        createdAt: new Date().toISOString()
+      };
+      categories.push(newCategory);
+
+      await this.updateProject({ ...project, businessCategories: categories });
+      return newCategory;
+    },
+
+    // 更新业务分类
+    async updateBusinessCategory(projectId, categoryId, updates) {
+      const project = await this.getProjectById(projectId);
+      if (!project) throw new Error('项目不存在');
+
+      const idx = (project.businessCategories || []).findIndex(c => c.id === categoryId);
+      if (idx === -1) throw new Error('业务分类不存在');
+
+      project.businessCategories[idx] = { ...project.businessCategories[idx], ...updates };
+      await this.updateProject(project);
+      return project.businessCategories[idx];
+    },
+
+    // 删除业务分类
+    async deleteBusinessCategory(projectId, categoryId) {
+      const project = await this.getProjectById(projectId);
+      if (!project) throw new Error('项目不存在');
+
+      // 检查是否有字段使用该分类
+      const usedFields = (project.fields || []).filter(f => f.businessCategoryId === categoryId);
+      if (usedFields.length > 0) {
+        throw new Error(`该分类下有 ${usedFields.length} 个字段正在使用，无法删除`);
+      }
+
+      project.businessCategories = (project.businessCategories || []).filter(c => c.id !== categoryId);
+      await this.updateProject(project);
+      return categoryId;
     },
 
     // ==================== 表单管理 ====================
