@@ -2253,22 +2253,29 @@ function Preview() {
           }}>
             <thead>
               <tr>
-                {headers.map((header, i) => (
-                  <th key={i} style={{
-                    backgroundColor: cfg.headerBgColor || '#f3f4f6',
-                    color: cfg.headerTextColor || '#374151',
-                    padding: `${cfg.cellPaddingTop || 4}px ${cfg.cellPaddingRight || 8}px ${cfg.cellPaddingBottom || 4}px ${cfg.cellPaddingLeft || 8}px`,
-                    textAlign: 'left',
-                    fontWeight: 'bold',
-                    height: `${cfg.headerHeight || 40}px`,
-                    fontSize: `${cfg.headerFontSize || 13}px`,
-                    fontFamily: cfg.headerFontFamily || 'Arial',
-                    borderBottom: showInnerBorder ? `${innerHorizontalBorderWidth}px solid ${innerHorizontalBorderColor}` : 'none',
-                    borderRight: showInnerBorder ? `${innerVerticalBorderWidth}px solid ${innerVerticalBorderColor}` : 'none',
-                  }}>
-                    {header}
-                  </th>
-                ))}
+                {headers.map((header, i) => {
+                  const fieldId = cfg.fieldInfos?.[i]?.fieldId || cfg.displayFields?.[i];
+                  const colWidth = cfg.columnWidths?.[fieldId];
+                  const hasActionCol = actionColumn?.enabled;
+                  const isLastDataCol = !hasActionCol && i === headers.length - 1;
+                  return (
+                    <th key={i} style={{
+                      backgroundColor: cfg.headerBgColor || '#f3f4f6',
+                      color: cfg.headerTextColor || '#374151',
+                      padding: `${cfg.cellPaddingTop || 4}px ${cfg.cellPaddingRight || 8}px ${cfg.cellPaddingBottom || 4}px ${cfg.cellPaddingLeft || 8}px`,
+                      textAlign: 'left',
+                      fontWeight: 'bold',
+                      height: `${cfg.headerHeight || 40}px`,
+                      fontSize: `${cfg.headerFontSize || 13}px`,
+                      fontFamily: cfg.headerFontFamily || 'Arial',
+                      width: colWidth ? `${colWidth}px` : 'auto',
+                      borderBottom: showInnerBorder ? `${innerHorizontalBorderWidth}px solid ${innerHorizontalBorderColor}` : 'none',
+                      borderRight: showInnerBorder && !isLastDataCol ? `${innerVerticalBorderWidth}px solid ${innerVerticalBorderColor}` : 'none',
+                    }}>
+                      {header}
+                    </th>
+                  );
+                })}
                 {actionColumn?.enabled && (
                   <th style={{
                     backgroundColor: cfg.headerBgColor || '#f3f4f6',
@@ -2308,7 +2315,10 @@ function Preview() {
                       backgroundColor: record._isTop ? '#fef3c7' : (rowIndex % 2 === 0 ? (cfg.rowBgColor || '#fff') : (cfg.rowAltBgColor || '#f9fafb')),
                     }}>
                       {row.map((cell, colIndex) => {
-                        const isLastDataCol = colIndex === row.length - 1;
+                        const fieldId = cfg.fieldInfos?.[colIndex]?.fieldId || cfg.displayFields?.[colIndex];
+                        const colWidth = cfg.columnWidths?.[fieldId];
+                        const hasActionCol = actionColumn?.enabled;
+                        const isLastDataCol = !hasActionCol && colIndex === row.length - 1;
                         return (
                           <td key={colIndex} style={{
                             padding: `${cfg.cellPaddingTop || 4}px ${cfg.cellPaddingRight || 8}px ${cfg.cellPaddingBottom || 4}px ${cfg.cellPaddingLeft || 8}px`,
@@ -2318,6 +2328,7 @@ function Preview() {
                             whiteSpace: cfg.cellWordWrap === 'nowrap' ? 'nowrap' : (cfg.cellWordWrap === 'break-word' ? 'break-word' : 'normal'),
                             borderBottom: showInnerBorder ? `${innerHorizontalBorderWidth}px solid ${innerHorizontalBorderColor}` : 'none',
                             borderRight: showInnerBorder && !isLastDataCol ? `${innerVerticalBorderWidth}px solid ${innerVerticalBorderColor}` : 'none',
+                            width: colWidth ? `${colWidth}px` : 'auto',
                           }}>
                             {record._isTop && colIndex === 0 && <span style={{ marginRight: '4px' }}>📌</span>}
                             {cell}
@@ -2330,6 +2341,7 @@ function Preview() {
                           textAlign: 'center',
                           verticalAlign: cfg.cellVerticalAlign || 'middle',
                           borderBottom: showInnerBorder ? `${innerHorizontalBorderWidth}px solid ${innerHorizontalBorderColor}` : 'none',
+                          width: `${actionColumn.width || 150}px`,
                         }}>
                           <div style={{ display: 'flex', justifyContent: 'center', gap: '4px', flexWrap: 'wrap' }}>
                             {actionColumn.buttons?.edit?.enabled && (
@@ -2397,6 +2409,7 @@ function Preview() {
                 <tr>
                   {headers.map((_, colIndex) => {
                     const fieldId = cfg.fieldInfos?.[colIndex]?.fieldId || cfg.displayFields?.[colIndex];
+                    const colWidth = cfg.columnWidths?.[fieldId];
                     const hasActionCol = actionColumn?.enabled;
                     const isLastDataCol = !hasActionCol && colIndex === headers.length - 1;
 
@@ -2421,6 +2434,7 @@ function Preview() {
                         backgroundColor: cfg.footerBgColor || '#f3f4f6',
                         color: cfg.footerTextColor || '#374151',
                         height: `${cfg.footerHeight || 36}px`,
+                        width: colWidth ? `${colWidth}px` : 'auto',
                         padding: `${cfg.cellPaddingTop || 4}px ${cfg.cellPaddingRight || 8}px ${cfg.cellPaddingBottom || 4}px ${cfg.cellPaddingLeft || 8}px`,
                         textAlign: 'right',
                         fontWeight: 'bold',
