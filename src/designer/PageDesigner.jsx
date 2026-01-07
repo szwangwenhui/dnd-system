@@ -48,7 +48,7 @@ function PageDesigner({ projectId, roleId, page, onClose, onSave }) {
   const [dataFlows, setDataFlows] = React.useState([]);
 
   // ===== 区域数据 =====
-  const [areas, setAreas] = React.useState(page.areas || []);
+  const [areas, setAreas] = React.useState(page.design?.areas || page.areas || []);
   const [showAreas, setShowAreas] = React.useState(false);
   const [hideContentInAreas, setHideContentInAreas] = React.useState(false);
   const [currentAreaId, setCurrentAreaId] = React.useState(null);
