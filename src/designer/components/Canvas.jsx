@@ -17,7 +17,9 @@ function DesignerCanvas({
   hideContentInAreas = false,
   currentAreaId = null,
   onAreaDragStart = null,
-  onAreaResizeStart = null
+  onAreaResizeStart = null,
+  panX = 0,
+  panY = 0
 }) {
   // 使用共享的画布配置
   const config = window.StyleUtils?.getCanvasConfig(canvasType) || {
@@ -1327,13 +1329,13 @@ function DesignerCanvas({
   };
 
   return (
-    <div className="flex-1 overflow-auto bg-gray-200 p-4 designer-canvas-container" onClick={onCanvasClick}>
+    <div className="flex-1 bg-gray-200 p-4 designer-canvas-container" style={{ overflow: 'hidden' }} onClick={onCanvasClick}>
       {/* 画布尺寸提示 */}
       <div className="text-center text-sm text-gray-500 mb-2">
         {config.label} · 缩放 {scale}%
       </div>
-      
-      {/* 画布主体 - 高度自动扩展 */}
+
+      {/* 画布主体 - 高度自动扩展，支持平移 */}
       <div
         className="canvas-grid canvas-content relative bg-white shadow-lg mx-auto"
         style={{
@@ -1341,6 +1343,9 @@ function DesignerCanvas({
           minHeight: canvasHeight * (scale / 100),
           backgroundImage: 'linear-gradient(#eee 1px, transparent 1px), linear-gradient(90deg, #eee 1px, transparent 1px)',
           backgroundSize: `${10 * (scale / 100)}px ${10 * (scale / 100)}px`,
+          transform: `translate(${panX}px, ${panY}px)`,
+          transformOrigin: 'top left',
+          cursor: 'grab'
         }}
         onClick={onCanvasClick}
       >

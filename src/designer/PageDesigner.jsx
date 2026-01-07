@@ -80,6 +80,15 @@ function PageDesigner({ projectId, roleId, page, onClose, onSave }) {
     startAreaY: 0
   });
 
+  // ===== 画布平移状态 =====
+  const [canvasPanState, setCanvasPanState] = React.useState({
+    isPanning: false,
+    startX: 0,
+    startY: 0,
+    panX: 0,
+    panY: 0
+  });
+
   // 加载表单、字段和流程数据
   React.useEffect(() => {
     const loadFormsAndFields = async () => {
@@ -645,13 +654,25 @@ function PageDesigner({ projectId, roleId, page, onClose, onSave }) {
   };
 
   // ===== 区块操作 =====
-  const generateBlockId = () => {
-    if (blocks.length === 0) return 'B001';
-    const maxNum = blocks.reduce((max, block) => {
-      const num = parseInt(block.id.substring(1));
-      return num > max ? num : max;
+  const generateBlockId = (areaId = null) => {
+    // 获取区域编号（两位），如果没有区域则为00
+    const areaNum = areaId ? areaId.substring(1).padStart(2, '0') : '00';
+
+    // 找出该区域内最大的区块序号
+    const areaBlocks = blocks.filter(b => b.areaId === areaId);
+    const maxBlockNum = areaBlocks.reduce((max, block) => {
+      // 区块ID格式：BAA00，其中AA是区域编号，00是区块序号
+      const blockNum = parseInt(block.id.substring(3));
+      return blockNum > max ? blockNum : max;
     }, 0);
-    return 'B' + (maxNum + 1).toString().padStart(3, '0');
+
+    const nextBlockNum = maxBlockNum + 1;
+    if (nextBlockNum > 99) {
+      alert('一个区域最多支持99个区块');
+      return null;
+    }
+
+    return `B${areaNum}${nextBlockNum.toString().padStart(2, '0')}`;
   };
 
   // 点击添加区块按钮 - 显示模板选择弹窗
@@ -662,7 +683,7 @@ function PageDesigner({ projectId, roleId, page, onClose, onSave }) {
   // 处理区块模板选择结果
   const handleBlockTemplateSelect = async (result) => {
     setShowBlockTemplateSelector(false);
-    
+
     if (result.mode === 'self') {
       // 自行设计 - 创建空白区块
       createNewBlock();
@@ -681,8 +702,23 @@ function PageDesigner({ projectId, roleId, page, onClose, onSave }) {
         );
 
         // 生成新的区块ID
-        blockData.id = generateBlockId();
+        const blockId = generateBlockId(currentAreaId);
+        if (!blockId) return;
+        blockData.id = blockId;
         blockData.areaId = currentAreaId;  // 关联到当前区域
+
+        const area = currentAreaId ? areas.find(a => a.id === currentAreaId) : null;
+
+        // 设置相对位置
+        blockData.relativeX = blockData.x;
+        blockData.relativeY = blockData.y;
+
+        // 计算绝对位置
+        if (area) {
+          blockData.x = area.x + blockData.relativeX;
+          blockData.y = area.y + blockData.relativeY;
+        }
+
         blockData.createdAt = new Date().toISOString();
 
         const newBlocks = [...blocks, blockData];
@@ -701,14 +737,20 @@ function PageDesigner({ projectId, roleId, page, onClose, onSave }) {
 
   // 创建空白区块
   const createNewBlock = () => {
+    const blockId = generateBlockId(currentAreaId);
+    if (!blockId) return;
+
+    const area = currentAreaId ? areas.find(a => a.id === currentAreaId) : null;
+
     const newBlock = {
-      id: generateBlockId(),
+      id: blockId,
       type: '显示',
       level: 1,         // 层级：1=顶级，2=二级，3=三级...
       parentId: null,   // 父区块ID，level=1时为null
       areaId: currentAreaId,  // 关联到当前区域
-      x: 10,
-      y: 10,
+      // 区块位置是相对于区域的
+      relativeX: 10,
+      relativeY: 10,
       width: 100,
       height: 100,
       style: {
@@ -720,6 +762,16 @@ function PageDesigner({ projectId, roleId, page, onClose, onSave }) {
       },
       createdAt: new Date().toISOString()
     };
+
+    // 计算绝对位置（用于显示）
+    if (area) {
+      newBlock.x = area.x + newBlock.relativeX;
+      newBlock.y = area.y + newBlock.relativeY;
+    } else {
+      newBlock.x = newBlock.relativeX;
+      newBlock.y = newBlock.relativeY;
+    }
+
     const newBlocks = [...blocks, newBlock];
     setBlocks(newBlocks);
     setSelectedBlockId(newBlock.id);
@@ -772,14 +824,19 @@ function PageDesigner({ projectId, roleId, page, onClose, onSave }) {
 
   // ========== 区域管理函数 ==========
 
-  // 生成区域ID
+  // 生成区域ID - 格式：A01, A02, ... A99
   const generateAreaId = () => {
-    if (areas.length === 0) return `AREA-${page.id}-001`;
+    if (areas.length === 0) return 'A01';
     const maxNum = areas.reduce((max, area) => {
-      const num = parseInt(area.id.split('-').pop());
+      const num = parseInt(area.id.substring(1));
       return num > max ? num : max;
     }, 0);
-    return `AREA-${page.id}-${(maxNum + 1).toString().padStart(3, '0')}`;
+    const nextNum = maxNum + 1;
+    if (nextNum > 99) {
+      alert('最多支持99个区域');
+      return null;
+    }
+    return `A${nextNum.toString().padStart(2, '0')}`;
   };
 
   // 检测两个区域是否重叠
@@ -961,22 +1018,24 @@ function PageDesigner({ projectId, roleId, page, onClose, onSave }) {
   const constrainBlockToArea = (block, area) => {
     if (!area) return { ...block };
 
-    let newX = block.x;
-    let newY = block.y;
-    let newWidth = block.width;
-    let newHeight = block.height;
+    // 将绝对位置转换为相对位置
+    let relativeX = block.x - area.x;
+    let relativeY = block.y - area.y;
 
-    // 限制区块位置在区域内
-    if (newX < area.x) newX = area.x;
-    if (newY < area.y) newY = area.y;
-    if (newX + newWidth > area.x + area.width) newX = area.x + area.width - newWidth;
-    if (newY + newHeight > area.y + area.height) newY = area.y + area.height - newHeight;
+    // 限制相对位置在区域边界内
+    if (relativeX < 0) relativeX = 0;
+    if (relativeY < 0) relativeY = 0;
+    if (relativeX + block.width > area.width) relativeX = area.width - block.width;
+    if (relativeY + block.height > area.height) relativeY = area.height - block.height;
 
-    // 如果区块大于区域，调整区块大小
-    if (newWidth > area.width) newWidth = area.width;
-    if (newHeight > area.height) newHeight = area.height;
-
-    return { ...block, x: newX, y: newY, width: newWidth, height: newHeight };
+    // 计算新的绝对位置
+    return {
+      ...block,
+      x: area.x + relativeX,
+      y: area.y + relativeY,
+      relativeX,
+      relativeY
+    };
   };
 
   const handleDeleteBlock = (blockId) => {
@@ -1652,6 +1711,36 @@ function PageDesigner({ projectId, roleId, page, onClose, onSave }) {
     startWidth: 0, startHeight: 0, startBlockX: 0, startBlockY: 0
   });
 
+  // 画布平移处理
+  const handleCanvasPanStart = (e) => {
+    // 只有点击画布空白处（不是区块或区域）才平移
+    if (e.target === e.currentTarget || e.target.classList.contains('canvas-grid')) {
+      setCanvasPanState({
+        isPanning: true,
+        startX: e.clientX,
+        startY: e.clientY,
+        panX: canvasPanState.panX,
+        panY: canvasPanState.panY
+      });
+    }
+  };
+
+  const handleCanvasPanMove = (e) => {
+    if (canvasPanState.isPanning) {
+      const deltaX = e.clientX - canvasPanState.startX;
+      const deltaY = e.clientY - canvasPanState.startY;
+      setCanvasPanState(prev => ({
+        ...prev,
+        panX: prev.panX + deltaX,
+        panY: prev.panY + deltaY
+      }));
+    }
+  };
+
+  const handleCanvasPanEnd = () => {
+    setCanvasPanState(prev => ({ ...prev, isPanning: false }));
+  };
+
   const handleBlockDragStart = (e, blockId) => {
     e.stopPropagation();
     const block = blocks.find(b => b.id === blockId);
@@ -1688,18 +1777,42 @@ function PageDesigner({ projectId, roleId, page, onClose, onSave }) {
   // ===== 鼠标事件处理 =====
   React.useEffect(() => {
     const handleMouseMove = (e) => {
-      // 区域拖拽
+      // 画布平移
+      if (canvasPanState.isPanning) {
+        const deltaX = e.clientX - canvasPanState.startX;
+        const deltaY = e.clientY - canvasPanState.startY;
+        setCanvasPanState(prev => ({
+          ...prev,
+          panX: prev.panX + deltaX,
+          panY: prev.panY + deltaY
+        }));
+      }
+
+      // 区域拖拽 - 区块同步移动
       if (areaDragState.isDragging) {
         const deltaX = (e.clientX - areaDragState.startX) / (scale / 100);
         const deltaY = (e.clientY - areaDragState.startY) / (scale / 100);
-        const newX = Math.max(0, Math.round(areaDragState.startAreaX + deltaX));
-        const newY = Math.max(0, Math.round(areaDragState.startAreaY + deltaY));
+        const newAreaX = Math.max(0, Math.round(areaDragState.startAreaX + deltaX));
+        const newAreaY = Math.max(0, Math.round(areaDragState.startAreaY + deltaY));
 
+        // 同时更新区域和其所属的区块
         setAreas(prev => prev.map(area => {
           if (area.id === areaDragState.areaId) {
-            return { ...area, x: newX, y: newY };
+            return { ...area, x: newAreaX, y: newAreaY };
           }
           return area;
+        }));
+
+        // 区域内的区块同步移动
+        setBlocks(prev => prev.map(block => {
+          if (block.areaId === areaDragState.areaId) {
+            return {
+              ...block,
+              x: newAreaX + block.relativeX,
+              y: newAreaY + block.relativeY
+            };
+          }
+          return block;
         }));
       }
 
@@ -1710,31 +1823,57 @@ function PageDesigner({ projectId, roleId, page, onClose, onSave }) {
         const dir = areaResizeState.direction;
         let newWidth = areaResizeState.startWidth;
         let newHeight = areaResizeState.startHeight;
-        let newX = areaResizeState.startAreaX;
-        let newY = areaResizeState.startAreaY;
+        let newAreaX = areaResizeState.startAreaX;
+        let newAreaY = areaResizeState.startAreaY;
 
         if (dir.includes('e')) newWidth = Math.max(100, areaResizeState.startWidth + deltaX);
         if (dir.includes('w')) {
           newWidth = Math.max(100, areaResizeState.startWidth - deltaX);
-          newX = areaResizeState.startAreaX + (areaResizeState.startWidth - newWidth);
+          newAreaX = areaResizeState.startAreaX + (areaResizeState.startWidth - newWidth);
         }
         if (dir.includes('s')) newHeight = Math.max(100, areaResizeState.startHeight + deltaY);
         if (dir.includes('n')) {
           newHeight = Math.max(100, areaResizeState.startHeight - deltaY);
-          newY = areaResizeState.startAreaY + (areaResizeState.startHeight - newHeight);
+          newAreaY = areaResizeState.startAreaY + (areaResizeState.startHeight - newHeight);
         }
 
+        // 更新区域大小
         setAreas(prev => prev.map(area => {
           if (area.id === areaResizeState.areaId) {
             return {
               ...area,
-              x: Math.max(0, Math.round(newX)),
-              y: Math.max(0, Math.round(newY)),
+              x: Math.max(0, Math.round(newAreaX)),
+              y: Math.max(0, Math.round(newAreaY)),
               width: Math.round(newWidth),
               height: Math.round(newHeight)
             };
           }
           return area;
+        }));
+
+        // 限制区域内的区块大小
+        setBlocks(prev => prev.map(block => {
+          if (block.areaId === areaResizeState.areaId) {
+            // 检查区块是否超出区域边界
+            let constrainedBlock = { ...block };
+            const area = areas.find(a => a.id === areaResizeState.areaId);
+
+            if (area) {
+              // 计算新的绝对位置
+              const newX = newAreaX + block.relativeX;
+              const newY = newAreaY + block.relativeY;
+
+              // 限制区块位置和大小
+              if (block.x + block.width > area.x + area.width) {
+                constrainedBlock.width = Math.min(block.width, newWidth - block.relativeX);
+              }
+              if (block.y + block.height > area.y + area.height) {
+                constrainedBlock.height = Math.min(block.height, newHeight - block.relativeY);
+              }
+            }
+            return constrainedBlock;
+          }
+          return block;
         }));
       }
 
@@ -1743,51 +1882,71 @@ function PageDesigner({ projectId, roleId, page, onClose, onSave }) {
         const deltaY = (e.clientY - dragState.startY) / (scale / 100);
         const newX = Math.max(0, Math.round(dragState.startBlockX + deltaX));
         const newY = Math.max(0, Math.round(dragState.startBlockY + deltaY));
-        
+
         // 获取当前被拖拽的区块
         const draggedBlock = blocks.find(b => b.id === dragState.blockId);
         if (!draggedBlock) return;
-        
+
         // 计算位置变化量
         const moveX = newX - draggedBlock.x;
         const moveY = newY - draggedBlock.y;
-        
+
         // 获取所有下级区块
         const descendants = getAllDescendantsForDrag(dragState.blockId, blocks);
-        
+
         // 批量更新：被拖拽的区块 + 所有下级区块
         const newBlocks = blocks.map(b => {
           if (b.id === dragState.blockId) {
             // 更新被拖拽的区块
             let updatedBlock = { ...b, x: newX, y: newY };
-            
-            // 如果区块属于某个区域，限制在区域内
+
+            // 如果区块属于某个区域，更新相对位置并限制在区域内
             if (b.areaId) {
               const area = areas.find(a => a.id === b.areaId);
-              updatedBlock = constrainBlockToArea(updatedBlock, area);
+              if (area) {
+                // 更新相对位置
+                updatedBlock.relativeX = newX - area.x;
+                updatedBlock.relativeY = newY - area.y;
+
+                // 限制在区域内
+                const constrained = constrainBlockToArea(updatedBlock, area);
+                updatedBlock.x = constrained.x;
+                updatedBlock.y = constrained.y;
+                updatedBlock.relativeX = constrained.relativeX;
+                updatedBlock.relativeY = constrained.relativeY;
+              }
             }
-            
+
             return updatedBlock;
           }
           if (descendants.find(d => d.id === b.id)) {
             // 下级区块同步移动
-            let updatedChild = { 
-              ...b, 
-              x: Math.max(0, b.x + moveX), 
-              y: Math.max(0, b.y + moveY) 
+            let updatedChild = {
+              ...b,
+              x: Math.max(0, b.x + moveX),
+              y: Math.max(0, b.y + moveY)
             };
-            
-            // 如果子区块属于某个区域，限制在区域内
+
+            // 如果子区块属于某个区域，更新相对位置并限制在区域内
             if (b.areaId) {
               const area = areas.find(a => a.id === b.areaId);
-              updatedChild = constrainBlockToArea(updatedChild, area);
+              if (area) {
+                updatedChild.relativeX = updatedChild.x - area.x;
+                updatedChild.relativeY = updatedChild.y - area.y;
+
+                const constrained = constrainBlockToArea(updatedChild, area);
+                updatedChild.x = constrained.x;
+                updatedChild.y = constrained.y;
+                updatedChild.relativeX = constrained.relativeX;
+                updatedChild.relativeY = constrained.relativeY;
+              }
             }
-            
+
             return updatedChild;
           }
           return b;
         });
-        
+
         setBlocks(newBlocks);
         setHasChanges(true);
       }
@@ -1819,6 +1978,9 @@ function PageDesigner({ projectId, roleId, page, onClose, onSave }) {
     };
 
     const handleMouseUp = () => {
+      if (canvasPanState.isPanning) {
+        handleCanvasPanEnd();
+      }
       if (areaDragState.isDragging) {
         setHasChanges(true);
         setAreaDragState(prev => ({ ...prev, isDragging: false }));
@@ -1862,7 +2024,7 @@ function PageDesigner({ projectId, roleId, page, onClose, onSave }) {
       document.removeEventListener('mousemove', handleMouseMove);
       document.removeEventListener('mouseup', handleMouseUp);
     };
-  }, [areaDragState, areaResizeState, dragState, resizeState, scale, blocks, areas]);
+  }, [areaDragState, areaResizeState, dragState, resizeState, canvasPanState, scale, blocks, areas]);
 
   const handleCanvasClick = (e) => {
     if (e.target === e.currentTarget || e.target.classList.contains('canvas-grid')) {
@@ -2404,7 +2566,7 @@ function PageDesigner({ projectId, roleId, page, onClose, onSave }) {
         </div>
         
         {/* 中间画布区域 */}
-        <div className="flex-1 relative">
+        <div className="flex-1 relative" onMouseDown={handleCanvasPanStart}>
           <DesignerCanvas
             blocks={currentAreaId ? getCurrentAreaBlocks() : blocks}
             selectedBlockId={selectedBlockId}
@@ -2430,6 +2592,8 @@ function PageDesigner({ projectId, roleId, page, onClose, onSave }) {
             currentAreaId={currentAreaId}
             onAreaDragStart={handleAreaDragStart}
             onAreaResizeStart={handleAreaResizeStart}
+            panX={canvasPanState.panX}
+            panY={canvasPanState.panY}
           />
         </div>
       </div>
