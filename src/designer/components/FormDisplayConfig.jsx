@@ -1317,7 +1317,6 @@ function FormDisplayConfig({ isOpen, onClose, block, onSave, projectId, roleId }
             </div>
           </div>
         )}
-        </div>
 
         {/* 底部按钮 */}
         <div className="px-6 py-4 border-t border-gray-200 flex justify-end space-x-3 bg-gray-50">
