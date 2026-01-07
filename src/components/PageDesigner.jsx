@@ -25,7 +25,7 @@ function PageDesigner({ projectId, roleId, page, onClose, onSave }) {
 
   // ========== 阶段1：区域数据结构 ==========
   // 区域列表
-  const [areas, setAreas] = React.useState(page.areas || []);
+  const [areas, setAreas] = React.useState(page.design?.areas || page.areas || []);
   // 是否显示区域（高亮）
   const [showAreas, setShowAreas] = React.useState(false);
   // 是否隐藏区域内内容
