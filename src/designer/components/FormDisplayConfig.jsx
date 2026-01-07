@@ -975,13 +975,12 @@ function FormDisplayConfig({ isOpen, onClose, block, onSave, projectId, roleId }
                       <div>
                         <label className="block text-xs text-gray-600 mb-1">宽度(px)</label>
                         <input
-                          type="number"
-                          value={config.borderWidth}
-                          onChange={(e) => updateConfig('borderWidth', parseInt(e.target.value) || 1)}
-                          min="0"
-                          max="5"
-                          className="w-full px-3 py-1.5 border border-gray-300 rounded text-sm"
-                        />
+                        type="number"
+                        value={config.borderWidth}
+                        onChange={(e) => updateConfig('borderWidth', parseInt(e.target.value) || 1)}
+                        min="0"
+                        className="w-full px-3 py-1.5 border border-gray-300 rounded text-sm"
+                      />
                       </div>
                     </div>
                   </div>
@@ -1021,7 +1020,6 @@ function FormDisplayConfig({ isOpen, onClose, block, onSave, projectId, roleId }
                               value={config.innerHorizontalBorderWidth}
                               onChange={(e) => updateConfig('innerHorizontalBorderWidth', parseInt(e.target.value) || 1)}
                               min="0"
-                              max="3"
                               className="w-full px-2 py-1 border border-gray-300 rounded text-xs"
                             />
                           </div>
@@ -1047,7 +1045,6 @@ function FormDisplayConfig({ isOpen, onClose, block, onSave, projectId, roleId }
                               value={config.innerVerticalBorderWidth}
                               onChange={(e) => updateConfig('innerVerticalBorderWidth', parseInt(e.target.value) || 1)}
                               min="0"
-                              max="3"
                               className="w-full px-2 py-1 border border-gray-300 rounded text-xs"
                             />
                           </div>

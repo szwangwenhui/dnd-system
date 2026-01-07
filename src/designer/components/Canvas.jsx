@@ -78,6 +78,31 @@ function DesignerCanvas({
     }
   }, [blocks, projectId]);
 
+  // 刷新表单数据
+  const refreshFormData = async () => {
+    const formBlocks = blocks.filter(b =>
+      b.contentType === '表单' && b.formConfig && b.formConfig.formId
+    );
+
+    if (formBlocks.length === 0) return;
+
+    const newCache = { ...formDataCache };
+
+    for (const block of formBlocks) {
+      const formId = block.formConfig.formId;
+      try {
+        // 强制重新加载表单数据
+        const formData = await window.dndDB.getFormDataList(projectId, formId);
+        newCache[formId] = formData || [];
+      } catch (error) {
+        console.error('刷新表单数据失败:', formId, error);
+        newCache[formId] = [];
+      }
+    }
+
+    setFormDataCache(newCache);
+  };
+
   // 全局列宽拖拽处理
   React.useEffect(() => {
     const handleMouseMove = (e) => {
@@ -499,22 +524,44 @@ function DesignerCanvas({
           {/* 表单名称 */}
           {cfg.formName && (
             <div style={{
-              fontSize: '11px',
-              color: '#6b7280',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '8px',
               marginBottom: '4px',
-              textAlign: 'center',
             }}>
-              表单: {cfg.formName}
+              <span style={{
+                fontSize: '11px',
+                color: '#6b7280',
+              }}>
+                表单: {cfg.formName}
+              </span>
+              <button
+                onClick={refreshFormData}
+                style={{
+                  padding: '2px 8px',
+                  fontSize: '11px',
+                  backgroundColor: '#3b82f6',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '4px',
+                  cursor: 'pointer',
+                }}
+                title="刷新表单数据"
+              >
+                🔄 刷新
+              </button>
             </div>
           )}
-          <table style={{
-            width: '100%',
-            borderCollapse: cfg.rowGap > 0 || cfg.colGap > 0 ? 'separate' : 'collapse',
-            borderSpacing: `${cfg.colGap || 0}px ${cfg.rowGap || 0}px`,
+          <div style={{
             border: cfg.showOuterBorder ? `${cfg.borderWidth}px solid ${cfg.borderColor}` : 'none',
-            fontSize: '12px',
-            tableLayout: Object.keys(cfg.columnWidths || {}).length > 0 || cfg.actionColumn?.enabled ? 'fixed' : 'auto',
           }}>
+            <table style={{
+              width: '100%',
+              borderCollapse: 'collapse',
+              fontSize: '12px',
+              tableLayout: Object.keys(cfg.columnWidths || {}).length > 0 || cfg.actionColumn?.enabled ? 'fixed' : 'auto',
+            }}>
             <thead>
               <tr>
                 {headers.map((header, i) => {
@@ -533,8 +580,8 @@ function DesignerCanvas({
                       textAlign: 'left',
                       fontWeight: 'bold',
                       width: colWidth ? `${colWidth}px` : 'auto',
-                      borderBottom: cfg.showInnerBorder ? `${cfg.borderWidth}px solid ${cfg.borderColor}` : 'none',
-                      borderRight: cfg.showInnerBorder && !isLastDataCol ? `${cfg.borderWidth}px solid ${cfg.borderColor}` : 'none',
+                      borderBottom: cfg.showInnerBorder ? `${cfg.innerHorizontalBorderWidth || cfg.borderWidth}px solid ${cfg.innerHorizontalBorderColor || cfg.borderColor}` : 'none',
+                      borderRight: cfg.showInnerBorder && !isLastDataCol ? `${cfg.innerVerticalBorderWidth || cfg.borderWidth}px solid ${cfg.innerVerticalBorderColor || cfg.borderColor}` : 'none',
                       position: 'relative',
                     }}>
                       <div style={{
@@ -654,8 +701,8 @@ function DesignerCanvas({
                             backgroundColor: rowIndex % 2 === 0 ? cfg.rowBgColor : cfg.rowAltBgColor,
                             height: `${cfg.rowHeight * rowspan}px`,
                             width: colWidth ? `${colWidth}px` : 'auto',
-                            borderBottom: cfg.showInnerBorder && rowIndex < tableRows.length - 1 ? `${cfg.borderWidth}px solid ${cfg.borderColor}` : 'none',
-                            borderRight: cfg.showInnerBorder && !isLastDataCol ? `${cfg.borderWidth}px solid ${cfg.borderColor}` : 'none',
+                            borderBottom: cfg.showInnerBorder && rowIndex < tableRows.length - 1 ? `${cfg.innerHorizontalBorderWidth || cfg.borderWidth}px solid ${cfg.innerHorizontalBorderColor || cfg.borderColor}` : 'none',
+                            borderRight: cfg.showInnerBorder && !isLastDataCol ? `${cfg.innerVerticalBorderWidth || cfg.borderWidth}px solid ${cfg.innerVerticalBorderColor || cfg.borderColor}` : 'none',
                             overflow: cfg.cellWordWrap === 'nowrap' ? 'hidden' : 'auto',
                             textOverflow: 'ellipsis',
                             ...cellStyle,
@@ -673,7 +720,7 @@ function DesignerCanvas({
                         padding: '4px 8px',
                         textAlign: 'center',
                         width: `${cfg.actionColumn.width || 150}px`,
-                        borderBottom: cfg.showInnerBorder && rowIndex < tableRows.length - 1 ? `${cfg.borderWidth}px solid ${cfg.borderColor}` : 'none',
+                        borderBottom: cfg.showInnerBorder && rowIndex < tableRows.length - 1 ? `${cfg.innerHorizontalBorderWidth || cfg.borderWidth}px solid ${cfg.innerHorizontalBorderColor || cfg.borderColor}` : 'none',
                       }}>
                         <div style={{ display: 'flex', justifyContent: 'center', gap: '4px', flexWrap: 'wrap' }}>
                           {/* 修改按钮 */}
@@ -794,7 +841,8 @@ function DesignerCanvas({
                         fontWeight: 'bold',
                         fontSize: `${cfg.cellFontSize}px`,
                         fontFamily: cfg.cellFontFamily,
-                        borderRight: cfg.showInnerBorder && !isLastDataCol ? `${cfg.borderWidth}px solid ${cfg.borderColor}` : 'none',
+                        borderTop: cfg.showInnerBorder ? `${cfg.innerHorizontalBorderWidth || cfg.borderWidth}px solid ${cfg.innerHorizontalBorderColor || cfg.borderColor}` : 'none',
+                        borderRight: cfg.showInnerBorder && !isLastDataCol ? `${cfg.innerVerticalBorderWidth || cfg.borderWidth}px solid ${cfg.innerVerticalBorderColor || cfg.borderColor}` : 'none',
                       }}>
                         {value}
                       </td>
@@ -819,6 +867,7 @@ function DesignerCanvas({
               </tfoot>
             )}
           </table>
+          </div>
 
           {/* 底部总结 */}
           {cfg.bottomSummaryEnabled && cfg.bottomSummaryText && (
