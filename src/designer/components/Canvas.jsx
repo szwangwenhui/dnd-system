@@ -579,6 +579,8 @@ function DesignerCanvas({
                       padding: '4px 8px',
                       textAlign: 'left',
                       fontWeight: 'bold',
+                      fontSize: `${cfg.headerFontSize || 13}px`,
+                      fontFamily: cfg.headerFontFamily || 'Arial',
                       width: colWidth ? `${colWidth}px` : 'auto',
                       borderBottom: cfg.showInnerBorder ? `${cfg.innerHorizontalBorderWidth || cfg.borderWidth}px solid ${cfg.innerHorizontalBorderColor || cfg.borderColor}` : 'none',
                       borderRight: cfg.showInnerBorder && !isLastDataCol ? `${cfg.innerVerticalBorderWidth || cfg.borderWidth}px solid ${cfg.innerVerticalBorderColor || cfg.borderColor}` : 'none',
@@ -623,6 +625,8 @@ function DesignerCanvas({
                     padding: '4px 8px',
                     textAlign: 'center',
                     fontWeight: 'bold',
+                    fontSize: `${cfg.headerFontSize || 13}px`,
+                    fontFamily: cfg.headerFontFamily || 'Arial',
                     width: `${cfg.actionColumn.width || 150}px`,
                     borderBottom: cfg.showInnerBorder ? `${cfg.borderWidth}px solid ${cfg.borderColor}` : 'none',
                   }}>
@@ -717,7 +721,7 @@ function DesignerCanvas({
                       <td style={{
                         backgroundColor: rowIndex % 2 === 0 ? cfg.rowBgColor : cfg.rowAltBgColor,
                         height: `${cfg.rowHeight}px`,
-                        padding: '4px 8px',
+                        padding: `${cfg.cellPaddingTop || 4}px ${cfg.cellPaddingRight || 8}px ${cfg.cellPaddingBottom || 4}px ${cfg.cellPaddingLeft || 8}px`,
                         textAlign: 'center',
                         width: `${cfg.actionColumn.width || 150}px`,
                         borderBottom: cfg.showInnerBorder && rowIndex < tableRows.length - 1 ? `${cfg.innerHorizontalBorderWidth || cfg.borderWidth}px solid ${cfg.innerHorizontalBorderColor || cfg.borderColor}` : 'none',
@@ -839,8 +843,8 @@ function DesignerCanvas({
                         padding: '4px 8px',
                         textAlign: 'right',
                         fontWeight: 'bold',
-                        fontSize: `${cfg.cellFontSize}px`,
-                        fontFamily: cfg.cellFontFamily,
+                        fontSize: `${cfg.footerFontSize || 12}px`,
+                        fontFamily: cfg.footerFontFamily || 'Arial',
                         borderTop: cfg.showInnerBorder ? `${cfg.innerHorizontalBorderWidth || cfg.borderWidth}px solid ${cfg.innerHorizontalBorderColor || cfg.borderColor}` : 'none',
                         borderRight: cfg.showInnerBorder && !isLastDataCol ? `${cfg.innerVerticalBorderWidth || cfg.borderWidth}px solid ${cfg.innerVerticalBorderColor || cfg.borderColor}` : 'none',
                       }}>
@@ -857,8 +861,8 @@ function DesignerCanvas({
                       padding: '4px 8px',
                       textAlign: 'center',
                       fontWeight: 'bold',
-                      fontSize: `${cfg.cellFontSize}px`,
-                      fontFamily: cfg.cellFontFamily,
+                      fontSize: `${cfg.footerFontSize || 12}px`,
+                      fontFamily: cfg.footerFontFamily || 'Arial',
                     }}>
                       汇总
                     </td>

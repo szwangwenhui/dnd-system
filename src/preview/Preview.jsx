@@ -2164,19 +2164,19 @@ function Preview() {
   const renderFormBlock = (block, blockStyle, contentStyle, PopupCloseButton) => {
     const cfg = block.formConfig;
     const style = block.style || {};
-    
+
     // 从内容样式获取字体设置
     const fontSize = contentStyle.fontSize || 14;
     const fontFamily = contentStyle.fontFamily || 'inherit';
     const tableFontSize = fontSize * 0.85; // 表格字体稍小
-    
+
     if (!cfg || !cfg.formId) {
       return (
         <div key={block.id} style={blockStyle}>
           {PopupCloseButton && <PopupCloseButton />}
-          <div style={{ 
-            padding: '20px', 
-            textAlign: 'center', 
+          <div style={{
+            padding: '20px',
+            textAlign: 'center',
             color: '#9ca3af',
             fontSize: fontSize,
             fontFamily: fontFamily,
@@ -2189,17 +2189,17 @@ function Preview() {
 
     const headers = cfg.fieldInfos?.map(f => f.fieldName) || [];
     const realData = formDataCache[cfg.formId] || [];
-    
+
     // 排序（置顶优先，然后按显示顺序）
     let sortedData = [...realData];
-    
+
     // 先分离置顶和普通数据
     const topData = sortedData.filter(d => d._isTop);
     const normalData = sortedData.filter(d => !d._isTop);
-    
+
     // 置顶数据按置顶时间排序（最新置顶在前）
     topData.sort((a, b) => new Date(b._topTime || 0) - new Date(a._topTime || 0));
-    
+
     // 普通数据根据sortOrder配置排序
     if (cfg.sortOrder === 'asc') {
       // 顺序：最早在前（按createdAt升序）
@@ -2208,10 +2208,10 @@ function Preview() {
       // 倒序：最新在前（按createdAt降序，默认）
       normalData.sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
     }
-    
+
     // 合并：置顶在前，普通数据在后
     sortedData = [...topData, ...normalData];
-    
+
     // 限制数据量
     let displayData = sortedData;
     if (cfg.totalRecords && parseInt(cfg.totalRecords) > 0) {
@@ -2229,138 +2229,232 @@ function Preview() {
     // 操作栏配置
     const actionColumn = cfg.actionColumn;
 
+    // 计算边框样式
+    const showOuterBorder = cfg.showOuterBorder !== false;
+    const showInnerBorder = cfg.showInnerBorder !== false;
+    const borderColor = cfg.borderColor || '#e5e7eb';
+    const borderWidth = cfg.borderWidth || 1;
+    const innerHorizontalBorderColor = cfg.innerHorizontalBorderColor || borderColor;
+    const innerHorizontalBorderWidth = cfg.innerHorizontalBorderWidth || borderWidth;
+    const innerVerticalBorderColor = cfg.innerVerticalBorderColor || borderColor;
+    const innerVerticalBorderWidth = cfg.innerVerticalBorderWidth || borderWidth;
+
     return (
       <div key={block.id} style={{ ...blockStyle, overflow: 'auto' }}>
         {PopupCloseButton && <PopupCloseButton />}
-        <table style={{
-          width: '100%',
-          borderCollapse: 'collapse',
-          fontSize: tableFontSize,
-          fontFamily: fontFamily,
+        <div style={{
+          border: showOuterBorder ? `${borderWidth}px solid ${borderColor}` : 'none',
         }}>
-          <thead>
-            <tr>
-              {headers.map((header, i) => (
-                <th key={i} style={{
-                  backgroundColor: cfg.headerBgColor || '#f3f4f6',
-                  color: cfg.headerTextColor || '#374151',
-                  padding: '8px',
-                  textAlign: 'left',
-                  fontWeight: 'bold',
-                  borderBottom: '1px solid #e5e7eb',
-                }}>
-                  {header}
-                </th>
-              ))}
-              {actionColumn?.enabled && (
-                <th style={{
-                  backgroundColor: cfg.headerBgColor || '#f3f4f6',
-                  color: cfg.headerTextColor || '#374151',
-                  padding: '8px',
-                  textAlign: 'center',
-                  fontWeight: 'bold',
-                  borderBottom: '1px solid #e5e7eb',
-                  width: `${actionColumn.width || 150}px`,
-                }}>
-                  {actionColumn.title || '操作'}
-                </th>
-              )}
-            </tr>
-          </thead>
-          <tbody>
-            {tableRows.length === 0 ? (
+          <table style={{
+            width: '100%',
+            borderCollapse: 'collapse',
+            fontSize: cfg.cellFontSize || tableFontSize,
+            fontFamily: cfg.cellFontFamily || fontFamily,
+          }}>
+            <thead>
               <tr>
-                <td colSpan={headers.length + (actionColumn?.enabled ? 1 : 0)} style={{
-                  padding: '20px',
-                  textAlign: 'center',
-                  color: '#9ca3af',
-                }}>
-                  暂无数据
-                </td>
-              </tr>
-            ) : (
-              tableRows.map((row, rowIndex) => {
-                const record = displayData[rowIndex];
-                return (
-                  <tr key={rowIndex} style={{
-                    backgroundColor: record._isTop ? '#fef3c7' : (rowIndex % 2 === 0 ? '#fff' : '#f9fafb'),
+                {headers.map((header, i) => (
+                  <th key={i} style={{
+                    backgroundColor: cfg.headerBgColor || '#f3f4f6',
+                    color: cfg.headerTextColor || '#374151',
+                    padding: `${cfg.cellPaddingTop || 4}px ${cfg.cellPaddingRight || 8}px ${cfg.cellPaddingBottom || 4}px ${cfg.cellPaddingLeft || 8}px`,
+                    textAlign: 'left',
+                    fontWeight: 'bold',
+                    height: `${cfg.headerHeight || 40}px`,
+                    fontSize: `${cfg.headerFontSize || 13}px`,
+                    fontFamily: cfg.headerFontFamily || 'Arial',
+                    borderBottom: showInnerBorder ? `${innerHorizontalBorderWidth}px solid ${innerHorizontalBorderColor}` : 'none',
+                    borderRight: showInnerBorder ? `${innerVerticalBorderWidth}px solid ${innerVerticalBorderColor}` : 'none',
                   }}>
-                    {row.map((cell, colIndex) => (
-                      <td key={colIndex} style={{
-                        padding: '8px',
-                        borderBottom: '1px solid #e5e7eb',
-                      }}>
-                        {record._isTop && colIndex === 0 && <span style={{ marginRight: '4px' }}>📌</span>}
-                        {cell}
-                      </td>
-                    ))}
-                    {actionColumn?.enabled && (
-                      <td style={{
-                        padding: '8px',
-                        textAlign: 'center',
-                        borderBottom: '1px solid #e5e7eb',
-                      }}>
-                        <div style={{ display: 'flex', justifyContent: 'center', gap: '4px', flexWrap: 'wrap' }}>
-                          {actionColumn.buttons?.edit?.enabled && (
-                            <button
-                              onClick={() => handleEditRecord(cfg, record)}
-                              style={{
-                                padding: '2px 8px',
-                                fontSize: '11px',
-                                color: '#fff',
-                                backgroundColor: actionColumn.buttons.edit.color || '#3b82f6',
-                                border: 'none',
-                                borderRadius: '3px',
-                                cursor: 'pointer',
-                              }}
-                            >
-                              {actionColumn.buttons.edit.text || '修改'}
-                            </button>
-                          )}
-                          {actionColumn.buttons?.delete?.enabled && (
-                            <button
-                              onClick={() => handleDeleteRecord(cfg, record)}
-                              style={{
-                                padding: '2px 8px',
-                                fontSize: '11px',
-                                color: '#fff',
-                                backgroundColor: actionColumn.buttons.delete.color || '#ef4444',
-                                border: 'none',
-                                borderRadius: '3px',
-                                cursor: 'pointer',
-                              }}
-                            >
-                              {actionColumn.buttons.delete.text || '删除'}
-                            </button>
-                          )}
-                          {actionColumn.buttons?.top?.enabled && (
-                            <button
-                              onClick={() => handleTopRecord(cfg, record)}
-                              style={{
-                                padding: '2px 8px',
-                                fontSize: '11px',
-                                color: '#fff',
-                                backgroundColor: actionColumn.buttons.top.color || '#f59e0b',
-                                border: 'none',
-                                borderRadius: '3px',
-                                cursor: 'pointer',
-                              }}
-                            >
-                              {record._isTop 
-                                ? (actionColumn.buttons.top.textOn || '取消置顶')
-                                : (actionColumn.buttons.top.textOff || '置顶')
-                              }
-                            </button>
-                          )}
-                        </div>
-                      </td>
-                    )}
-                  </tr>
-                );
+                    {header}
+                  </th>
+                ))}
+                {actionColumn?.enabled && (
+                  <th style={{
+                    backgroundColor: cfg.headerBgColor || '#f3f4f6',
+                    color: cfg.headerTextColor || '#374151',
+                    padding: `${cfg.cellPaddingTop || 4}px ${cfg.cellPaddingRight || 8}px ${cfg.cellPaddingBottom || 4}px ${cfg.cellPaddingLeft || 8}px`,
+                    textAlign: 'center',
+                    fontWeight: 'bold',
+                    height: `${cfg.headerHeight || 40}px`,
+                    fontSize: `${cfg.headerFontSize || 13}px`,
+                    fontFamily: cfg.headerFontFamily || 'Arial',
+                    borderBottom: showInnerBorder ? `${innerHorizontalBorderWidth}px solid ${innerHorizontalBorderColor}` : 'none',
+                    width: `${actionColumn.width || 150}px`,
+                  }}>
+                    {actionColumn.title || '操作'}
+                  </th>
+                )}
+              </tr>
+            </thead>
+            <tbody>
+              {tableRows.length === 0 ? (
+                <tr>
+                  <td colSpan={headers.length + (actionColumn?.enabled ? 1 : 0)} style={{
+                    padding: '20px',
+                    textAlign: 'center',
+                    color: '#9ca3af',
+                  }}>
+                    暂无数据
+                  </td>
+                </tr>
+              ) : (
+                tableRows.map((row, rowIndex) => {
+                  const record = displayData[rowIndex];
+                  const isLastRow = rowIndex === tableRows.length - 1;
+                  return (
+                    <tr key={rowIndex} style={{
+                      height: `${cfg.rowHeight || 36}px`,
+                      backgroundColor: record._isTop ? '#fef3c7' : (rowIndex % 2 === 0 ? (cfg.rowBgColor || '#fff') : (cfg.rowAltBgColor || '#f9fafb')),
+                    }}>
+                      {row.map((cell, colIndex) => {
+                        const isLastDataCol = colIndex === row.length - 1;
+                        return (
+                          <td key={colIndex} style={{
+                            padding: `${cfg.cellPaddingTop || 4}px ${cfg.cellPaddingRight || 8}px ${cfg.cellPaddingBottom || 4}px ${cfg.cellPaddingLeft || 8}px`,
+                            color: cfg.cellColor || '#374151',
+                            textAlign: cfg.cellTextAlign || 'left',
+                            verticalAlign: cfg.cellVerticalAlign || 'middle',
+                            whiteSpace: cfg.cellWordWrap === 'nowrap' ? 'nowrap' : (cfg.cellWordWrap === 'break-word' ? 'break-word' : 'normal'),
+                            borderBottom: showInnerBorder ? `${innerHorizontalBorderWidth}px solid ${innerHorizontalBorderColor}` : 'none',
+                            borderRight: showInnerBorder && !isLastDataCol ? `${innerVerticalBorderWidth}px solid ${innerVerticalBorderColor}` : 'none',
+                          }}>
+                            {record._isTop && colIndex === 0 && <span style={{ marginRight: '4px' }}>📌</span>}
+                            {cell}
+                          </td>
+                        );
+                      })}
+                      {actionColumn?.enabled && (
+                        <td style={{
+                          padding: `${cfg.cellPaddingTop || 4}px ${cfg.cellPaddingRight || 8}px ${cfg.cellPaddingBottom || 4}px ${cfg.cellPaddingLeft || 8}px`,
+                          textAlign: 'center',
+                          verticalAlign: cfg.cellVerticalAlign || 'middle',
+                          borderBottom: showInnerBorder ? `${innerHorizontalBorderWidth}px solid ${innerHorizontalBorderColor}` : 'none',
+                        }}>
+                          <div style={{ display: 'flex', justifyContent: 'center', gap: '4px', flexWrap: 'wrap' }}>
+                            {actionColumn.buttons?.edit?.enabled && (
+                              <button
+                                onClick={() => handleEditRecord(cfg, record)}
+                                style={{
+                                  padding: '2px 8px',
+                                  fontSize: '11px',
+                                  color: '#fff',
+                                  backgroundColor: actionColumn.buttons.edit.color || '#3b82f6',
+                                  border: 'none',
+                                  borderRadius: '3px',
+                                  cursor: 'pointer',
+                                }}
+                              >
+                                {actionColumn.buttons.edit.text || '修改'}
+                              </button>
+                            )}
+                            {actionColumn.buttons?.delete?.enabled && (
+                              <button
+                                onClick={() => handleDeleteRecord(cfg, record)}
+                                style={{
+                                  padding: '2px 8px',
+                                  fontSize: '11px',
+                                  color: '#fff',
+                                  backgroundColor: actionColumn.buttons.delete.color || '#ef4444',
+                                  border: 'none',
+                                  borderRadius: '3px',
+                                  cursor: 'pointer',
+                                }}
+                              >
+                                {actionColumn.buttons.delete.text || '删除'}
+                              </button>
+                            )}
+                            {actionColumn.buttons?.top?.enabled && (
+                              <button
+                                onClick={() => handleTopRecord(cfg, record)}
+                                style={{
+                                  padding: '2px 8px',
+                                  fontSize: '11px',
+                                  color: '#fff',
+                                  backgroundColor: actionColumn.buttons.top.color || '#f59e0b',
+                                  border: 'none',
+                                  borderRadius: '3px',
+                                  cursor: 'pointer',
+                                }}
+                              >
+                                {record._isTop
+                                  ? (actionColumn.buttons.top.textOn || '取消置顶')
+                                  : (actionColumn.buttons.top.textOff || '置顶')
+                                }
+                              </button>
+                            )}
+                          </div>
+                        </td>
+                      )}
+                    </tr>
+                  );
               })
             )}
+
+            {/* 表尾 - 显示汇总数据 */}
+            {cfg.footerEnabled && tableRows.length > 0 && (
+              <tfoot>
+                <tr>
+                  {headers.map((_, colIndex) => {
+                    const fieldId = cfg.fieldInfos?.[colIndex]?.fieldId || cfg.displayFields?.[colIndex];
+                    const hasActionCol = actionColumn?.enabled;
+                    const isLastDataCol = !hasActionCol && colIndex === headers.length - 1;
+
+                    // 汇总该列的所有数据
+                    const values = displayData.map(row => {
+                      const val = row[fieldId];
+                      return parseFloat(val);
+                    }).filter(v => !isNaN(v));
+
+                    let summaryText = 'NA';
+                    if (values.length > 0) {
+                      const sum = values.reduce((a, b) => a + b, 0);
+                      const avg = sum / values.length;
+                      const max = Math.max(...values);
+                      const min = Math.min(...values);
+                      const count = values.length;
+                      summaryText = `Σ${sum.toFixed(2)}  ̄x${avg.toFixed(2)}  Max${max.toFixed(2)}  Min${min.toFixed(2)}  N${count}`;
+                    }
+
+                    return (
+                      <td key={colIndex} style={{
+                        backgroundColor: cfg.footerBgColor || '#f3f4f6',
+                        color: cfg.footerTextColor || '#374151',
+                        height: `${cfg.footerHeight || 36}px`,
+                        padding: `${cfg.cellPaddingTop || 4}px ${cfg.cellPaddingRight || 8}px ${cfg.cellPaddingBottom || 4}px ${cfg.cellPaddingLeft || 8}px`,
+                        textAlign: 'right',
+                        fontWeight: 'bold',
+                        fontSize: `${cfg.footerFontSize || 12}px`,
+                        fontFamily: cfg.footerFontFamily || 'Arial',
+                        borderTop: showInnerBorder ? `${innerHorizontalBorderWidth}px solid ${innerHorizontalBorderColor}` : 'none',
+                        borderRight: showInnerBorder && !isLastDataCol ? `${innerVerticalBorderWidth}px solid ${innerVerticalBorderColor}` : 'none',
+                      }}>
+                        {summaryText}
+                      </td>
+                    );
+                  })}
+                  {/* 操作列表尾 */}
+                  {actionColumn?.enabled && (
+                    <td style={{
+                      backgroundColor: cfg.footerBgColor || '#f3f4f6',
+                      color: cfg.footerTextColor || '#374151',
+                      height: `${cfg.footerHeight || 36}px`,
+                      padding: `${cfg.cellPaddingTop || 4}px ${cfg.cellPaddingRight || 8}px ${cfg.cellPaddingBottom || 4}px ${cfg.cellPaddingLeft || 8}px`,
+                      textAlign: 'center',
+                      fontWeight: 'bold',
+                      fontSize: `${cfg.footerFontSize || 12}px`,
+                      fontFamily: cfg.footerFontFamily || 'Arial',
+                      borderTop: showInnerBorder ? `${innerHorizontalBorderWidth}px solid ${innerHorizontalBorderColor}` : 'none',
+                    }}>
+                      汇总
+                    </td>
+                  )}
+                </tr>
+              </tfoot>
+            )}
           </tbody>
-        </table>
+          </table>
+        </div>
       </div>
     );
   };

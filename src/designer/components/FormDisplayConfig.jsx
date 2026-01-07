@@ -13,36 +13,15 @@ function FormDisplayConfig({ isOpen, onClose, block, onSave, projectId, roleId }
     headerBgColor: block?.formConfig?.headerBgColor || '#f3f4f6',
     headerTextColor: block?.formConfig?.headerTextColor || '#374151',
     headerHeight: block?.formConfig?.headerHeight || 40,
+    headerFontSize: block?.formConfig?.headerFontSize || 13,
+    headerFontFamily: block?.formConfig?.headerFontFamily || 'Arial',
 
     // 表体样式（单元格全局样式）
     rowBgColor: block?.formConfig?.rowBgColor || '#ffffff',
     rowAltBgColor: block?.formConfig?.rowAltBgColor || '#f9fafb',
-    rowTextColor: block?.formConfig?.rowTextColor || '#374151',
     rowHeight: block?.formConfig?.rowHeight || 36,
 
     // 单元格全局样式
-    cellFontFamily: block?.formConfig?.cellFontFamily || 'Arial',
-    cellFontSize: block?.formConfig?.cellFontSize || 12,
-    cellColor: block?.formConfig?.cellColor || '#374151',
-    cellPaddingTop: block?.formConfig?.cellPaddingTop || 4,
-    cellPaddingRight: block?.formConfig?.cellPaddingRight || 8,
-    cellPaddingBottom: block?.formConfig?.cellPaddingBottom || 4,
-    cellPaddingLeft: block?.formConfig?.cellPaddingLeft || 8,
-    cellTextAlign: block?.formConfig?.cellTextAlign || 'left',
-    cellVerticalAlign: block?.formConfig?.cellVerticalAlign || 'middle',
-    cellWordWrap: block?.formConfig?.cellWordWrap || 'nowrap',
-
-    // 表头样式
-    headerBgColor: block?.formConfig?.headerBgColor || '#f3f4f6',
-    headerTextColor: block?.formConfig?.headerTextColor || '#374151',
-    headerHeight: block?.formConfig?.headerHeight || 40,
-    headerFontSize: block?.formConfig?.headerFontSize || 13,
-    headerFontFamily: block?.formConfig?.headerFontFamily || 'Arial',
-
-    // 表体样式
-    rowHeight: block?.formConfig?.rowHeight || 36,
-    rowBgColor: block?.formConfig?.rowBgColor || '#ffffff',
-    rowAltBgColor: block?.formConfig?.rowAltBgColor || '#f9fafb',
     cellFontFamily: block?.formConfig?.cellFontFamily || 'Arial',
     cellFontSize: block?.formConfig?.cellFontSize || 12,
     cellColor: block?.formConfig?.cellColor || '#374151',
