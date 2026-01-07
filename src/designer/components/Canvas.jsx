@@ -18,8 +18,8 @@ function DesignerCanvas({
   currentAreaId = null,
   onAreaDragStart = null,
   onAreaResizeStart = null,
-  panX = 0,
-  panY = 0
+  viewportAnchorX = 0,
+  viewportAnchorY = 0
 }) {
   // 使用共享的画布配置
   const config = window.StyleUtils?.getCanvasConfig(canvasType) || {
@@ -1343,7 +1343,7 @@ function DesignerCanvas({
           minHeight: canvasHeight * (scale / 100),
           backgroundImage: 'linear-gradient(#eee 1px, transparent 1px), linear-gradient(90deg, #eee 1px, transparent 1px)',
           backgroundSize: `${10 * (scale / 100)}px ${10 * (scale / 100)}px`,
-          transform: `translate(${panX}px, ${panY}px)`,
+          transform: `translate(${-viewportAnchorX}px, ${-viewportAnchorY}px)`,
           transformOrigin: 'top left',
           cursor: 'grab'
         }}

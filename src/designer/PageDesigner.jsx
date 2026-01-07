@@ -83,10 +83,8 @@ function PageDesigner({ projectId, roleId, page, onClose, onSave }) {
   // ===== 画布平移状态 =====
   const [canvasPanState, setCanvasPanState] = React.useState({
     isPanning: false,
-    startX: 0,
-    startY: 0,
-    panX: 0,
-    panY: 0
+    viewportAnchorX: 0,  // 取景锚点在画布坐标系中的X坐标（默认为画布顶点0,0）
+    viewportAnchorY: 0   // 取景锚点在画布坐标系中的Y坐标
   });
 
   // ===== 区块超出范围提醒 =====
@@ -1718,26 +1716,29 @@ function PageDesigner({ projectId, roleId, page, onClose, onSave }) {
   const handleCanvasPanStart = (e) => {
     // 只有点击画布空白处（不是区块或区域）才平移
     if (e.target === e.currentTarget || e.target.classList.contains('canvas-grid')) {
-      setCanvasPanState({
+      // 记录鼠标起始位置（屏幕坐标）
+      setCanvasPanState(prev => ({
+        ...prev,
         isPanning: true,
-        startX: e.clientX,
-        startY: e.clientY,
-        panX: canvasPanState.panX,
-        panY: canvasPanState.panY
-      });
+        mouseStartX: e.clientX,
+        mouseStartY: e.clientY,
+        anchorStartX: prev.viewportAnchorX,
+        anchorStartY: prev.viewportAnchorY
+      }));
     }
   };
 
   const handleCanvasPanMove = (e) => {
     if (canvasPanState.isPanning) {
-      const deltaX = e.clientX - canvasPanState.startX;
-      const deltaY = e.clientY - canvasPanState.startY;
+      // 计算鼠标移动距离（屏幕像素）
+      const deltaMouseX = e.clientX - canvasPanState.mouseStartX;
+      const deltaMouseY = e.clientY - canvasPanState.mouseStartY;
+
+      // 取景锚点随鼠标反向移动
       setCanvasPanState(prev => ({
         ...prev,
-        panX: prev.panX + deltaX,
-        panY: prev.panY + deltaY,
-        startX: e.clientX,
-        startY: e.clientY
+        viewportAnchorX: prev.anchorStartX - deltaMouseX,
+        viewportAnchorY: prev.anchorStartY - deltaMouseY
       }));
     }
   };
@@ -1803,14 +1804,17 @@ function PageDesigner({ projectId, roleId, page, onClose, onSave }) {
   // ===== 鼠标事件处理 =====
   React.useEffect(() => {
     const handleMouseMove = (e) => {
-      // 画布平移
+      // 画布平移 - 使用取景锚点系统
       if (canvasPanState.isPanning) {
-        const deltaX = e.clientX - canvasPanState.startX;
-        const deltaY = e.clientY - canvasPanState.startY;
+        // 计算鼠标移动距离（屏幕像素）
+        const deltaMouseX = e.clientX - canvasPanState.mouseStartX;
+        const deltaMouseY = e.clientY - canvasPanState.mouseStartY;
+
+        // 取景锚点随鼠标反向移动
         setCanvasPanState(prev => ({
           ...prev,
-          panX: prev.panX + deltaX,
-          panY: prev.panY + deltaY
+          viewportAnchorX: prev.anchorStartX - deltaMouseX,
+          viewportAnchorY: prev.anchorStartY - deltaMouseY
         }));
       }
 
@@ -2688,8 +2692,8 @@ function PageDesigner({ projectId, roleId, page, onClose, onSave }) {
             currentAreaId={currentAreaId}
             onAreaDragStart={handleAreaDragStart}
             onAreaResizeStart={handleAreaResizeStart}
-            panX={canvasPanState.panX}
-            panY={canvasPanState.panY}
+            viewportAnchorX={canvasPanState.viewportAnchorX}
+            viewportAnchorY={canvasPanState.viewportAnchorY}
           />
         </div>
       </div>
