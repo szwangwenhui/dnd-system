@@ -26,10 +26,10 @@ function DesignerToolbar(props) {
     className: 'h-12 bg-white border-b border-gray-200 flex items-center justify-between px-4 shadow-sm flex-shrink-0'
   },
     React.createElement('div', { className: 'flex items-center space-x-2' },
-      React.createElement('span', { className: 'font-semibold text-gray-700' }, 'Page: '),
+      React.createElement('span', { className: 'font-semibold text-gray-700' }, '页面：'),
       React.createElement('span', { className: 'text-blue-600' }, page.name),
       React.createElement('span', { className: 'text-gray-400 text-sm' }, '(' + page.id + ')'),
-      hasChanges ? React.createElement('span', { className: 'text-orange-500 text-sm' }, ' Unsaved') : null
+      hasChanges ? React.createElement('span', { className: 'text-orange-500 text-sm' }, ' 未保存') : null
     ),
     React.createElement('div', { className: 'flex items-center space-x-3' },
       // 显示区域按钮
@@ -49,27 +49,27 @@ function DesignerToolbar(props) {
       React.createElement('button', {
         onClick: onOpenStylePanel,
         className: selectedBlockId ? 'px-3 py-1.5 rounded flex items-center space-x-1 bg-blue-100 text-blue-700 hover:bg-blue-200' : 'px-3 py-1.5 rounded flex items-center space-x-1 bg-gray-100 text-gray-400 cursor-not-allowed',
-        title: selectedBlockId ? 'Open Style Panel' : 'Select a block first',
+        title: selectedBlockId ? '打开样式面板' : '请先选中一个区块',
         disabled: !selectedBlockId
       },
         React.createElement('span', null, '🎨'),
-        React.createElement('span', null, 'Style')
+        React.createElement('span', null, '样式')
       ),
       React.createElement('button', {
         onClick: onOpenEditor,
         className: 'px-3 py-1.5 bg-purple-100 text-purple-700 rounded hover:bg-purple-200 flex items-center space-x-1',
-        title: 'Rich Text Editor'
+        title: '富文本编辑器'
       },
         React.createElement('span', null, '📄'),
-        React.createElement('span', null, 'Editor')
+        React.createElement('span', null, '编辑器')
       ),
       React.createElement('button', {
         onClick: onOpenGraphicEditor,
         className: 'px-3 py-1.5 bg-green-100 text-green-700 rounded hover:bg-green-200 flex items-center space-x-1',
-        title: 'Graphic Editor'
+        title: '图形编辑器'
       },
         React.createElement('span', null, '✏️'),
-        React.createElement('span', null, 'Graphic')
+        React.createElement('span', null, '图形')
       ),
       React.createElement('button', {
         onClick: function() {
@@ -82,10 +82,10 @@ function DesignerToolbar(props) {
           }
         },
         className: 'px-3 py-1.5 bg-orange-100 text-orange-700 rounded hover:bg-orange-200 flex items-center space-x-1',
-        title: 'Icon Manager'
+        title: '图标管理'
       },
         React.createElement('span', null, '🔘'),
-        React.createElement('span', null, 'Icon')
+        React.createElement('span', null, '图标')
       ),
       React.createElement('div', { className: 'w-px h-6 bg-gray-300' }),
       React.createElement('div', { className: 'flex items-center space-x-1 bg-gray-100 rounded-lg p-1' },
@@ -103,17 +103,17 @@ function DesignerToolbar(props) {
         onClick: onUndo,
         disabled: !canUndo,
         className: !canUndo ? 'px-3 py-1.5 rounded text-gray-300' : 'px-3 py-1.5 rounded text-gray-600 hover:bg-gray-100',
-        title: 'Undo (Ctrl+Z)'
-      }, '↶ Undo'),
+        title: '撤销 (Ctrl+Z)'
+      }, '↶ 撤销'),
       React.createElement('button', {
         onClick: onRedo,
         disabled: !canRedo,
         className: !canRedo ? 'px-3 py-1.5 rounded text-gray-300' : 'px-3 py-1.5 rounded text-gray-600 hover:bg-gray-100',
-        title: 'Redo (Ctrl+Y)'
-      }, '↷ Redo'),
+        title: '重做 (Ctrl+Y)'
+      }, '↷ 重做'),
       React.createElement('div', { className: 'w-px h-6 bg-gray-300' }),
       React.createElement('div', { className: 'flex items-center space-x-1' },
-        React.createElement('span', { className: 'text-sm text-gray-500' }, 'Zoom:'),
+        React.createElement('span', { className: 'text-sm text-gray-500' }, '缩放：'),
         React.createElement('select', {
           value: scale,
           onChange: function(e) { setScale(parseInt(e.target.value)); },

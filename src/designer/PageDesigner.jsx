@@ -52,7 +52,8 @@ function PageDesigner({ projectId, roleId, page, onClose, onSave }) {
   const [showAreas, setShowAreas] = React.useState(false);
   const [hideContentInAreas, setHideContentInAreas] = React.useState(false);
   const [currentAreaId, setCurrentAreaId] = React.useState(null);
-  const [showAreaPanel, setShowAreaPanel] = React.useState(false);
+  const [showAreaList, setShowAreaList] = React.useState(false);  // 是否显示区域列表
+  const [showBlockList, setShowBlockList] = React.useState(false);  // 是否显示区块列表
   const [showAddAreaModal, setShowAddAreaModal] = React.useState(false);
   const [showEditAreaModal, setShowEditAreaModal] = React.useState(false);
   const [editingArea, setEditingArea] = React.useState(null);
@@ -882,7 +883,8 @@ function PageDesigner({ projectId, roleId, page, onClose, onSave }) {
   // 进入区域设计模式
   const handleEnterAreaDesignMode = (areaId) => {
     setCurrentAreaId(areaId);
-    setShowAreaPanel(false);
+    setShowAreaList(false);  // 关闭区域列表
+    setShowBlockList(true);  // 打开区块列表
   };
 
   // 退出区域设计模式
@@ -1511,12 +1513,14 @@ function PageDesigner({ projectId, roleId, page, onClose, onSave }) {
 
   const handleSelectBlock = (blockId) => {
     setSelectedBlockId(blockId);
+    setShowPanel(true);  // 打开样式面板
   };
 
   // 从区块列表选择 - 同时滚动到区块位置
   const handleSelectBlockFromList = (blockId) => {
     setSelectedBlockId(blockId);
-    
+    setShowPanel(true);  // 打开样式面板
+
     // 滚动到区块位置（延迟执行以确保DOM更新）
     setTimeout(() => {
       scrollToBlock(blockId);
@@ -2095,32 +2099,23 @@ function PageDesigner({ projectId, roleId, page, onClose, onSave }) {
         hideContentInAreas={hideContentInAreas} setHideContentInAreas={setHideContentInAreas}
       />
       <div className="flex-1 flex overflow-hidden">
-        {/* 左侧面板 - 区域列表/区块列表 */}
-        <div className="relative flex" style={{ width: leftPanelCollapsed ? '24px' : '240px', transition: 'width 0.3s' }}>
+        {/* 左侧面板 */}
+        <div className="relative flex flex-col" style={{ width: leftPanelCollapsed ? '24px' : '240px', transition: 'width 0.3s' }}>
           {!leftPanelCollapsed && (
             <>
-              {/* 区域列表/区块列表切换按钮 */}
-              <div className="p-2 border-b border-gray-200 flex space-x-2">
-                <button
-                  onClick={() => setShowAreaPanel(true)}
-                  className={`flex-1 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-                    showAreaPanel ? 'bg-purple-100 text-purple-700' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                  }`}
-                >
+              {/* 区域列表切换按钮 */}
+              <button
+                onClick={() => setShowAreaList(!showAreaList)}
+                className="w-full px-3 py-2 border-b border-gray-200 text-sm font-medium transition-colors bg-white hover:bg-gray-50 flex items-center justify-between"
+              >
+                <span className={showAreaList ? 'text-purple-600' : 'text-gray-600'}>
                   📍 区域列表
-                </button>
-                <button
-                  onClick={() => setShowAreaPanel(false)}
-                  className={`flex-1 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-                    !showAreaPanel ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                  }`}
-                >
-                  📦 区块列表
-                </button>
-              </div>
+                </span>
+                <span className="text-gray-400">{showAreaList ? '▼' : '▶'}</span>
+              </button>
 
               {/* 区域列表面板 */}
-              {showAreaPanel ? (
+              {showAreaList && (
                 <div className="flex-1 overflow-y-auto p-2">
                   {currentAreaId ? (
                     // 区域设计模式显示
@@ -2180,23 +2175,17 @@ function PageDesigner({ projectId, roleId, page, onClose, onSave }) {
                             </thead>
                             <tbody className="bg-white divide-y divide-gray-200">
                               {areas.map(area => (
-                                <tr key={area.id} className="hover:bg-gray-50">
+                                <tr key={area.id} className="hover:bg-gray-50 cursor-pointer"
+                                    onClick={() => handleEnterAreaDesignMode(area.id)}>
                                   <td className="px-3 py-2 whitespace-nowrap text-sm text-gray-900 font-mono">{area.id}</td>
                                   <td className="px-3 py-2 whitespace-nowrap text-sm text-gray-900">{area.name}</td>
-                                  <td className="px-3 py-2 whitespace-nowrap text-sm text-center space-x-1">
+                                  <td className="px-3 py-2 whitespace-nowrap text-sm text-center space-x-1" onClick={(e) => e.stopPropagation()}>
                                     <button
                                       onClick={() => handleEditArea(area.id)}
                                       className="text-blue-600 hover:text-blue-900"
                                       title="修改"
                                     >
                                       修改
-                                    </button>
-                                    <button
-                                      onClick={() => handleEnterAreaDesignMode(area.id)}
-                                      className="text-purple-600 hover:text-purple-900"
-                                      title="设计"
-                                    >
-                                      设计
                                     </button>
                                     <button
                                       onClick={() => handleDeleteArea(area.id)}
@@ -2215,26 +2204,41 @@ function PageDesigner({ projectId, roleId, page, onClose, onSave }) {
                     </>
                   )}
                 </div>
-              ) : (
-                // 区块列表面板
-                <BlockList
-                  blocks={currentAreaId ? getCurrentAreaBlocks() : blocks}
-                  selectedBlockId={selectedBlockId}
-                  onSelectBlock={handleSelectBlockFromList}
-                  onAddBlock={handleAddBlock}
-                  onDeleteBlock={handleDeleteBlock}
-                  expandedBlocks={expandedBlocks}
-                  onToggleExpand={toggleBlockExpand}
-                  onUpdateBlock={handleUpdateBlockFromList}
-                  onGenerateChildBlocks={handleGenerateChildBlocks}
-                  onGenerateFlowButtonChildBlocks={handleGenerateFlowButtonChildBlocks}
-                  onSaveAsTemplate={handleSaveBlockAsTemplate}
-                  projectId={projectId}
-                  roleId={roleId}
-                  forms={forms}
-                  fields={fields}
-                  dataFlows={dataFlows}
-                />
+              )}
+
+              {/* 区块列表切换按钮 */}
+              <button
+                onClick={() => setShowBlockList(!showBlockList)}
+                className="w-full px-3 py-2 border-b border-gray-200 text-sm font-medium transition-colors bg-white hover:bg-gray-50 flex items-center justify-between"
+              >
+                <span className={!showAreaList && !currentAreaId ? 'text-blue-600' : 'text-gray-600'}>
+                  📦 区块列表{currentAreaId && ` (${getCurrentArea()?.name})`}
+                </span>
+                <span className="text-gray-400">{showBlockList ? '▼' : '▶'}</span>
+              </button>
+
+              {/* 区块列表面板 */}
+              {showBlockList && (
+                <div className="flex-1 overflow-y-auto p-2">
+                  <BlockList
+                    blocks={currentAreaId ? getCurrentAreaBlocks() : blocks}
+                    selectedBlockId={selectedBlockId}
+                    onSelectBlock={handleSelectBlockFromList}
+                    onAddBlock={handleAddBlock}
+                    onDeleteBlock={handleDeleteBlock}
+                    expandedBlocks={expandedBlocks}
+                    onToggleExpand={toggleBlockExpand}
+                    onUpdateBlock={handleUpdateBlockFromList}
+                    onGenerateChildBlocks={handleGenerateChildBlocks}
+                    onGenerateFlowButtonChildBlocks={handleGenerateFlowButtonChildBlocks}
+                    onSaveAsTemplate={handleSaveBlockAsTemplate}
+                    projectId={projectId}
+                    roleId={roleId}
+                    forms={forms}
+                    fields={fields}
+                    dataFlows={dataFlows}
+                  />
+                </div>
               )}
             </>
           )}
