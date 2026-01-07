@@ -2241,7 +2241,54 @@ function Preview() {
 
     return (
       <div key={block.id} style={{ ...blockStyle, overflow: 'auto' }}>
-        {PopupCloseButton && <PopupCloseButton />}
+        {PopupCloseButton && <PopupCloseButton()}
+
+        {/* 表单名称 */}
+        {cfg.formName && (
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: '8px',
+            marginBottom: '4px',
+          }}>
+            <span style={{
+              fontSize: '11px',
+              color: '#6b7280',
+            }}>
+              表单: {cfg.formName}
+            </span>
+            <button
+              onClick={() => {
+                const refreshForm = async () => {
+                  try {
+                    const formData = await window.dndDB.getFormDataList(projectId, cfg.formId);
+                    setFormDataCache(prev => ({
+                      ...prev,
+                      [cfg.formId]: formData || []
+                    }));
+                  } catch (error) {
+                    console.error('刷新表单数据失败:', error);
+                  }
+                };
+                refreshForm();
+              }}
+              style={{
+                padding: '2px 8px',
+                fontSize: '11px',
+                backgroundColor: '#3b82f6',
+                color: 'white',
+                border: 'none',
+                borderRadius: '4px',
+                cursor: 'pointer',
+              }}
+              title="刷新表单数据"
+            >
+              🔄 刷新
+            </button>
+          </div>
+        )}
+
         <div style={{
           border: showOuterBorder ? `${borderWidth}px solid ${borderColor}` : 'none',
         }}>
@@ -2250,6 +2297,7 @@ function Preview() {
             borderCollapse: 'collapse',
             fontSize: cfg.cellFontSize || tableFontSize,
             fontFamily: cfg.cellFontFamily || fontFamily,
+            tableLayout: Object.keys(cfg.columnWidths || {}).length > 0 || actionColumn?.enabled ? 'fixed' : 'auto',
           }}>
             <thead>
               <tr>
