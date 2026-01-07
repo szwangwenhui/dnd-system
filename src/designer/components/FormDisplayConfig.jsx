@@ -32,34 +32,45 @@ function FormDisplayConfig({ isOpen, onClose, block, onSave, projectId, roleId }
     cellVerticalAlign: block?.formConfig?.cellVerticalAlign || 'middle',
     cellWordWrap: block?.formConfig?.cellWordWrap || 'nowrap',
 
-    // 表尾样式
+    // 表头样式
+    headerBgColor: block?.formConfig?.headerBgColor || '#f3f4f6',
+    headerTextColor: block?.formConfig?.headerTextColor || '#374151',
+    headerHeight: block?.formConfig?.headerHeight || 40,
+    headerFontSize: block?.formConfig?.headerFontSize || 13,
+    headerFontFamily: block?.formConfig?.headerFontFamily || 'Arial',
+
+    // 表体样式
+    rowHeight: block?.formConfig?.rowHeight || 36,
+    rowBgColor: block?.formConfig?.rowBgColor || '#ffffff',
+    rowAltBgColor: block?.formConfig?.rowAltBgColor || '#f9fafb',
+    cellFontFamily: block?.formConfig?.cellFontFamily || 'Arial',
+    cellFontSize: block?.formConfig?.cellFontSize || 12,
+    cellColor: block?.formConfig?.cellColor || '#374151',
+    cellPaddingTop: block?.formConfig?.cellPaddingTop || 4,
+    cellPaddingRight: block?.formConfig?.cellPaddingRight || 8,
+    cellPaddingBottom: block?.formConfig?.cellPaddingBottom || 4,
+    cellPaddingLeft: block?.formConfig?.cellPaddingLeft || 8,
+    cellTextAlign: block?.formConfig?.cellTextAlign || 'left',
+    cellVerticalAlign: block?.formConfig?.cellVerticalAlign || 'middle',
+    cellWordWrap: block?.formConfig?.cellWordWrap || 'nowrap',
+
+    // 表底样式
     footerEnabled: block?.formConfig?.footerEnabled !== false,  // 是否启用表尾
     footerBgColor: block?.formConfig?.footerBgColor || '#f3f4f6',
     footerTextColor: block?.formConfig?.footerTextColor || '#374151',
     footerHeight: block?.formConfig?.footerHeight || 36,
-
-    // 顶部说明
-    topDescriptionEnabled: block?.formConfig?.topDescriptionEnabled || false,
-    topDescriptionText: block?.formConfig?.topDescriptionText || '',
-    topDescriptionFontSize: block?.formConfig?.topDescriptionFontSize || 12,
-    topDescriptionColor: block?.formConfig?.topDescriptionColor || '#666666',
-    topDescriptionAlign: block?.formConfig?.topDescriptionAlign || 'left',
-    topDescriptionPadding: block?.formConfig?.topDescriptionPadding || 4,
-
-    // 底部总结
-    bottomSummaryEnabled: block?.formConfig?.bottomSummaryEnabled || false,
-    bottomSummaryText: block?.formConfig?.bottomSummaryText || '',
-    bottomSummaryFontSize: block?.formConfig?.bottomSummaryFontSize || 11,
-    bottomSummaryColor: block?.formConfig?.bottomSummaryColor || '#999999',
-    bottomSummaryAlign: block?.formConfig?.bottomSummaryAlign || 'left',
+    footerFontSize: block?.formConfig?.footerFontSize || 12,
+    footerFontFamily: block?.formConfig?.footerFontFamily || 'Arial',
 
     // 边框样式
     borderColor: block?.formConfig?.borderColor || '#e5e7eb',
     borderWidth: block?.formConfig?.borderWidth || 1,
+    innerHorizontalBorderColor: block?.formConfig?.innerHorizontalBorderColor || '#e5e7eb',
+    innerHorizontalBorderWidth: block?.formConfig?.innerHorizontalBorderWidth || 1,
+    innerVerticalBorderColor: block?.formConfig?.innerVerticalBorderColor || '#e5e7eb',
+    innerVerticalBorderWidth: block?.formConfig?.innerVerticalBorderWidth || 1,
     showOuterBorder: block?.formConfig?.showOuterBorder !== false,
     showInnerBorder: block?.formConfig?.showInnerBorder !== false,
-    rowGap: block?.formConfig?.rowGap || 0,
-    colGap: block?.formConfig?.colGap || 0,
 
     // 特殊单元格（合并+独立样式）
     specialCells: block?.formConfig?.specialCells || [],
@@ -227,29 +238,38 @@ function FormDisplayConfig({ isOpen, onClose, block, onSave, projectId, roleId }
         fieldName: field ? field.name : fieldId
       };
     });
-    
-    // 获取表单名称和操作栏配置
+
+    // 获取表单名称
     const selectedForm = forms.find(f => f.id === config.formId);
-    
-    // 从衍生表结构中获取操作栏配置
-    const actionColumn = selectedForm?.structure?.actionColumn || null;
-    
+
+    // 构建操作栏配置（当用户选择显示操作列时）
+    const actionColumn = config.showActionColumn ? {
+      enabled: true,
+      title: config.actionColumnTitle || '操作',
+      width: config.actionColumnWidth || 150,
+      buttons: config.actionButtons || {
+        edit: { enabled: false, text: '修改', color: '#3b82f6' },
+        delete: { enabled: false, text: '删除', color: '#ef4444', confirmText: '确定要删除这条记录吗？' },
+        top: { enabled: false, textOn: '取消置顶', textOff: '置顶', color: '#f59e0b', field: '' }
+      }
+    } : null;
+
     const saveData = {
       formConfig: {
         ...config,
         formName: selectedForm ? selectedForm.name : '',
         fieldInfos: fieldInfos,  // 保存字段ID和名称的映射
-        // 保存衍生表的操作栏配置（可以在这里覆盖样式）
-        actionColumn: actionColumn,
+        actionColumn: actionColumn,  // 使用用户配置的操作栏
         sourceFormId: selectedForm?.structure?.sourceFormId || null
       }
     };
-    
+
     console.log('保存表单配置:', JSON.stringify(saveData, null, 2));
     console.log('字段列表:', fields);
     console.log('选中的字段ID:', config.displayFields);
     console.log('构建的fieldInfos:', fieldInfos);
-    
+    console.log('构建的actionColumn:', actionColumn);
+
     onSave(saveData);
     onClose();
   };
@@ -640,7 +660,7 @@ function FormDisplayConfig({ isOpen, onClose, block, onSave, projectId, roleId }
               {/* 表头样式 */}
               <div className="border border-gray-200 rounded-lg p-4">
                 <h3 className="font-medium text-gray-700 mb-3">🎨 表头样式</h3>
-                <div className="grid grid-cols-3 gap-4">
+                <div className="grid grid-cols-4 gap-4 mb-3">
                   <div>
                     <label className="block text-sm text-gray-600 mb-1">背景色</label>
                     <input
@@ -660,166 +680,90 @@ function FormDisplayConfig({ isOpen, onClose, block, onSave, projectId, roleId }
                     />
                   </div>
                   <div>
-                    <label className="block text-sm text-gray-600 mb-1">行高(px)</label>
+                    <label className="block text-sm text-gray-600 mb-1">字号(px)</label>
                     <input
                       type="number"
-                      value={config.headerHeight}
-                      onChange={(e) => updateConfig('headerHeight', parseInt(e.target.value) || 40)}
+                      value={config.headerFontSize || 13}
+                      onChange={(e) => updateConfig('headerFontSize', parseInt(e.target.value) || 13)}
                       className="w-full px-3 py-1.5 border border-gray-300 rounded text-sm"
                     />
                   </div>
-                </div>
-              </div>
-
-              {/* 顶部说明配置 */}
-              <div className="border border-gray-200 rounded-lg p-4">
-                <div className="flex items-center justify-between mb-3">
-                  <h3 className="font-medium text-gray-700">📝 顶部说明</h3>
-                  <label className="flex items-center space-x-2 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={config.topDescriptionEnabled}
-                      onChange={(e) => updateConfig('topDescriptionEnabled', e.target.checked)}
-                      className="w-4 h-4"
-                    />
-                    <span className="text-sm text-gray-600">启用</span>
-                  </label>
-                </div>
-                {config.topDescriptionEnabled && (
-                  <div className="space-y-3">
-                    <div>
-                      <label className="block text-sm text-gray-600 mb-1">说明文字</label>
-                      <input
-                        type="text"
-                        value={config.topDescriptionText}
-                        onChange={(e) => updateConfig('topDescriptionText', e.target.value)}
-                        placeholder="例如：数据单位：元"
-                        className="w-full px-3 py-2 border border-gray-300 rounded text-sm"
-                      />
-                    </div>
-                    <div className="grid grid-cols-3 gap-4">
-                      <div>
-                        <label className="block text-sm text-gray-600 mb-1">字号(px)</label>
-                        <input
-                          type="number"
-                          value={config.topDescriptionFontSize}
-                          onChange={(e) => updateConfig('topDescriptionFontSize', parseInt(e.target.value) || 12)}
-                          className="w-full px-3 py-1.5 border border-gray-300 rounded text-sm"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-sm text-gray-600 mb-1">颜色</label>
-                        <input
-                          type="color"
-                          value={config.topDescriptionColor}
-                          onChange={(e) => updateConfig('topDescriptionColor', e.target.value)}
-                          className="w-full h-8 border border-gray-300 rounded cursor-pointer"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-sm text-gray-600 mb-1">对齐</label>
-                        <select
-                          value={config.topDescriptionAlign}
-                          onChange={(e) => updateConfig('topDescriptionAlign', e.target.value)}
-                          className="w-full px-3 py-1.5 border border-gray-300 rounded text-sm"
-                        >
-                          <option value="left">左对齐</option>
-                          <option value="center">居中</option>
-                          <option value="right">右对齐</option>
-                        </select>
-                      </div>
-                    </div>
-                    <div>
-                      <label className="block text-sm text-gray-600 mb-1">内边距(px)</label>
-                      <input
-                        type="number"
-                        value={config.topDescriptionPadding}
-                        onChange={(e) => updateConfig('topDescriptionPadding', parseInt(e.target.value) || 4)}
-                        className="w-full px-3 py-1.5 border border-gray-300 rounded text-sm"
-                      />
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              {/* 单元格全局样式 */}
-              <div className="border border-gray-200 rounded-lg p-4">
-                <h3 className="font-medium text-gray-700 mb-3">📏 单元格样式（表体）</h3>
-                <div className="grid grid-cols-3 gap-4 mb-3">
                   <div>
                     <label className="block text-sm text-gray-600 mb-1">字体</label>
                     <select
-                      value={config.cellFontFamily}
-                      onChange={(e) => updateConfig('cellFontFamily', e.target.value)}
+                      value={config.headerFontFamily || 'Arial'}
+                      onChange={(e) => updateConfig('headerFontFamily', e.target.value)}
                       className="w-full px-3 py-1.5 border border-gray-300 rounded text-sm"
                     >
                       <option value="Arial">Arial</option>
                       <option value="微软雅黑">微软雅黑</option>
                       <option value="宋体">宋体</option>
                       <option value="黑体">黑体</option>
-                      <option value="Courier New">Courier New</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block text-sm text-gray-600 mb-1">字号(px)</label>
-                    <input
-                      type="number"
-                      value={config.cellFontSize}
-                      onChange={(e) => updateConfig('cellFontSize', parseInt(e.target.value) || 12)}
-                      className="w-full px-3 py-1.5 border border-gray-300 rounded text-sm"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm text-gray-600 mb-1">文字颜色</label>
-                    <input
-                      type="color"
-                      value={config.cellColor}
-                      onChange={(e) => updateConfig('cellColor', e.target.value)}
-                      className="w-full h-8 border border-gray-300 rounded cursor-pointer"
-                    />
-                  </div>
-                </div>
-                <div className="grid grid-cols-2 gap-4 mb-3">
-                  <div>
-                    <label className="block text-sm text-gray-600 mb-1">水平对齐</label>
-                    <select
-                      value={config.cellTextAlign}
-                      onChange={(e) => updateConfig('cellTextAlign', e.target.value)}
-                      className="w-full px-3 py-1.5 border border-gray-300 rounded text-sm"
-                    >
-                      <option value="left">左对齐</option>
-                      <option value="center">居中</option>
-                      <option value="right">右对齐</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block text-sm text-gray-600 mb-1">垂直对齐</label>
-                    <select
-                      value={config.cellVerticalAlign}
-                      onChange={(e) => updateConfig('cellVerticalAlign', e.target.value)}
-                      className="w-full px-3 py-1.5 border border-gray-300 rounded text-sm"
-                    >
-                      <option value="top">顶部</option>
-                      <option value="middle">居中</option>
-                      <option value="bottom">底部</option>
                     </select>
                   </div>
                 </div>
-                <div className="grid grid-cols-2 gap-4 mb-3">
-                  <div>
-                    <label className="block text-sm text-gray-600 mb-1">换行方式</label>
-                    <select
-                      value={config.cellWordWrap}
-                      onChange={(e) => updateConfig('cellWordWrap', e.target.value)}
-                      className="w-full px-3 py-1.5 border border-gray-300 rounded text-sm"
-                    >
-                      <option value="nowrap">不换行</option>
-                      <option value="wrap">自动换行</option>
-                      <option value="break-word">单词换行</option>
-                    </select>
+                <div>
+                  <label className="block text-sm text-gray-600 mb-1">行高(px)</label>
+                  <input
+                    type="number"
+                    value={config.headerHeight}
+                    onChange={(e) => updateConfig('headerHeight', parseInt(e.target.value) || 40)}
+                    className="w-full px-3 py-1.5 border border-gray-300 rounded text-sm"
+                  />
+                </div>
+              </div>
+
+              {/* 表身样式 */}
+              <div className="border border-gray-200 rounded-lg p-4">
+                <h3 className="font-medium text-gray-700 mb-3">📊 表身样式</h3>
+                <div className="space-y-4">
+                  {/* 基础样式 */}
+                  <div className="grid grid-cols-4 gap-4 mb-3">
+                    <div>
+                      <label className="block text-sm text-gray-600 mb-1">行高(px)</label>
+                      <input
+                        type="number"
+                        value={config.rowHeight}
+                        onChange={(e) => updateConfig('rowHeight', parseInt(e.target.value) || 36)}
+                        className="w-full px-3 py-1.5 border border-gray-300 rounded text-sm"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm text-gray-600 mb-1">字体</label>
+                      <select
+                        value={config.cellFontFamily}
+                        onChange={(e) => updateConfig('cellFontFamily', e.target.value)}
+                        className="w-full px-3 py-1.5 border border-gray-300 rounded text-sm"
+                      >
+                        <option value="Arial">Arial</option>
+                        <option value="微软雅黑">微软雅黑</option>
+                        <option value="宋体">宋体</option>
+                        <option value="黑体">黑体</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-sm text-gray-600 mb-1">字号(px)</label>
+                      <input
+                        type="number"
+                        value={config.cellFontSize}
+                        onChange={(e) => updateConfig('cellFontSize', parseInt(e.target.value) || 12)}
+                        className="w-full px-3 py-1.5 border border-gray-300 rounded text-sm"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm text-gray-600 mb-1">文字颜色</label>
+                      <input
+                        type="color"
+                        value={config.cellColor}
+                        onChange={(e) => updateConfig('cellColor', e.target.value)}
+                        className="w-full h-8 border border-gray-300 rounded cursor-pointer"
+                      />
+                    </div>
                   </div>
+
+                  {/* 背景色 */}
                   <div>
-                    <label className="block text-sm text-gray-600 mb-1">背景色（表体）</label>
+                    <label className="block text-sm text-gray-600 mb-1">背景色</label>
                     <div className="flex space-x-2">
                       <input
                         type="color"
@@ -834,88 +778,107 @@ function FormDisplayConfig({ isOpen, onClose, block, onSave, projectId, roleId }
                         className="w-12 h-8 border border-gray-300 rounded cursor-pointer"
                         title="交替行背景色"
                       />
-                      <span className="text-xs text-gray-400 self-center">普通 / 交替</span>
+                      <span className="text-xs text-gray-400 self-center">普通行 / 交替行</span>
                     </div>
                   </div>
                 </div>
-                <div className="grid grid-cols-4 gap-2">
-                  <div>
-                    <label className="block text-xs text-gray-600 mb-1">上边距</label>
-                    <input
-                      type="number"
-                      value={config.cellPaddingTop}
-                      onChange={(e) => updateConfig('cellPaddingTop', parseInt(e.target.value) || 0)}
-                      className="w-full px-2 py-1 border border-gray-300 rounded text-xs"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs text-gray-600 mb-1">右边距</label>
-                    <input
-                      type="number"
-                      value={config.cellPaddingRight}
-                      onChange={(e) => updateConfig('cellPaddingRight', parseInt(e.target.value) || 0)}
-                      className="w-full px-2 py-1 border border-gray-300 rounded text-xs"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs text-gray-600 mb-1">下边距</label>
-                    <input
-                      type="number"
-                      value={config.cellPaddingBottom}
-                      onChange={(e) => updateConfig('cellPaddingBottom', parseInt(e.target.value) || 0)}
-                      className="w-full px-2 py-1 border border-gray-300 rounded text-xs"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs text-gray-600 mb-1">左边距</label>
-                    <input
-                      type="number"
-                      value={config.cellPaddingLeft}
-                      onChange={(e) => updateConfig('cellPaddingLeft', parseInt(e.target.value) || 0)}
-                      className="w-full px-2 py-1 border border-gray-300 rounded text-xs"
-                    />
-                  </div>
-                </div>
               </div>
 
-              {/* 表体行高和间距 */}
+              {/* 单元格样式 */}
               <div className="border border-gray-200 rounded-lg p-4">
-                <h3 className="font-medium text-gray-700 mb-3">📐 表体尺寸</h3>
-                <div className="grid grid-cols-3 gap-4">
-                  <div>
-                    <label className="block text-sm text-gray-600 mb-1">行高(px)</label>
-                    <input
-                      type="number"
-                      value={config.rowHeight}
-                      onChange={(e) => updateConfig('rowHeight', parseInt(e.target.value) || 36)}
-                      className="w-full px-3 py-1.5 border border-gray-300 rounded text-sm"
-                    />
+                <h3 className="font-medium text-gray-700 mb-3">📏 单元格样式</h3>
+                <div className="space-y-4">
+                  {/* 对齐方式 */}
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm text-gray-600 mb-1">水平对齐</label>
+                      <select
+                        value={config.cellTextAlign}
+                        onChange={(e) => updateConfig('cellTextAlign', e.target.value)}
+                        className="w-full px-3 py-1.5 border border-gray-300 rounded text-sm"
+                      >
+                        <option value="left">左对齐</option>
+                        <option value="center">居中</option>
+                        <option value="right">右对齐</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-sm text-gray-600 mb-1">垂直对齐</label>
+                      <select
+                        value={config.cellVerticalAlign}
+                        onChange={(e) => updateConfig('cellVerticalAlign', e.target.value)}
+                        className="w-full px-3 py-1.5 border border-gray-300 rounded text-sm"
+                      >
+                        <option value="top">顶部</option>
+                        <option value="middle">居中</option>
+                        <option value="bottom">底部</option>
+                      </select>
+                    </div>
                   </div>
+
+                  {/* 内边距 */}
                   <div>
-                    <label className="block text-sm text-gray-600 mb-1">行间距(px)</label>
-                    <input
-                      type="number"
-                      value={config.rowGap}
-                      onChange={(e) => updateConfig('rowGap', parseInt(e.target.value) || 0)}
-                      className="w-full px-3 py-1.5 border border-gray-300 rounded text-sm"
-                    />
+                    <label className="block text-sm text-gray-600 mb-1">内边距(px)</label>
+                    <div className="grid grid-cols-4 gap-2">
+                      <div>
+                        <label className="block text-xs text-gray-500 mb-1">上</label>
+                        <input
+                          type="number"
+                          value={config.cellPaddingTop}
+                          onChange={(e) => updateConfig('cellPaddingTop', parseInt(e.target.value) || 0)}
+                          className="w-full px-2 py-1 border border-gray-300 rounded text-xs"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs text-gray-500 mb-1">右</label>
+                        <input
+                          type="number"
+                          value={config.cellPaddingRight}
+                          onChange={(e) => updateConfig('cellPaddingRight', parseInt(e.target.value) || 0)}
+                          className="w-full px-2 py-1 border border-gray-300 rounded text-xs"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs text-gray-500 mb-1">下</label>
+                        <input
+                          type="number"
+                          value={config.cellPaddingBottom}
+                          onChange={(e) => updateConfig('cellPaddingBottom', parseInt(e.target.value) || 0)}
+                          className="w-full px-2 py-1 border border-gray-300 rounded text-xs"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs text-gray-500 mb-1">左</label>
+                        <input
+                          type="number"
+                          value={config.cellPaddingLeft}
+                          onChange={(e) => updateConfig('cellPaddingLeft', parseInt(e.target.value) || 0)}
+                          className="w-full px-2 py-1 border border-gray-300 rounded text-xs"
+                        />
+                      </div>
+                    </div>
                   </div>
+
+                  {/* 换行方式 */}
                   <div>
-                    <label className="block text-sm text-gray-600 mb-1">列间距(px)</label>
-                    <input
-                      type="number"
-                      value={config.colGap}
-                      onChange={(e) => updateConfig('colGap', parseInt(e.target.value) || 0)}
+                    <label className="block text-sm text-gray-600 mb-1">换行方式</label>
+                    <select
+                      value={config.cellWordWrap}
+                      onChange={(e) => updateConfig('cellWordWrap', e.target.value)}
                       className="w-full px-3 py-1.5 border border-gray-300 rounded text-sm"
-                    />
+                    >
+                      <option value="nowrap">不换行</option>
+                      <option value="wrap">自动换行</option>
+                      <option value="break-word">单词换行</option>
+                    </select>
                   </div>
                 </div>
               </div>
 
-              {/* 表尾样式配置 */}
+              {/* 表底样式 */}
               <div className="border border-gray-200 rounded-lg p-4">
                 <div className="flex items-center justify-between mb-3">
-                  <h3 className="font-medium text-gray-700">📊 表尾样式</h3>
+                  <h3 className="font-medium text-gray-700">📊 表底样式</h3>
                   <label className="flex items-center space-x-2 cursor-pointer">
                     <input
                       type="checkbox"
@@ -923,11 +886,20 @@ function FormDisplayConfig({ isOpen, onClose, block, onSave, projectId, roleId }
                       onChange={(e) => updateConfig('footerEnabled', e.target.checked)}
                       className="w-4 h-4"
                     />
-                    <span className="text-sm text-gray-600">启用表尾</span>
+                    <span className="text-sm text-gray-600">启用表底</span>
                   </label>
                 </div>
                 {config.footerEnabled && (
-                  <div className="grid grid-cols-3 gap-4">
+                  <div className="grid grid-cols-5 gap-4">
+                    <div>
+                      <label className="block text-sm text-gray-600 mb-1">高度(px)</label>
+                      <input
+                        type="number"
+                        value={config.footerHeight}
+                        onChange={(e) => updateConfig('footerHeight', parseInt(e.target.value) || 36)}
+                        className="w-full px-3 py-1.5 border border-gray-300 rounded text-sm"
+                      />
+                    </div>
                     <div>
                       <label className="block text-sm text-gray-600 mb-1">背景色</label>
                       <input
@@ -947,75 +919,26 @@ function FormDisplayConfig({ isOpen, onClose, block, onSave, projectId, roleId }
                       />
                     </div>
                     <div>
-                      <label className="block text-sm text-gray-600 mb-1">行高(px)</label>
+                      <label className="block text-sm text-gray-600 mb-1">字号(px)</label>
                       <input
                         type="number"
-                        value={config.footerHeight}
-                        onChange={(e) => updateConfig('footerHeight', parseInt(e.target.value) || 36)}
+                        value={config.footerFontSize || 12}
+                        onChange={(e) => updateConfig('footerFontSize', parseInt(e.target.value) || 12)}
                         className="w-full px-3 py-1.5 border border-gray-300 rounded text-sm"
                       />
                     </div>
-                  </div>
-                )}
-              </div>
-
-              {/* 底部总结配置 */}
-              <div className="border border-gray-200 rounded-lg p-4">
-                <div className="flex items-center justify-between mb-3">
-                  <h3 className="font-medium text-gray-700">📌 底部总结</h3>
-                  <label className="flex items-center space-x-2 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={config.bottomSummaryEnabled}
-                      onChange={(e) => updateConfig('bottomSummaryEnabled', e.target.checked)}
-                      className="w-4 h-4"
-                    />
-                    <span className="text-sm text-gray-600">启用</span>
-                  </label>
-                </div>
-                {config.bottomSummaryEnabled && (
-                  <div className="space-y-3">
                     <div>
-                      <label className="block text-sm text-gray-600 mb-1">总结文字</label>
-                      <input
-                        type="text"
-                        value={config.bottomSummaryText}
-                        onChange={(e) => updateConfig('bottomSummaryText', e.target.value)}
-                        placeholder="例如：注：数据实时更新"
-                        className="w-full px-3 py-2 border border-gray-300 rounded text-sm"
-                      />
-                    </div>
-                    <div className="grid grid-cols-3 gap-4">
-                      <div>
-                        <label className="block text-sm text-gray-600 mb-1">字号(px)</label>
-                        <input
-                          type="number"
-                          value={config.bottomSummaryFontSize}
-                          onChange={(e) => updateConfig('bottomSummaryFontSize', parseInt(e.target.value) || 11)}
-                          className="w-full px-3 py-1.5 border border-gray-300 rounded text-sm"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-sm text-gray-600 mb-1">颜色</label>
-                        <input
-                          type="color"
-                          value={config.bottomSummaryColor}
-                          onChange={(e) => updateConfig('bottomSummaryColor', e.target.value)}
-                          className="w-full h-8 border border-gray-300 rounded cursor-pointer"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-sm text-gray-600 mb-1">对齐</label>
-                        <select
-                          value={config.bottomSummaryAlign}
-                          onChange={(e) => updateConfig('bottomSummaryAlign', e.target.value)}
-                          className="w-full px-3 py-1.5 border border-gray-300 rounded text-sm"
-                        >
-                          <option value="left">左对齐</option>
-                          <option value="center">居中</option>
-                          <option value="right">右对齐</option>
-                        </select>
-                      </div>
+                      <label className="block text-sm text-gray-600 mb-1">字体</label>
+                      <select
+                        value={config.footerFontFamily || 'Arial'}
+                        onChange={(e) => updateConfig('footerFontFamily', e.target.value)}
+                        className="w-full px-3 py-1.5 border border-gray-300 rounded text-sm"
+                      >
+                        <option value="Arial">Arial</option>
+                        <option value="微软雅黑">微软雅黑</option>
+                        <option value="宋体">宋体</option>
+                        <option value="黑体">黑体</option>
+                      </select>
                     </div>
                   </div>
                 )}
@@ -1024,47 +947,114 @@ function FormDisplayConfig({ isOpen, onClose, block, onSave, projectId, roleId }
               {/* 边框样式 */}
               <div className="border border-gray-200 rounded-lg p-4">
                 <h3 className="font-medium text-gray-700 mb-3">📐 边框样式</h3>
-                <div className="grid grid-cols-3 gap-4 mb-3">
+                <div className="space-y-4">
+                  {/* 外边框 */}
                   <div>
-                    <label className="block text-sm text-gray-600 mb-1">边框颜色</label>
-                    <input
-                      type="color"
-                      value={config.borderColor}
-                      onChange={(e) => updateConfig('borderColor', e.target.value)}
-                      className="w-full h-8 border border-gray-300 rounded cursor-pointer"
-                    />
+                    <div className="flex items-center justify-between mb-2">
+                      <h4 className="text-sm font-medium text-gray-700">外边框</h4>
+                      <label className="flex items-center space-x-2 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={config.showOuterBorder}
+                          onChange={(e) => updateConfig('showOuterBorder', e.target.checked)}
+                          className="w-4 h-4"
+                        />
+                        <span className="text-xs text-gray-600">显示</span>
+                      </label>
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-xs text-gray-600 mb-1">颜色</label>
+                        <input
+                          type="color"
+                          value={config.borderColor}
+                          onChange={(e) => updateConfig('borderColor', e.target.value)}
+                          className="w-full h-8 border border-gray-300 rounded cursor-pointer"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs text-gray-600 mb-1">宽度(px)</label>
+                        <input
+                          type="number"
+                          value={config.borderWidth}
+                          onChange={(e) => updateConfig('borderWidth', parseInt(e.target.value) || 1)}
+                          min="0"
+                          max="5"
+                          className="w-full px-3 py-1.5 border border-gray-300 rounded text-sm"
+                        />
+                      </div>
+                    </div>
                   </div>
+
+                  {/* 内边框 */}
                   <div>
-                    <label className="block text-sm text-gray-600 mb-1">边框宽度(px)</label>
-                    <input
-                      type="number"
-                      value={config.borderWidth}
-                      onChange={(e) => updateConfig('borderWidth', parseInt(e.target.value) || 1)}
-                      min="0"
-                      max="5"
-                      className="w-full px-3 py-1.5 border border-gray-300 rounded text-sm"
-                    />
+                    <div className="flex items-center justify-between mb-2">
+                      <h4 className="text-sm font-medium text-gray-700">内部边框</h4>
+                      <label className="flex items-center space-x-2 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={config.showInnerBorder}
+                          onChange={(e) => updateConfig('showInnerBorder', e.target.checked)}
+                          className="w-4 h-4"
+                        />
+                        <span className="text-xs text-gray-600">显示</span>
+                      </label>
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                      {/* 横边 */}
+                      <div className="border border-gray-200 rounded p-3">
+                        <h5 className="text-xs font-medium text-gray-600 mb-2">横边（行）</h5>
+                        <div className="grid grid-cols-2 gap-2">
+                          <div>
+                            <label className="block text-xs text-gray-500 mb-1">颜色</label>
+                            <input
+                              type="color"
+                              value={config.innerHorizontalBorderColor}
+                              onChange={(e) => updateConfig('innerHorizontalBorderColor', e.target.value)}
+                              className="w-full h-7 border border-gray-300 rounded cursor-pointer"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-xs text-gray-500 mb-1">宽度(px)</label>
+                            <input
+                              type="number"
+                              value={config.innerHorizontalBorderWidth}
+                              onChange={(e) => updateConfig('innerHorizontalBorderWidth', parseInt(e.target.value) || 1)}
+                              min="0"
+                              max="3"
+                              className="w-full px-2 py-1 border border-gray-300 rounded text-xs"
+                            />
+                          </div>
+                        </div>
+                      </div>
+                      {/* 竖边 */}
+                      <div className="border border-gray-200 rounded p-3">
+                        <h5 className="text-xs font-medium text-gray-600 mb-2">竖边（列）</h5>
+                        <div className="grid grid-cols-2 gap-2">
+                          <div>
+                            <label className="block text-xs text-gray-500 mb-1">颜色</label>
+                            <input
+                              type="color"
+                              value={config.innerVerticalBorderColor}
+                              onChange={(e) => updateConfig('innerVerticalBorderColor', e.target.value)}
+                              className="w-full h-7 border border-gray-300 rounded cursor-pointer"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-xs text-gray-500 mb-1">宽度(px)</label>
+                            <input
+                              type="number"
+                              value={config.innerVerticalBorderWidth}
+                              onChange={(e) => updateConfig('innerVerticalBorderWidth', parseInt(e.target.value) || 1)}
+                              min="0"
+                              max="3"
+                              className="w-full px-2 py-1 border border-gray-300 rounded text-xs"
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    </div>
                   </div>
-                </div>
-                <div className="flex space-x-6">
-                  <label className="flex items-center space-x-2 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={config.showOuterBorder}
-                      onChange={(e) => updateConfig('showOuterBorder', e.target.checked)}
-                      className="w-4 h-4"
-                    />
-                    <span className="text-sm text-gray-600">显示外边框</span>
-                  </label>
-                  <label className="flex items-center space-x-2 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={config.showInnerBorder}
-                      onChange={(e) => updateConfig('showInnerBorder', e.target.checked)}
-                      className="w-4 h-4"
-                    />
-                    <span className="text-sm text-gray-600">显示内部边框</span>
-                  </label>
                 </div>
               </div>
 
