@@ -89,6 +89,9 @@ function PageDesigner({ projectId, roleId, page, onClose, onSave }) {
     panY: 0
   });
 
+  // ===== 区块超出范围提醒 =====
+  const [outOfRangeWarnings, setOutOfRangeWarnings] = React.useState([]);
+
   // 加载表单、字段和流程数据
   React.useEffect(() => {
     const loadFormsAndFields = async () => {
@@ -1732,13 +1735,36 @@ function PageDesigner({ projectId, roleId, page, onClose, onSave }) {
       setCanvasPanState(prev => ({
         ...prev,
         panX: prev.panX + deltaX,
-        panY: prev.panY + deltaY
+        panY: prev.panY + deltaY,
+        startX: e.clientX,
+        startY: e.clientY
       }));
     }
   };
 
   const handleCanvasPanEnd = () => {
     setCanvasPanState(prev => ({ ...prev, isPanning: false }));
+  };
+
+  // 检查区块是否超出区域范围（仅提醒，不强制限制）
+  const checkBlockOutOfRange = (block, area) => {
+    if (!area || !block) return null;
+
+    const outOfRange = [];
+    if (block.x < area.x) outOfRange.push('左边界');
+    if (block.y < area.y) outOfRange.push('上边界');
+    if (block.x + block.width > area.x + area.width) outOfRange.push('右边界');
+    if (block.y + block.height > area.y + area.height) outOfRange.push('下边界');
+
+    if (outOfRange.length > 0) {
+      return {
+        blockId: block.id,
+        areaId: area.id,
+        areaName: area.name,
+        outOfRange
+      };
+    }
+    return null;
   };
 
   const handleBlockDragStart = (e, blockId) => {
@@ -1804,16 +1830,26 @@ function PageDesigner({ projectId, roleId, page, onClose, onSave }) {
         }));
 
         // 区域内的区块同步移动
-        setBlocks(prev => prev.map(block => {
-          if (block.areaId === areaDragState.areaId) {
-            return {
-              ...block,
-              x: newAreaX + block.relativeX,
-              y: newAreaY + block.relativeY
-            };
-          }
-          return block;
-        }));
+        setBlocks(prev => {
+          const newBlocks = prev.map(block => {
+            if (block.areaId === areaDragState.areaId) {
+              return {
+                ...block,
+                x: newAreaX + block.relativeX,
+                y: newAreaY + block.relativeY
+              };
+            }
+            return block;
+          });
+
+          // 检查区块是否超出区域范围
+          const draggedArea = { ...areas.find(a => a.id === areaDragState.areaId), x: newAreaX, y: newAreaY };
+          const areaBlocks = newBlocks.filter(b => b.areaId === areaDragState.areaId);
+          const warnings = areaBlocks.map(block => checkBlockOutOfRange(block, draggedArea)).filter(Boolean);
+          setOutOfRangeWarnings(warnings);
+
+          return newBlocks;
+        });
       }
 
       // 区域缩放
@@ -1851,30 +1887,28 @@ function PageDesigner({ projectId, roleId, page, onClose, onSave }) {
           return area;
         }));
 
-        // 限制区域内的区块大小
-        setBlocks(prev => prev.map(block => {
-          if (block.areaId === areaResizeState.areaId) {
-            // 检查区块是否超出区域边界
-            let constrainedBlock = { ...block };
-            const area = areas.find(a => a.id === areaResizeState.areaId);
-
-            if (area) {
-              // 计算新的绝对位置
-              const newX = newAreaX + block.relativeX;
-              const newY = newAreaY + block.relativeY;
-
-              // 限制区块位置和大小
-              if (block.x + block.width > area.x + area.width) {
-                constrainedBlock.width = Math.min(block.width, newWidth - block.relativeX);
-              }
-              if (block.y + block.height > area.y + area.height) {
-                constrainedBlock.height = Math.min(block.height, newHeight - block.relativeY);
-              }
+        // 检查区块是否超出区域范围
+        setBlocks(prev => {
+          const newBlocks = prev.map(block => {
+            if (block.areaId === areaResizeState.areaId) {
+              // 更新区块的绝对位置（不强制限制大小）
+              return {
+                ...block,
+                x: newAreaX + block.relativeX,
+                y: newAreaY + block.relativeY
+              };
             }
-            return constrainedBlock;
-          }
-          return block;
-        }));
+            return block;
+          });
+
+          // 检查区块是否超出区域范围
+          const resizedArea = { ...areas.find(a => a.id === areaResizeState.areaId), x: newAreaX, y: newAreaY, width: Math.round(newWidth), height: Math.round(newHeight) };
+          const areaBlocks = newBlocks.filter(b => b.areaId === areaResizeState.areaId);
+          const warnings = areaBlocks.map(block => checkBlockOutOfRange(block, resizedArea)).filter(Boolean);
+          setOutOfRangeWarnings(warnings);
+
+          return newBlocks;
+        });
       }
 
       if (dragState.isDragging) {
@@ -1895,59 +1929,60 @@ function PageDesigner({ projectId, roleId, page, onClose, onSave }) {
         const descendants = getAllDescendantsForDrag(dragState.blockId, blocks);
 
         // 批量更新：被拖拽的区块 + 所有下级区块
-        const newBlocks = blocks.map(b => {
-          if (b.id === dragState.blockId) {
-            // 更新被拖拽的区块
-            let updatedBlock = { ...b, x: newX, y: newY };
+        setBlocks(prev => {
+          const newBlocks = prev.map(b => {
+            if (b.id === dragState.blockId) {
+              // 更新被拖拽的区块
+              let updatedBlock = { ...b, x: newX, y: newY };
 
-            // 如果区块属于某个区域，更新相对位置并限制在区域内
-            if (b.areaId) {
-              const area = areas.find(a => a.id === b.areaId);
-              if (area) {
-                // 更新相对位置
-                updatedBlock.relativeX = newX - area.x;
-                updatedBlock.relativeY = newY - area.y;
-
-                // 限制在区域内
-                const constrained = constrainBlockToArea(updatedBlock, area);
-                updatedBlock.x = constrained.x;
-                updatedBlock.y = constrained.y;
-                updatedBlock.relativeX = constrained.relativeX;
-                updatedBlock.relativeY = constrained.relativeY;
+              // 如果区块属于某个区域，更新相对位置（不强制限制）
+              if (b.areaId) {
+                const area = areas.find(a => a.id === b.areaId);
+                if (area) {
+                  // 更新相对位置
+                  updatedBlock.relativeX = newX - area.x;
+                  updatedBlock.relativeY = newY - area.y;
+                }
               }
+
+              return updatedBlock;
             }
+            if (descendants.find(d => d.id === b.id)) {
+              // 下级区块同步移动
+              let updatedChild = {
+                ...b,
+                x: Math.max(0, b.x + moveX),
+                y: Math.max(0, b.y + moveY)
+              };
 
-            return updatedBlock;
-          }
-          if (descendants.find(d => d.id === b.id)) {
-            // 下级区块同步移动
-            let updatedChild = {
-              ...b,
-              x: Math.max(0, b.x + moveX),
-              y: Math.max(0, b.y + moveY)
-            };
-
-            // 如果子区块属于某个区域，更新相对位置并限制在区域内
-            if (b.areaId) {
-              const area = areas.find(a => a.id === b.areaId);
-              if (area) {
-                updatedChild.relativeX = updatedChild.x - area.x;
-                updatedChild.relativeY = updatedChild.y - area.y;
-
-                const constrained = constrainBlockToArea(updatedChild, area);
-                updatedChild.x = constrained.x;
-                updatedChild.y = constrained.y;
-                updatedChild.relativeX = constrained.relativeX;
-                updatedChild.relativeY = constrained.relativeY;
+              // 如果子区块属于某个区域，更新相对位置（不强制限制）
+              if (b.areaId) {
+                const area = areas.find(a => a.id === b.areaId);
+                if (area) {
+                  updatedChild.relativeX = updatedChild.x - area.x;
+                  updatedChild.relativeY = updatedChild.y - area.y;
+                }
               }
-            }
 
-            return updatedChild;
-          }
-          return b;
+              return updatedChild;
+            }
+            return b;
+          });
+
+          // 检查区块是否超出区域范围
+          const warnings = [];
+          const blocksToCheck = [draggedBlock, ...descendants];
+          blocksToCheck.forEach(block => {
+            if (block.areaId) {
+              const area = areas.find(a => a.id === block.areaId);
+              const warning = checkBlockOutOfRange(block, area);
+              if (warning) warnings.push(warning);
+            }
+          });
+          setOutOfRangeWarnings(warnings);
+
+          return newBlocks;
         });
-
-        setBlocks(newBlocks);
         setHasChanges(true);
       }
       if (resizeState.isResizing) {
@@ -1984,10 +2019,34 @@ function PageDesigner({ projectId, roleId, page, onClose, onSave }) {
       if (areaDragState.isDragging) {
         setHasChanges(true);
         setAreaDragState(prev => ({ ...prev, isDragging: false }));
+        // 操作结束后，重新检查所有区块的超出范围情况
+        setTimeout(() => {
+          const warnings = [];
+          areas.forEach(area => {
+            const areaBlocks = blocks.filter(b => b.areaId === area.id);
+            areaBlocks.forEach(block => {
+              const warning = checkBlockOutOfRange(block, area);
+              if (warning) warnings.push(warning);
+            });
+          });
+          setOutOfRangeWarnings(warnings);
+        }, 100);
       }
       if (areaResizeState.isResizing) {
         setHasChanges(true);
         setAreaResizeState(prev => ({ ...prev, isResizing: false }));
+        // 操作结束后，重新检查所有区块的超出范围情况
+        setTimeout(() => {
+          const warnings = [];
+          areas.forEach(area => {
+            const areaBlocks = blocks.filter(b => b.areaId === area.id);
+            areaBlocks.forEach(block => {
+              const warning = checkBlockOutOfRange(block, area);
+              if (warning) warnings.push(warning);
+            });
+          });
+          setOutOfRangeWarnings(warnings);
+        }, 100);
       }
       if (dragState.isDragging) {
         // 拖拽结束后，更新子区块的相对位置
@@ -2011,6 +2070,18 @@ function PageDesigner({ projectId, roleId, page, onClose, onSave }) {
         }
         saveToHistory(blocks);
         setDragState(prev => ({ ...prev, isDragging: false }));
+        // 操作结束后，重新检查所有区块的超出范围情况
+        setTimeout(() => {
+          const warnings = [];
+          areas.forEach(area => {
+            const areaBlocks = blocks.filter(b => b.areaId === area.id);
+            areaBlocks.forEach(block => {
+              const warning = checkBlockOutOfRange(block, area);
+              if (warning) warnings.push(warning);
+            });
+          });
+          setOutOfRangeWarnings(warnings);
+        }, 100);
       }
       if (resizeState.isResizing) {
         saveToHistory(blocks);
@@ -2413,6 +2484,31 @@ function PageDesigner({ projectId, roleId, page, onClose, onSave }) {
       <div className="flex-1 flex overflow-hidden">
         {/* 左侧面板 */}
         <div className="relative flex flex-col" style={{ width: leftPanelCollapsed ? '24px' : '240px', transition: 'width 0.3s' }}>
+          {/* 区块超出范围提醒 */}
+          {outOfRangeWarnings.length > 0 && (
+            <div className="absolute -top-12 left-0 right-0 z-[100] bg-yellow-100 border border-yellow-400 rounded-lg p-3 mx-4 shadow-lg">
+              <div className="flex items-start space-x-2">
+                <span className="text-yellow-600 text-lg">⚠️</span>
+                <div className="flex-1">
+                  <div className="font-semibold text-yellow-800 mb-1">区块超出区域范围提醒</div>
+                  <div className="space-y-1">
+                    {outOfRangeWarnings.map((warning, index) => (
+                      <div key={index} className="text-sm text-yellow-700">
+                        区块 <strong>{warning.blockId}</strong> 在区域 <strong>{warning.areaName}</strong> 中超出 {warning.outOfRange.join('、')}
+                      </div>
+                    ))}
+                  </div>
+                  <button
+                    onClick={() => setOutOfRangeWarnings([])}
+                    className="mt-2 text-xs text-yellow-600 hover:text-yellow-800 underline"
+                  >
+                    关闭提醒
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
           {!leftPanelCollapsed && (
             <>
               {/* 区域列表切换按钮 */}
