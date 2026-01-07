@@ -15,7 +15,9 @@ function DesignerCanvas({
   areas = [],
   showAreas = false,
   hideContentInAreas = false,
-  currentAreaId = null
+  currentAreaId = null,
+  onAreaDragStart = null,
+  onAreaResizeStart = null
 }) {
   // 使用共享的画布配置
   const config = window.StyleUtils?.getCanvasConfig(canvasType) || {
@@ -1356,7 +1358,7 @@ function DesignerCanvas({
         {showAreas && !currentAreaId && areas.map(area => (
           <div
             key={area.id}
-            className="absolute border-2 border-dashed bg-gray-200"
+            className="absolute border-2 border-dashed bg-gray-200 area-container"
             style={{
               left: area.x * (scale / 100),
               top: area.y * (scale / 100),
@@ -1366,11 +1368,38 @@ function DesignerCanvas({
               zIndex: 0,
               borderColor: '#9ca3af'
             }}
+            onMouseDown={(e) => {
+              if (onAreaDragStart && !e.target.classList.contains('area-resize-handle')) {
+                onAreaDragStart(e, area.id);
+              }
+            }}
           >
             {/* 区域标签 */}
             <div className="absolute -top-4 left-0 text-xs bg-gray-700 text-white px-1 rounded whitespace-nowrap">
               {area.name} ({area.id})
             </div>
+
+            {/* 区域缩放手柄 */}
+            {onAreaResizeStart && (
+              <>
+                <div className="area-resize-handle absolute -top-1 -left-1 w-3 h-3 bg-purple-500 cursor-nw-resize"
+                     onMouseDown={(e) => onAreaResizeStart(e, area.id, 'nw')} />
+                <div className="area-resize-handle absolute -top-1 -right-1 w-3 h-3 bg-purple-500 cursor-ne-resize"
+                     onMouseDown={(e) => onAreaResizeStart(e, area.id, 'ne')} />
+                <div className="area-resize-handle absolute -bottom-1 -left-1 w-3 h-3 bg-purple-500 cursor-sw-resize"
+                     onMouseDown={(e) => onAreaResizeStart(e, area.id, 'sw')} />
+                <div className="area-resize-handle absolute -bottom-1 -right-1 w-3 h-3 bg-purple-500 cursor-se-resize"
+                     onMouseDown={(e) => onAreaResizeStart(e, area.id, 'se')} />
+                <div className="area-resize-handle absolute -top-1 left-1/2 -translate-x-1/2 w-3 h-3 bg-purple-500 cursor-n-resize"
+                     onMouseDown={(e) => onAreaResizeStart(e, area.id, 'n')} />
+                <div className="area-resize-handle absolute -bottom-1 left-1/2 -translate-x-1/2 w-3 h-3 bg-purple-500 cursor-s-resize"
+                     onMouseDown={(e) => onAreaResizeStart(e, area.id, 's')} />
+                <div className="area-resize-handle absolute top-1/2 -left-1 -translate-y-1/2 w-3 h-3 bg-purple-500 cursor-w-resize"
+                     onMouseDown={(e) => onAreaResizeStart(e, area.id, 'w')} />
+                <div className="area-resize-handle absolute top-1/2 -right-1 -translate-y-1/2 w-3 h-3 bg-purple-500 cursor-e-resize"
+                     onMouseDown={(e) => onAreaResizeStart(e, area.id, 'e')} />
+              </>
+            )}
           </div>
         ))}
 

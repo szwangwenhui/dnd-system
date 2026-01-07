@@ -58,6 +58,28 @@ function PageDesigner({ projectId, roleId, page, onClose, onSave }) {
   const [showEditAreaModal, setShowEditAreaModal] = React.useState(false);
   const [editingArea, setEditingArea] = React.useState(null);
 
+  // ===== 区域拖拽状态 =====
+  const [areaDragState, setAreaDragState] = React.useState({
+    isDragging: false,
+    areaId: null,
+    startX: 0,
+    startY: 0,
+    startAreaX: 0,
+    startAreaY: 0
+  });
+
+  const [areaResizeState, setAreaResizeState] = React.useState({
+    isResizing: false,
+    areaId: null,
+    direction: null,
+    startX: 0,
+    startY: 0,
+    startWidth: 0,
+    startHeight: 0,
+    startAreaX: 0,
+    startAreaY: 0
+  });
+
   // 加载表单、字段和流程数据
   React.useEffect(() => {
     const loadFormsAndFields = async () => {
@@ -903,6 +925,60 @@ function PageDesigner({ projectId, roleId, page, onClose, onSave }) {
     return blocks.filter(b => b.areaId === currentAreaId);
   };
 
+  // ===== 区域拖拽和缩放处理 =====
+  const handleAreaDragStart = (e, areaId) => {
+    e.stopPropagation();
+    const area = areas.find(a => a.id === areaId);
+    if (!area) return;
+    setAreaDragState({
+      isDragging: true,
+      areaId,
+      startX: e.clientX,
+      startY: e.clientY,
+      startAreaX: area.x,
+      startAreaY: area.y
+    });
+  };
+
+  const handleAreaResizeStart = (e, areaId, direction) => {
+    e.stopPropagation();
+    const area = areas.find(a => a.id === areaId);
+    if (!area) return;
+    setAreaResizeState({
+      isResizing: true,
+      areaId,
+      direction,
+      startX: e.clientX,
+      startY: e.clientY,
+      startWidth: area.width,
+      startHeight: area.height,
+      startAreaX: area.x,
+      startAreaY: area.y
+    });
+  };
+
+  // 限制区块在区域内
+  const constrainBlockToArea = (block, area) => {
+    if (!area) return { ...block };
+
+    let newX = block.x;
+    let newY = block.y;
+    let newWidth = block.width;
+    let newHeight = block.height;
+
+    // 限制区块位置在区域内
+    if (newX < area.x) newX = area.x;
+    if (newY < area.y) newY = area.y;
+    if (newX + newWidth > area.x + area.width) newX = area.x + area.width - newWidth;
+    if (newY + newHeight > area.y + area.height) newY = area.y + area.height - newHeight;
+
+    // 如果区块大于区域，调整区块大小
+    if (newWidth > area.width) newWidth = area.width;
+    if (newHeight > area.height) newHeight = area.height;
+
+    return { ...block, x: newX, y: newY, width: newWidth, height: newHeight };
+  };
+
   const handleDeleteBlock = (blockId) => {
     if (!confirm('确定要删除该区块吗？')) return;
     const newBlocks = blocks.filter(b => b.id !== blockId);
@@ -1612,6 +1688,56 @@ function PageDesigner({ projectId, roleId, page, onClose, onSave }) {
   // ===== 鼠标事件处理 =====
   React.useEffect(() => {
     const handleMouseMove = (e) => {
+      // 区域拖拽
+      if (areaDragState.isDragging) {
+        const deltaX = (e.clientX - areaDragState.startX) / (scale / 100);
+        const deltaY = (e.clientY - areaDragState.startY) / (scale / 100);
+        const newX = Math.max(0, Math.round(areaDragState.startAreaX + deltaX));
+        const newY = Math.max(0, Math.round(areaDragState.startAreaY + deltaY));
+
+        setAreas(prev => prev.map(area => {
+          if (area.id === areaDragState.areaId) {
+            return { ...area, x: newX, y: newY };
+          }
+          return area;
+        }));
+      }
+
+      // 区域缩放
+      if (areaResizeState.isResizing) {
+        const deltaX = (e.clientX - areaResizeState.startX) / (scale / 100);
+        const deltaY = (e.clientY - areaResizeState.startY) / (scale / 100);
+        const dir = areaResizeState.direction;
+        let newWidth = areaResizeState.startWidth;
+        let newHeight = areaResizeState.startHeight;
+        let newX = areaResizeState.startAreaX;
+        let newY = areaResizeState.startAreaY;
+
+        if (dir.includes('e')) newWidth = Math.max(100, areaResizeState.startWidth + deltaX);
+        if (dir.includes('w')) {
+          newWidth = Math.max(100, areaResizeState.startWidth - deltaX);
+          newX = areaResizeState.startAreaX + (areaResizeState.startWidth - newWidth);
+        }
+        if (dir.includes('s')) newHeight = Math.max(100, areaResizeState.startHeight + deltaY);
+        if (dir.includes('n')) {
+          newHeight = Math.max(100, areaResizeState.startHeight - deltaY);
+          newY = areaResizeState.startAreaY + (areaResizeState.startHeight - newHeight);
+        }
+
+        setAreas(prev => prev.map(area => {
+          if (area.id === areaResizeState.areaId) {
+            return {
+              ...area,
+              x: Math.max(0, Math.round(newX)),
+              y: Math.max(0, Math.round(newY)),
+              width: Math.round(newWidth),
+              height: Math.round(newHeight)
+            };
+          }
+          return area;
+        }));
+      }
+
       if (dragState.isDragging) {
         const deltaX = (e.clientX - dragState.startX) / (scale / 100);
         const deltaY = (e.clientY - dragState.startY) / (scale / 100);
@@ -1633,15 +1759,31 @@ function PageDesigner({ projectId, roleId, page, onClose, onSave }) {
         const newBlocks = blocks.map(b => {
           if (b.id === dragState.blockId) {
             // 更新被拖拽的区块
-            return { ...b, x: newX, y: newY };
+            let updatedBlock = { ...b, x: newX, y: newY };
+            
+            // 如果区块属于某个区域，限制在区域内
+            if (b.areaId) {
+              const area = areas.find(a => a.id === b.areaId);
+              updatedBlock = constrainBlockToArea(updatedBlock, area);
+            }
+            
+            return updatedBlock;
           }
           if (descendants.find(d => d.id === b.id)) {
             // 下级区块同步移动
-            return { 
+            let updatedChild = { 
               ...b, 
               x: Math.max(0, b.x + moveX), 
               y: Math.max(0, b.y + moveY) 
             };
+            
+            // 如果子区块属于某个区域，限制在区域内
+            if (b.areaId) {
+              const area = areas.find(a => a.id === b.areaId);
+              updatedChild = constrainBlockToArea(updatedChild, area);
+            }
+            
+            return updatedChild;
           }
           return b;
         });
@@ -1677,6 +1819,14 @@ function PageDesigner({ projectId, roleId, page, onClose, onSave }) {
     };
 
     const handleMouseUp = () => {
+      if (areaDragState.isDragging) {
+        setHasChanges(true);
+        setAreaDragState(prev => ({ ...prev, isDragging: false }));
+      }
+      if (areaResizeState.isResizing) {
+        setHasChanges(true);
+        setAreaResizeState(prev => ({ ...prev, isResizing: false }));
+      }
       if (dragState.isDragging) {
         // 拖拽结束后，更新子区块的相对位置
         const draggedBlock = blocks.find(b => b.id === dragState.blockId);
@@ -1712,7 +1862,7 @@ function PageDesigner({ projectId, roleId, page, onClose, onSave }) {
       document.removeEventListener('mousemove', handleMouseMove);
       document.removeEventListener('mouseup', handleMouseUp);
     };
-  }, [dragState, resizeState, scale, blocks]);
+  }, [areaDragState, areaResizeState, dragState, resizeState, scale, blocks, areas]);
 
   const handleCanvasClick = (e) => {
     if (e.target === e.currentTarget || e.target.classList.contains('canvas-grid')) {
@@ -2133,7 +2283,8 @@ function PageDesigner({ projectId, roleId, page, onClose, onSave }) {
                                 <strong>区域名称：</strong>{currentArea.name}
                               </div>
                               <div className="text-sm text-gray-600">
-                                <strong>几何数据：</strong>({currentArea.x}, {currentArea.y}) {currentArea.width}*{currentArea.height}
+                                <strong>几何数据：</strong>
+                                ({currentArea.x}, {currentArea.y}) 宽{currentArea.width}×高{currentArea.height}
                               </div>
                             </>
                           ) : null;
@@ -2277,6 +2428,8 @@ function PageDesigner({ projectId, roleId, page, onClose, onSave }) {
             showAreas={showAreas}
             hideContentInAreas={hideContentInAreas}
             currentAreaId={currentAreaId}
+            onAreaDragStart={handleAreaDragStart}
+            onAreaResizeStart={handleAreaResizeStart}
           />
         </div>
       </div>
