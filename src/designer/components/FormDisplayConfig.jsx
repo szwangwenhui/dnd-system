@@ -8,20 +8,62 @@ function FormDisplayConfig({ isOpen, onClose, block, onSave, projectId, roleId }
     totalRecords: block?.formConfig?.totalRecords || '',
     pageSize: block?.formConfig?.pageSize || '',
     sortOrder: block?.formConfig?.sortOrder || 'desc',  // 显示顺序: desc=倒序(默认), asc=顺序
-    // 表格样式
+
+    // 表头样式
     headerBgColor: block?.formConfig?.headerBgColor || '#f3f4f6',
     headerTextColor: block?.formConfig?.headerTextColor || '#374151',
     headerHeight: block?.formConfig?.headerHeight || 40,
+
+    // 表体样式（单元格全局样式）
     rowBgColor: block?.formConfig?.rowBgColor || '#ffffff',
     rowAltBgColor: block?.formConfig?.rowAltBgColor || '#f9fafb',
     rowTextColor: block?.formConfig?.rowTextColor || '#374151',
     rowHeight: block?.formConfig?.rowHeight || 36,
+
+    // 单元格全局样式
+    cellFontFamily: block?.formConfig?.cellFontFamily || 'Arial',
+    cellFontSize: block?.formConfig?.cellFontSize || 12,
+    cellColor: block?.formConfig?.cellColor || '#374151',
+    cellPaddingTop: block?.formConfig?.cellPaddingTop || 4,
+    cellPaddingRight: block?.formConfig?.cellPaddingRight || 8,
+    cellPaddingBottom: block?.formConfig?.cellPaddingBottom || 4,
+    cellPaddingLeft: block?.formConfig?.cellPaddingLeft || 8,
+    cellTextAlign: block?.formConfig?.cellTextAlign || 'left',
+    cellVerticalAlign: block?.formConfig?.cellVerticalAlign || 'middle',
+    cellWordWrap: block?.formConfig?.cellWordWrap || 'nowrap',
+
+    // 表尾样式
+    footerEnabled: block?.formConfig?.footerEnabled !== false,  // 是否启用表尾
+    footerBgColor: block?.formConfig?.footerBgColor || '#f3f4f6',
+    footerTextColor: block?.formConfig?.footerTextColor || '#374151',
+    footerHeight: block?.formConfig?.footerHeight || 36,
+
+    // 顶部说明
+    topDescriptionEnabled: block?.formConfig?.topDescriptionEnabled || false,
+    topDescriptionText: block?.formConfig?.topDescriptionText || '',
+    topDescriptionFontSize: block?.formConfig?.topDescriptionFontSize || 12,
+    topDescriptionColor: block?.formConfig?.topDescriptionColor || '#666666',
+    topDescriptionAlign: block?.formConfig?.topDescriptionAlign || 'left',
+    topDescriptionPadding: block?.formConfig?.topDescriptionPadding || 4,
+
+    // 底部总结
+    bottomSummaryEnabled: block?.formConfig?.bottomSummaryEnabled || false,
+    bottomSummaryText: block?.formConfig?.bottomSummaryText || '',
+    bottomSummaryFontSize: block?.formConfig?.bottomSummaryFontSize || 11,
+    bottomSummaryColor: block?.formConfig?.bottomSummaryColor || '#999999',
+    bottomSummaryAlign: block?.formConfig?.bottomSummaryAlign || 'left',
+
+    // 边框样式
     borderColor: block?.formConfig?.borderColor || '#e5e7eb',
     borderWidth: block?.formConfig?.borderWidth || 1,
     showOuterBorder: block?.formConfig?.showOuterBorder !== false,
     showInnerBorder: block?.formConfig?.showInnerBorder !== false,
     rowGap: block?.formConfig?.rowGap || 0,
     colGap: block?.formConfig?.colGap || 0,
+
+    // 特殊单元格（合并+独立样式）
+    specialCells: block?.formConfig?.specialCells || [],
+
     // 操作列配置
     showActionColumn: block?.formConfig?.showActionColumn || false,
     actionColumnTitle: block?.formConfig?.actionColumnTitle || '操作',
@@ -32,6 +74,10 @@ function FormDisplayConfig({ isOpen, onClose, block, onSave, projectId, roleId }
       top: { enabled: false, textOn: '取消置顶', textOff: '置顶', color: '#f59e0b', field: '' }
     },
   });
+
+  // 特殊单元格编辑状态
+  const [editingSpecialCell, setEditingSpecialCell] = React.useState(null);
+  const [showSpecialCellModal, setShowSpecialCellModal] = React.useState(false);
 
   // 表单列表和字段列表
   const [forms, setForms] = React.useState([]);
@@ -119,6 +165,56 @@ function FormDisplayConfig({ isOpen, onClose, block, onSave, projectId, roleId }
     } else {
       setConfig(prev => ({ ...prev, displayFields: fields.map(f => f.id) }));
     }
+  };
+
+  // 特殊单元格操作函数
+  const addSpecialCell = () => {
+    const newSpecialCell = {
+      id: Date.now().toString(),
+      startRow: 0,
+      endRow: 0,
+      startCol: 0,
+      endCol: 0,
+      fontFamily: config.cellFontFamily,
+      fontSize: config.cellFontSize,
+      color: config.cellColor,
+      bgColor: '',
+      paddingTop: config.cellPaddingTop,
+      paddingRight: config.cellPaddingRight,
+      paddingBottom: config.cellPaddingBottom,
+      paddingLeft: config.cellPaddingLeft,
+      textAlign: config.cellTextAlign,
+      verticalAlign: config.cellVerticalAlign,
+      wordWrap: config.cellWordWrap
+    };
+    setEditingSpecialCell(newSpecialCell);
+    setShowSpecialCellModal(true);
+  };
+
+  const editSpecialCell = (specialCell) => {
+    setEditingSpecialCell(specialCell);
+    setShowSpecialCellModal(true);
+  };
+
+  const deleteSpecialCell = (specialCellId) => {
+    if (window.confirm('确定要删除这个特殊单元格吗？')) {
+      const newSpecialCells = config.specialCells.filter(sc => sc.id !== specialCellId);
+      updateConfig('specialCells', newSpecialCells);
+    }
+  };
+
+  const saveSpecialCell = (specialCell) => {
+    const existingIndex = config.specialCells.findIndex(sc => sc.id === specialCell.id);
+    let newSpecialCells;
+    if (existingIndex >= 0) {
+      newSpecialCells = [...config.specialCells];
+      newSpecialCells[existingIndex] = specialCell;
+    } else {
+      newSpecialCells = [...config.specialCells, specialCell];
+    }
+    updateConfig('specialCells', newSpecialCells);
+    setShowSpecialCellModal(false);
+    setEditingSpecialCell(null);
   };
 
   // 保存配置
@@ -575,38 +671,216 @@ function FormDisplayConfig({ isOpen, onClose, block, onSave, projectId, roleId }
                 </div>
               </div>
 
-              {/* 表体样式 */}
+              {/* 顶部说明配置 */}
               <div className="border border-gray-200 rounded-lg p-4">
-                <h3 className="font-medium text-gray-700 mb-3">📝 表体样式</h3>
+                <div className="flex items-center justify-between mb-3">
+                  <h3 className="font-medium text-gray-700">📝 顶部说明</h3>
+                  <label className="flex items-center space-x-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={config.topDescriptionEnabled}
+                      onChange={(e) => updateConfig('topDescriptionEnabled', e.target.checked)}
+                      className="w-4 h-4"
+                    />
+                    <span className="text-sm text-gray-600">启用</span>
+                  </label>
+                </div>
+                {config.topDescriptionEnabled && (
+                  <div className="space-y-3">
+                    <div>
+                      <label className="block text-sm text-gray-600 mb-1">说明文字</label>
+                      <input
+                        type="text"
+                        value={config.topDescriptionText}
+                        onChange={(e) => updateConfig('topDescriptionText', e.target.value)}
+                        placeholder="例如：数据单位：元"
+                        className="w-full px-3 py-2 border border-gray-300 rounded text-sm"
+                      />
+                    </div>
+                    <div className="grid grid-cols-3 gap-4">
+                      <div>
+                        <label className="block text-sm text-gray-600 mb-1">字号(px)</label>
+                        <input
+                          type="number"
+                          value={config.topDescriptionFontSize}
+                          onChange={(e) => updateConfig('topDescriptionFontSize', parseInt(e.target.value) || 12)}
+                          className="w-full px-3 py-1.5 border border-gray-300 rounded text-sm"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm text-gray-600 mb-1">颜色</label>
+                        <input
+                          type="color"
+                          value={config.topDescriptionColor}
+                          onChange={(e) => updateConfig('topDescriptionColor', e.target.value)}
+                          className="w-full h-8 border border-gray-300 rounded cursor-pointer"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm text-gray-600 mb-1">对齐</label>
+                        <select
+                          value={config.topDescriptionAlign}
+                          onChange={(e) => updateConfig('topDescriptionAlign', e.target.value)}
+                          className="w-full px-3 py-1.5 border border-gray-300 rounded text-sm"
+                        >
+                          <option value="left">左对齐</option>
+                          <option value="center">居中</option>
+                          <option value="right">右对齐</option>
+                        </select>
+                      </div>
+                    </div>
+                    <div>
+                      <label className="block text-sm text-gray-600 mb-1">内边距(px)</label>
+                      <input
+                        type="number"
+                        value={config.topDescriptionPadding}
+                        onChange={(e) => updateConfig('topDescriptionPadding', parseInt(e.target.value) || 4)}
+                        className="w-full px-3 py-1.5 border border-gray-300 rounded text-sm"
+                      />
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* 单元格全局样式 */}
+              <div className="border border-gray-200 rounded-lg p-4">
+                <h3 className="font-medium text-gray-700 mb-3">📏 单元格样式（表体）</h3>
                 <div className="grid grid-cols-3 gap-4 mb-3">
                   <div>
-                    <label className="block text-sm text-gray-600 mb-1">行背景色</label>
-                    <input
-                      type="color"
-                      value={config.rowBgColor}
-                      onChange={(e) => updateConfig('rowBgColor', e.target.value)}
-                      className="w-full h-8 border border-gray-300 rounded cursor-pointer"
-                    />
+                    <label className="block text-sm text-gray-600 mb-1">字体</label>
+                    <select
+                      value={config.cellFontFamily}
+                      onChange={(e) => updateConfig('cellFontFamily', e.target.value)}
+                      className="w-full px-3 py-1.5 border border-gray-300 rounded text-sm"
+                    >
+                      <option value="Arial">Arial</option>
+                      <option value="微软雅黑">微软雅黑</option>
+                      <option value="宋体">宋体</option>
+                      <option value="黑体">黑体</option>
+                      <option value="Courier New">Courier New</option>
+                    </select>
                   </div>
                   <div>
-                    <label className="block text-sm text-gray-600 mb-1">交替行背景</label>
+                    <label className="block text-sm text-gray-600 mb-1">字号(px)</label>
                     <input
-                      type="color"
-                      value={config.rowAltBgColor}
-                      onChange={(e) => updateConfig('rowAltBgColor', e.target.value)}
-                      className="w-full h-8 border border-gray-300 rounded cursor-pointer"
+                      type="number"
+                      value={config.cellFontSize}
+                      onChange={(e) => updateConfig('cellFontSize', parseInt(e.target.value) || 12)}
+                      className="w-full px-3 py-1.5 border border-gray-300 rounded text-sm"
                     />
                   </div>
                   <div>
                     <label className="block text-sm text-gray-600 mb-1">文字颜色</label>
                     <input
                       type="color"
-                      value={config.rowTextColor}
-                      onChange={(e) => updateConfig('rowTextColor', e.target.value)}
+                      value={config.cellColor}
+                      onChange={(e) => updateConfig('cellColor', e.target.value)}
                       className="w-full h-8 border border-gray-300 rounded cursor-pointer"
                     />
                   </div>
                 </div>
+                <div className="grid grid-cols-2 gap-4 mb-3">
+                  <div>
+                    <label className="block text-sm text-gray-600 mb-1">水平对齐</label>
+                    <select
+                      value={config.cellTextAlign}
+                      onChange={(e) => updateConfig('cellTextAlign', e.target.value)}
+                      className="w-full px-3 py-1.5 border border-gray-300 rounded text-sm"
+                    >
+                      <option value="left">左对齐</option>
+                      <option value="center">居中</option>
+                      <option value="right">右对齐</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm text-gray-600 mb-1">垂直对齐</label>
+                    <select
+                      value={config.cellVerticalAlign}
+                      onChange={(e) => updateConfig('cellVerticalAlign', e.target.value)}
+                      className="w-full px-3 py-1.5 border border-gray-300 rounded text-sm"
+                    >
+                      <option value="top">顶部</option>
+                      <option value="middle">居中</option>
+                      <option value="bottom">底部</option>
+                    </select>
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-4 mb-3">
+                  <div>
+                    <label className="block text-sm text-gray-600 mb-1">换行方式</label>
+                    <select
+                      value={config.cellWordWrap}
+                      onChange={(e) => updateConfig('cellWordWrap', e.target.value)}
+                      className="w-full px-3 py-1.5 border border-gray-300 rounded text-sm"
+                    >
+                      <option value="nowrap">不换行</option>
+                      <option value="wrap">自动换行</option>
+                      <option value="break-word">单词换行</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm text-gray-600 mb-1">背景色（表体）</label>
+                    <div className="flex space-x-2">
+                      <input
+                        type="color"
+                        value={config.rowBgColor}
+                        onChange={(e) => updateConfig('rowBgColor', e.target.value)}
+                        className="w-12 h-8 border border-gray-300 rounded cursor-pointer"
+                      />
+                      <input
+                        type="color"
+                        value={config.rowAltBgColor}
+                        onChange={(e) => updateConfig('rowAltBgColor', e.target.value)}
+                        className="w-12 h-8 border border-gray-300 rounded cursor-pointer"
+                        title="交替行背景色"
+                      />
+                      <span className="text-xs text-gray-400 self-center">普通 / 交替</span>
+                    </div>
+                  </div>
+                </div>
+                <div className="grid grid-cols-4 gap-2">
+                  <div>
+                    <label className="block text-xs text-gray-600 mb-1">上边距</label>
+                    <input
+                      type="number"
+                      value={config.cellPaddingTop}
+                      onChange={(e) => updateConfig('cellPaddingTop', parseInt(e.target.value) || 0)}
+                      className="w-full px-2 py-1 border border-gray-300 rounded text-xs"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs text-gray-600 mb-1">右边距</label>
+                    <input
+                      type="number"
+                      value={config.cellPaddingRight}
+                      onChange={(e) => updateConfig('cellPaddingRight', parseInt(e.target.value) || 0)}
+                      className="w-full px-2 py-1 border border-gray-300 rounded text-xs"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs text-gray-600 mb-1">下边距</label>
+                    <input
+                      type="number"
+                      value={config.cellPaddingBottom}
+                      onChange={(e) => updateConfig('cellPaddingBottom', parseInt(e.target.value) || 0)}
+                      className="w-full px-2 py-1 border border-gray-300 rounded text-xs"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs text-gray-600 mb-1">左边距</label>
+                    <input
+                      type="number"
+                      value={config.cellPaddingLeft}
+                      onChange={(e) => updateConfig('cellPaddingLeft', parseInt(e.target.value) || 0)}
+                      className="w-full px-2 py-1 border border-gray-300 rounded text-xs"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* 表体行高和间距 */}
+              <div className="border border-gray-200 rounded-lg p-4">
+                <h3 className="font-medium text-gray-700 mb-3">📐 表体尺寸</h3>
                 <div className="grid grid-cols-3 gap-4">
                   <div>
                     <label className="block text-sm text-gray-600 mb-1">行高(px)</label>
@@ -636,6 +910,115 @@ function FormDisplayConfig({ isOpen, onClose, block, onSave, projectId, roleId }
                     />
                   </div>
                 </div>
+              </div>
+
+              {/* 表尾样式配置 */}
+              <div className="border border-gray-200 rounded-lg p-4">
+                <div className="flex items-center justify-between mb-3">
+                  <h3 className="font-medium text-gray-700">📊 表尾样式</h3>
+                  <label className="flex items-center space-x-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={config.footerEnabled}
+                      onChange={(e) => updateConfig('footerEnabled', e.target.checked)}
+                      className="w-4 h-4"
+                    />
+                    <span className="text-sm text-gray-600">启用表尾</span>
+                  </label>
+                </div>
+                {config.footerEnabled && (
+                  <div className="grid grid-cols-3 gap-4">
+                    <div>
+                      <label className="block text-sm text-gray-600 mb-1">背景色</label>
+                      <input
+                        type="color"
+                        value={config.footerBgColor}
+                        onChange={(e) => updateConfig('footerBgColor', e.target.value)}
+                        className="w-full h-8 border border-gray-300 rounded cursor-pointer"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm text-gray-600 mb-1">文字颜色</label>
+                      <input
+                        type="color"
+                        value={config.footerTextColor}
+                        onChange={(e) => updateConfig('footerTextColor', e.target.value)}
+                        className="w-full h-8 border border-gray-300 rounded cursor-pointer"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm text-gray-600 mb-1">行高(px)</label>
+                      <input
+                        type="number"
+                        value={config.footerHeight}
+                        onChange={(e) => updateConfig('footerHeight', parseInt(e.target.value) || 36)}
+                        className="w-full px-3 py-1.5 border border-gray-300 rounded text-sm"
+                      />
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* 底部总结配置 */}
+              <div className="border border-gray-200 rounded-lg p-4">
+                <div className="flex items-center justify-between mb-3">
+                  <h3 className="font-medium text-gray-700">📌 底部总结</h3>
+                  <label className="flex items-center space-x-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={config.bottomSummaryEnabled}
+                      onChange={(e) => updateConfig('bottomSummaryEnabled', e.target.checked)}
+                      className="w-4 h-4"
+                    />
+                    <span className="text-sm text-gray-600">启用</span>
+                  </label>
+                </div>
+                {config.bottomSummaryEnabled && (
+                  <div className="space-y-3">
+                    <div>
+                      <label className="block text-sm text-gray-600 mb-1">总结文字</label>
+                      <input
+                        type="text"
+                        value={config.bottomSummaryText}
+                        onChange={(e) => updateConfig('bottomSummaryText', e.target.value)}
+                        placeholder="例如：注：数据实时更新"
+                        className="w-full px-3 py-2 border border-gray-300 rounded text-sm"
+                      />
+                    </div>
+                    <div className="grid grid-cols-3 gap-4">
+                      <div>
+                        <label className="block text-sm text-gray-600 mb-1">字号(px)</label>
+                        <input
+                          type="number"
+                          value={config.bottomSummaryFontSize}
+                          onChange={(e) => updateConfig('bottomSummaryFontSize', parseInt(e.target.value) || 11)}
+                          className="w-full px-3 py-1.5 border border-gray-300 rounded text-sm"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm text-gray-600 mb-1">颜色</label>
+                        <input
+                          type="color"
+                          value={config.bottomSummaryColor}
+                          onChange={(e) => updateConfig('bottomSummaryColor', e.target.value)}
+                          className="w-full h-8 border border-gray-300 rounded cursor-pointer"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm text-gray-600 mb-1">对齐</label>
+                        <select
+                          value={config.bottomSummaryAlign}
+                          onChange={(e) => updateConfig('bottomSummaryAlign', e.target.value)}
+                          className="w-full px-3 py-1.5 border border-gray-300 rounded text-sm"
+                        >
+                          <option value="left">左对齐</option>
+                          <option value="center">居中</option>
+                          <option value="right">右对齐</option>
+                        </select>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* 边框样式 */}
@@ -684,8 +1067,256 @@ function FormDisplayConfig({ isOpen, onClose, block, onSave, projectId, roleId }
                   </label>
                 </div>
               </div>
+
+              {/* 特殊单元格配置 */}
+              <div className="border border-gray-200 rounded-lg p-4">
+                <div className="flex items-center justify-between mb-3">
+                  <h3 className="font-medium text-gray-700">🎯 特殊单元格（合并）</h3>
+                  <button
+                    onClick={addSpecialCell}
+                    className="px-3 py-1 bg-blue-600 text-white text-sm rounded hover:bg-blue-700"
+                  >
+                    + 添加
+                  </button>
+                </div>
+                <div className="text-xs text-gray-500 mb-3">
+                  特殊单元格可以合并多个单元格并设置独立样式。在设计页面中，鼠标左键按住拖动可以定义合并区域。
+                </div>
+                {config.specialCells.length === 0 ? (
+                  <div className="text-gray-400 text-sm text-center py-4 border border-dashed border-gray-300 rounded">
+                    暂无特殊单元格
+                  </div>
+                ) : (
+                  <div className="space-y-2 max-h-48 overflow-y-auto">
+                    {config.specialCells.map((specialCell, index) => (
+                      <div key={specialCell.id || index} className="flex items-center justify-between p-2 bg-gray-50 rounded border border-gray-200">
+                        <div className="flex-1 text-sm">
+                          <span className="font-medium text-gray-700">
+                            行{specialCell.startRow}-{specialCell.endRow} · 列{specialCell.startCol}-{specialCell.endCol}
+                          </span>
+                          {specialCell.bgColor && (
+                            <span
+                              className="ml-2 inline-block w-4 h-4 rounded border"
+                              style={{ backgroundColor: specialCell.bgColor }}
+                            />
+                          )}
+                        </div>
+                        <div className="flex space-x-2">
+                          <button
+                            onClick={() => editSpecialCell(specialCell)}
+                            className="text-blue-600 hover:text-blue-800 text-sm"
+                          >
+                            编辑
+                          </button>
+                          <button
+                            onClick={() => deleteSpecialCell(specialCell.id)}
+                            className="text-red-600 hover:text-red-800 text-sm"
+                          >
+                            删除
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
             </div>
           )}
+        </div>
+
+        {/* 特殊单元格编辑弹窗 */}
+        {showSpecialCellModal && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[110]">
+            <div className="bg-white rounded-lg shadow-xl w-[500px] max-h-[90vh] flex flex-col">
+              <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
+                <h2 className="text-lg font-semibold text-gray-800">
+                  {editingSpecialCell?.id ? '编辑特殊单元格' : '添加特殊单元格'}
+                </h2>
+                <button
+                  onClick={() => {
+                    setShowSpecialCellModal(false);
+                    setEditingSpecialCell(null);
+                  }}
+                  className="text-gray-400 hover:text-gray-600 text-2xl leading-none"
+                >
+                  ×
+                </button>
+              </div>
+              <div className="flex-1 overflow-y-auto p-6 space-y-4">
+                {/* 合并范围 */}
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm text-gray-600 mb-1">起始行</label>
+                    <input
+                      type="number"
+                      value={editingSpecialCell?.startRow || 0}
+                      onChange={(e) => setEditingSpecialCell({ ...editingSpecialCell, startRow: parseInt(e.target.value) || 0 })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded text-sm"
+                      min="0"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm text-gray-600 mb-1">结束行</label>
+                    <input
+                      type="number"
+                      value={editingSpecialCell?.endRow || 0}
+                      onChange={(e) => setEditingSpecialCell({ ...editingSpecialCell, endRow: parseInt(e.target.value) || 0 })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded text-sm"
+                      min="0"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm text-gray-600 mb-1">起始列</label>
+                    <input
+                      type="number"
+                      value={editingSpecialCell?.startCol || 0}
+                      onChange={(e) => setEditingSpecialCell({ ...editingSpecialCell, startCol: parseInt(e.target.value) || 0 })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded text-sm"
+                      min="0"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm text-gray-600 mb-1">结束列</label>
+                    <input
+                      type="number"
+                      value={editingSpecialCell?.endCol || 0}
+                      onChange={(e) => setEditingSpecialCell({ ...editingSpecialCell, endCol: parseInt(e.target.value) || 0 })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded text-sm"
+                      min="0"
+                    />
+                  </div>
+                </div>
+
+                {/* 样式配置 */}
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm text-gray-600 mb-1">字号(px)</label>
+                    <input
+                      type="number"
+                      value={editingSpecialCell?.fontSize || 12}
+                      onChange={(e) => setEditingSpecialCell({ ...editingSpecialCell, fontSize: parseInt(e.target.value) || 12 })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded text-sm"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm text-gray-600 mb-1">字体</label>
+                    <select
+                      value={editingSpecialCell?.fontFamily || 'Arial'}
+                      onChange={(e) => setEditingSpecialCell({ ...editingSpecialCell, fontFamily: e.target.value })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded text-sm"
+                    >
+                      <option value="Arial">Arial</option>
+                      <option value="微软雅黑">微软雅黑</option>
+                      <option value="宋体">宋体</option>
+                      <option value="黑体">黑体</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm text-gray-600 mb-1">文字颜色</label>
+                    <input
+                      type="color"
+                      value={editingSpecialCell?.color || '#374151'}
+                      onChange={(e) => setEditingSpecialCell({ ...editingSpecialCell, color: e.target.value })}
+                      className="w-full h-8 border border-gray-300 rounded cursor-pointer"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm text-gray-600 mb-1">背景色（留空则透明）</label>
+                    <input
+                      type="color"
+                      value={editingSpecialCell?.bgColor || '#ffffff'}
+                      onChange={(e) => setEditingSpecialCell({ ...editingSpecialCell, bgColor: e.target.value })}
+                      className="w-full h-8 border border-gray-300 rounded cursor-pointer"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm text-gray-600 mb-1">水平对齐</label>
+                    <select
+                      value={editingSpecialCell?.textAlign || 'left'}
+                      onChange={(e) => setEditingSpecialCell({ ...editingSpecialCell, textAlign: e.target.value })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded text-sm"
+                    >
+                      <option value="left">左对齐</option>
+                      <option value="center">居中</option>
+                      <option value="right">右对齐</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm text-gray-600 mb-1">垂直对齐</label>
+                    <select
+                      value={editingSpecialCell?.verticalAlign || 'middle'}
+                      onChange={(e) => setEditingSpecialCell({ ...editingSpecialCell, verticalAlign: e.target.value })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded text-sm"
+                    >
+                      <option value="top">顶部</option>
+                      <option value="middle">居中</option>
+                      <option value="bottom">底部</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-4 gap-2">
+                  <div>
+                    <label className="block text-xs text-gray-600 mb-1">上边距</label>
+                    <input
+                      type="number"
+                      value={editingSpecialCell?.paddingTop || 4}
+                      onChange={(e) => setEditingSpecialCell({ ...editingSpecialCell, paddingTop: parseInt(e.target.value) || 0 })}
+                      className="w-full px-2 py-1 border border-gray-300 rounded text-xs"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs text-gray-600 mb-1">右边距</label>
+                    <input
+                      type="number"
+                      value={editingSpecialCell?.paddingRight || 8}
+                      onChange={(e) => setEditingSpecialCell({ ...editingSpecialCell, paddingRight: parseInt(e.target.value) || 0 })}
+                      className="w-full px-2 py-1 border border-gray-300 rounded text-xs"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs text-gray-600 mb-1">下边距</label>
+                    <input
+                      type="number"
+                      value={editingSpecialCell?.paddingBottom || 4}
+                      onChange={(e) => setEditingSpecialCell({ ...editingSpecialCell, paddingBottom: parseInt(e.target.value) || 0 })}
+                      className="w-full px-2 py-1 border border-gray-300 rounded text-xs"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs text-gray-600 mb-1">左边距</label>
+                    <input
+                      type="number"
+                      value={editingSpecialCell?.paddingLeft || 8}
+                      onChange={(e) => setEditingSpecialCell({ ...editingSpecialCell, paddingLeft: parseInt(e.target.value) || 0 })}
+                      className="w-full px-2 py-1 border border-gray-300 rounded text-xs"
+                    />
+                  </div>
+                </div>
+              </div>
+              <div className="px-6 py-4 border-t border-gray-200 flex justify-end space-x-3 bg-gray-50">
+                <button
+                  onClick={() => {
+                    setShowSpecialCellModal(false);
+                    setEditingSpecialCell(null);
+                  }}
+                  className="px-6 py-2 border border-gray-300 text-gray-700 rounded hover:bg-gray-100"
+                >
+                  取消
+                </button>
+                <button
+                  onClick={() => saveSpecialCell(editingSpecialCell)}
+                  className="px-6 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+                >
+                  保存
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
         </div>
 
         {/* 底部按钮 */}

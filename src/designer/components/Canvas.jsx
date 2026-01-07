@@ -30,6 +30,15 @@ function DesignerCanvas({
   
   // 当前正在编辑的区块ID
   const [editingBlockId, setEditingBlockId] = React.useState(null);
+
+  // 列宽拖拽状态
+  const [columnResizeState, setColumnResizeState] = React.useState({
+    isResizing: false,
+    colIndex: -1,
+    startX: 0,
+    startWidth: 0,
+    fieldId: null
+  });
   
   // 表单数据缓存 - 用于显示真实数据
   const [formDataCache, setFormDataCache] = React.useState({});
@@ -38,19 +47,19 @@ function DesignerCanvas({
   React.useEffect(() => {
     const loadFormData = async () => {
       // 找出所有配置了表单的区块
-      const formBlocks = blocks.filter(b => 
+      const formBlocks = blocks.filter(b =>
         b.contentType === '表单' && b.formConfig && b.formConfig.formId
       );
-      
+
       if (formBlocks.length === 0) return;
-      
+
       const newCache = { ...formDataCache };
-      
+
       for (const block of formBlocks) {
         const formId = block.formConfig.formId;
         // 如果已经缓存了，跳过
         if (newCache[formId]) continue;
-        
+
         try {
           // 加载表单数据
           const formData = await window.dndDB.getFormDataList(projectId, formId);
@@ -60,14 +69,54 @@ function DesignerCanvas({
           newCache[formId] = [];
         }
       }
-      
+
       setFormDataCache(newCache);
     };
-    
+
     if (projectId) {
       loadFormData();
     }
   }, [blocks, projectId]);
+
+  // 全局列宽拖拽处理
+  React.useEffect(() => {
+    const handleMouseMove = (e) => {
+      if (columnResizeState.isResizing) {
+        const deltaX = e.clientX - columnResizeState.startX;
+        const newWidth = Math.max(50, Math.min(500, columnResizeState.startWidth + deltaX));
+
+        // 找到当前拖拽的表单区块并更新列宽
+        const resizingBlock = blocks.find(b => b.id === selectedBlockId);
+        if (resizingBlock && onBlockStyleChange && resizingBlock.formConfig) {
+          const updatedColumnWidths = { ...resizingBlock.formConfig.columnWidths, [columnResizeState.fieldId]: Math.round(newWidth) };
+          const updatedFormConfig = { ...resizingBlock.formConfig, columnWidths: updatedColumnWidths };
+          onBlockStyleChange(resizingBlock.id, 'formConfig', updatedFormConfig);
+        }
+      }
+    };
+
+    const handleMouseUp = () => {
+      if (columnResizeState.isResizing) {
+        setColumnResizeState({
+          isResizing: false,
+          colIndex: -1,
+          startX: 0,
+          startWidth: 0,
+          fieldId: null
+        });
+      }
+    };
+
+    if (columnResizeState.isResizing) {
+      document.addEventListener('mousemove', handleMouseMove);
+      document.addEventListener('mouseup', handleMouseUp);
+
+      return () => {
+        document.removeEventListener('mousemove', handleMouseMove);
+        document.removeEventListener('mouseup', handleMouseUp);
+      };
+    }
+  }, [columnResizeState, blocks, selectedBlockId, onBlockStyleChange]);
 
   // 使用共享的样式工具
   const { buildBlockContainerStyle, buildBlockContentStyle, calculateCanvasHeight, getCanvasConfig } = window.StyleUtils || {};
@@ -326,29 +375,29 @@ function DesignerCanvas({
       // 有配置时显示表格
       const cfg = formConfig;
       const fieldCount = cfg.displayFields?.length || 0;
-      
+
       // 使用真实字段名称
-      const headers = cfg.fieldInfos 
+      const headers = cfg.fieldInfos
         ? cfg.fieldInfos.map(f => f.fieldName)
         : cfg.displayFields?.map((_, i) => `列${i+1}`) || ['列1', '列2', '列3'];
-      
+
       // 获取真实数据
       const realData = formDataCache[cfg.formId] || [];
-      
+
       // 根据显示顺序排序（置顶优先）
       let sortedData = [...realData];
-      
+
       // 先按置顶排序
       sortedData.sort((a, b) => {
         const aTop = a._isTop ? 1 : 0;
         const bTop = b._isTop ? 1 : 0;
         return bTop - aTop;  // 置顶的排前面
       });
-      
+
       // 再按录入顺序排序（非置顶的数据）
       const topData = sortedData.filter(d => d._isTop);
       const normalData = sortedData.filter(d => !d._isTop);
-      
+
       // 根据sortOrder配置决定顺序
       if (cfg.sortOrder === 'asc') {
         // 顺序：最早在前（按createdAt升序）
@@ -357,20 +406,20 @@ function DesignerCanvas({
         // 倒序：最新在前（按createdAt降序，默认）
         normalData.sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
       }
-      
+
       sortedData = [...topData, ...normalData];
-      
+
       // 根据配置限制数据量
       let displayData = sortedData;
       if (cfg.totalRecords && parseInt(cfg.totalRecords) > 0) {
         displayData = displayData.slice(0, parseInt(cfg.totalRecords));
       }
-      
+
       // 构建表格行数据
-      const tableRows = displayData.length > 0 
+      const tableRows = displayData.length > 0
         ? displayData.map(record => {
             // 获取每个字段的值
-            return cfg.fieldInfos 
+            return cfg.fieldInfos
               ? cfg.fieldInfos.map(f => {
                   const value = record[f.fieldId];
                   return value !== undefined && value !== null ? String(value) : '-';
@@ -384,7 +433,49 @@ function DesignerCanvas({
             // 没有数据时显示占位行
             headers.map(() => '暂无数据')
           ];
-      
+
+      // 计算表尾汇总数据（所有列）
+      let footerValues = [];
+      if (cfg.footerEnabled && displayData.length > 0) {
+        footerValues = headers.map((_, colIndex) => {
+          const fieldId = cfg.fieldInfos?.[colIndex]?.fieldId || cfg.displayFields?.[colIndex];
+          if (!fieldId) return 'NA';
+
+          // 汇总该列的所有数据
+          const values = displayData.map(row => {
+            const val = row[fieldId];
+            return parseFloat(val);
+          }).filter(v => !isNaN(v));
+
+          if (values.length === 0) return 'NA';
+
+          // 默认使用求和
+          const sum = values.reduce((a, b) => a + b, 0);
+          const avg = sum / values.length;
+          const max = Math.max(...values);
+          const min = Math.min(...values);
+          const count = values.length;
+
+          // 格式化显示（显示多种汇总值）
+          return `Σ${sum.toFixed(2)}  ̄x${avg.toFixed(2)}  Max${max.toFixed(2)}  Min${min.toFixed(2)}  N${count}`;
+        });
+      }
+
+      // 列宽拖拽开始
+      const handleColumnResizeStart = (e, colIndex, fieldId) => {
+        e.stopPropagation();
+        const th = e.currentTarget.parentElement;
+        const width = th.getBoundingClientRect().width;
+
+        setColumnResizeState({
+          isResizing: true,
+          colIndex,
+          startX: e.clientX,
+          startWidth: width,
+          fieldId
+        });
+      };
+
       return (
         <div style={{
           ...contentStyle,
@@ -392,6 +483,19 @@ function DesignerCanvas({
           height: '100%',
           overflow: 'auto',
         }}>
+          {/* 顶部说明 */}
+          {cfg.topDescriptionEnabled && cfg.topDescriptionText && (
+            <div style={{
+              fontSize: `${cfg.topDescriptionFontSize}px`,
+              color: cfg.topDescriptionColor,
+              textAlign: cfg.topDescriptionAlign,
+              padding: `${cfg.topDescriptionPadding}px`,
+              marginBottom: '4px',
+            }}>
+              {cfg.topDescriptionText}
+            </div>
+          )}
+
           {/* 表单名称 */}
           {cfg.formName && (
             <div style={{
@@ -419,7 +523,7 @@ function DesignerCanvas({
                   const colWidth = cfg.columnWidths?.[fieldId];
                   const hasActionCol = cfg.actionColumn?.enabled;
                   const isLastDataCol = !hasActionCol && i === headers.length - 1;
-                  
+
                   return (
                     <th key={i} style={{
                       backgroundColor: cfg.headerBgColor,
@@ -431,8 +535,35 @@ function DesignerCanvas({
                       width: colWidth ? `${colWidth}px` : 'auto',
                       borderBottom: cfg.showInnerBorder ? `${cfg.borderWidth}px solid ${cfg.borderColor}` : 'none',
                       borderRight: cfg.showInnerBorder && !isLastDataCol ? `${cfg.borderWidth}px solid ${cfg.borderColor}` : 'none',
+                      position: 'relative',
                     }}>
-                      {header}
+                      <div style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                      }}>
+                        <span>{header}</span>
+                        {/* 列宽拖拽手柄 */}
+                        <div
+                          onMouseDown={(e) => handleColumnResizeStart(e, i, fieldId)}
+                          style={{
+                            position: 'absolute',
+                            right: 0,
+                            top: 0,
+                            bottom: 0,
+                            width: '4px',
+                            cursor: 'col-resize',
+                            backgroundColor: 'transparent',
+                            transition: 'background-color 0.2s',
+                          }}
+                          onMouseEnter={(e) => {
+                            e.currentTarget.style.backgroundColor = 'rgba(59, 130, 246, 0.3)';
+                          }}
+                          onMouseLeave={(e) => {
+                            e.currentTarget.style.backgroundColor = 'transparent';
+                          }}
+                        />
+                      </div>
                     </th>
                   );
                 })}
@@ -459,28 +590,77 @@ function DesignerCanvas({
                 const recordData = displayData[rowIndex] || {};
                 const hasActionCol = cfg.actionColumn?.enabled;
                 const actionButtons = cfg.actionColumn?.buttons || {};
-                
+
+                // 收集该行所有被合并的单元格位置
+                const mergedCellsInRow = cfg.specialCells?.filter(sc =>
+                  rowIndex >= sc.startRow && rowIndex <= sc.endRow
+                ) || [];
+
                 return (
                   <tr key={rowIndex}>
                     {row.map((cell, colIndex) => {
+                      // 检查该单元格是否已被合并
+                      const isMerged = mergedCellsInRow.some(sc =>
+                        rowIndex > sc.startRow && colIndex >= sc.startCol && colIndex <= sc.endCol
+                      );
+                      if (isMerged) return null;
+
+                      // 检查是否为特殊单元格（合并区域）
+                      const specialCell = cfg.specialCells?.find(sc =>
+                        rowIndex === sc.startRow && colIndex === sc.startCol
+                      );
+
+                      // 计算colspan和rowspan
+                      const colspan = specialCell ? (specialCell.endCol - specialCell.startCol + 1) : 1;
+                      const rowspan = specialCell ? (specialCell.endRow - specialCell.startRow + 1) : 1;
+
                       // 获取对应字段的列宽
                       const fieldId = cfg.fieldInfos?.[colIndex]?.fieldId || cfg.displayFields?.[colIndex];
                       const colWidth = cfg.columnWidths?.[fieldId];
                       const isLastDataCol = !hasActionCol && colIndex === row.length - 1;
-                      
+
+                      // 特殊单元格样式优先
+                      const cellStyle = specialCell ? {
+                        fontFamily: specialCell.fontFamily || cfg.cellFontFamily,
+                        fontSize: `${specialCell.fontSize || cfg.cellFontSize}px`,
+                        color: specialCell.color || cfg.cellColor,
+                        backgroundColor: specialCell.bgColor,
+                        paddingTop: `${specialCell.paddingTop || cfg.cellPaddingTop}px`,
+                        paddingRight: `${specialCell.paddingRight || cfg.cellPaddingRight}px`,
+                        paddingBottom: `${specialCell.paddingBottom || cfg.cellPaddingBottom}px`,
+                        paddingLeft: `${specialCell.paddingLeft || cfg.cellPaddingLeft}px`,
+                        textAlign: specialCell.textAlign || cfg.cellTextAlign,
+                        verticalAlign: specialCell.verticalAlign || cfg.cellVerticalAlign,
+                        whiteSpace: specialCell.wordWrap || cfg.cellWordWrap === 'nowrap' ? 'nowrap' : (cfg.cellWordWrap === 'wrap' ? 'normal' : 'break-word'),
+                      } : {
+                        fontFamily: cfg.cellFontFamily,
+                        fontSize: `${cfg.cellFontSize}px`,
+                        color: cfg.cellColor,
+                        paddingTop: `${cfg.cellPaddingTop}px`,
+                        paddingRight: `${cfg.cellPaddingRight}px`,
+                        paddingBottom: `${cfg.cellPaddingBottom}px`,
+                        paddingLeft: `${cfg.cellPaddingLeft}px`,
+                        textAlign: cfg.cellTextAlign,
+                        verticalAlign: cfg.cellVerticalAlign,
+                        whiteSpace: cfg.cellWordWrap === 'nowrap' ? 'nowrap' : (cfg.cellWordWrap === 'wrap' ? 'normal' : 'break-word'),
+                      };
+
                       return (
-                        <td key={colIndex} style={{
-                          backgroundColor: rowIndex % 2 === 0 ? cfg.rowBgColor : cfg.rowAltBgColor,
-                          color: cfg.rowTextColor,
-                          height: `${cfg.rowHeight}px`,
-                          padding: '4px 8px',
-                          width: colWidth ? `${colWidth}px` : 'auto',
-                          borderBottom: cfg.showInnerBorder && rowIndex < tableRows.length - 1 ? `${cfg.borderWidth}px solid ${cfg.borderColor}` : 'none',
-                          borderRight: cfg.showInnerBorder && !isLastDataCol ? `${cfg.borderWidth}px solid ${cfg.borderColor}` : 'none',
-                          overflow: 'hidden',
-                          textOverflow: 'ellipsis',
-                          whiteSpace: 'nowrap',
-                        }}>
+                        <td
+                          key={colIndex}
+                          colSpan={colspan}
+                          rowSpan={rowspan}
+                          style={{
+                            backgroundColor: rowIndex % 2 === 0 ? cfg.rowBgColor : cfg.rowAltBgColor,
+                            height: `${cfg.rowHeight * rowspan}px`,
+                            width: colWidth ? `${colWidth}px` : 'auto',
+                            borderBottom: cfg.showInnerBorder && rowIndex < tableRows.length - 1 ? `${cfg.borderWidth}px solid ${cfg.borderColor}` : 'none',
+                            borderRight: cfg.showInnerBorder && !isLastDataCol ? `${cfg.borderWidth}px solid ${cfg.borderColor}` : 'none',
+                            overflow: cfg.cellWordWrap === 'nowrap' ? 'hidden' : 'auto',
+                            textOverflow: 'ellipsis',
+                            ...cellStyle,
+                          }}
+                        >
                           {cell}
                         </td>
                       );
@@ -592,7 +772,66 @@ function DesignerCanvas({
                 );
               })}
             </tbody>
+
+            {/* 表尾 - 显示汇总数据 */}
+            {cfg.footerEnabled && (
+              <tfoot>
+                <tr>
+                  {footerValues.map((value, colIndex) => {
+                    const fieldId = cfg.fieldInfos?.[colIndex]?.fieldId || cfg.displayFields?.[colIndex];
+                    const colWidth = cfg.columnWidths?.[fieldId];
+                    const hasActionCol = cfg.actionColumn?.enabled;
+                    const isLastDataCol = !hasActionCol && colIndex === footerValues.length - 1;
+
+                    return (
+                      <td key={colIndex} style={{
+                        backgroundColor: cfg.footerBgColor,
+                        color: cfg.footerTextColor,
+                        height: `${cfg.footerHeight}px`,
+                        width: colWidth ? `${colWidth}px` : 'auto',
+                        padding: '4px 8px',
+                        textAlign: 'right',
+                        fontWeight: 'bold',
+                        fontSize: `${cfg.cellFontSize}px`,
+                        fontFamily: cfg.cellFontFamily,
+                        borderRight: cfg.showInnerBorder && !isLastDataCol ? `${cfg.borderWidth}px solid ${cfg.borderColor}` : 'none',
+                      }}>
+                        {value}
+                      </td>
+                    );
+                  })}
+                  {/* 操作列表尾 */}
+                  {cfg.actionColumn?.enabled && (
+                    <td style={{
+                      backgroundColor: cfg.footerBgColor,
+                      height: `${cfg.footerHeight}px`,
+                      width: `${cfg.actionColumn.width || 150}px`,
+                      padding: '4px 8px',
+                      textAlign: 'center',
+                      fontWeight: 'bold',
+                      fontSize: `${cfg.cellFontSize}px`,
+                      fontFamily: cfg.cellFontFamily,
+                    }}>
+                      汇总
+                    </td>
+                  )}
+                </tr>
+              </tfoot>
+            )}
           </table>
+
+          {/* 底部总结 */}
+          {cfg.bottomSummaryEnabled && cfg.bottomSummaryText && (
+            <div style={{
+              fontSize: `${cfg.bottomSummaryFontSize}px`,
+              color: cfg.bottomSummaryColor,
+              textAlign: cfg.bottomSummaryAlign,
+              marginTop: '4px',
+            }}>
+              {cfg.bottomSummaryText}
+            </div>
+          )}
+
           <div style={{
             textAlign: 'center',
             color: '#9ca3af',
