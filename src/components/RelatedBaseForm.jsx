@@ -55,9 +55,16 @@ function RelatedBaseForm({ projectId, onClose, onSuccess }) {
       );
       setIndependentForms(independentList);
 
-      // 加载所有页面（用于标题关联基础表选择详情页）
-      const pageList = await window.dndDB.getAllPages(projectId);
-      setPages(pageList);
+      // 加载所有角色的页面（用于标题关联基础表选择详情页）
+      const project = await window.dndDB.getProjectById(projectId);
+      if (project && project.roles) {
+        let allPages = [];
+        for (const role of project.roles) {
+          const rolePages = await window.dndDB.getPagesByRoleId(projectId, role.id);
+          allPages = allPages.concat(rolePages);
+        }
+        setPages(allPages);
+      }
     } catch (error) {
       alert('加载数据失败：' + error);
     }
