@@ -46,10 +46,10 @@ function PageDefinition({ projectId, roleId }) {
 
   const loadDetailForms = async () => {
     try {
-      // 获取所有独立基础表，过滤出type为'详情独立基础表'的
+      // 获取所有表单，过滤出subType为'详情独立基础表'的
       const allForms = await window.dndDB.getAllForms(projectId);
       const detailFormList = allForms.filter(form =>
-        form.type === '独立基础表' && form.subType === '详情独立基础表'
+        form.subType === '详情独立基础表'
       );
       setDetailForms(detailFormList);
     } catch (error) {
