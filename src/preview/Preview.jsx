@@ -533,8 +533,15 @@ function Preview() {
 
           const dataRecord = formDataList.find(data => {
             const pkValue = data[pkFieldId];
-            console.log('对比:', { pkValue, contentId, match: pkValue === contentId });
-            return pkValue === contentId;
+            const match = String(pkValue) === String(contentId);
+            console.log('对比:', {
+              pkValue,
+              pkValueStr: String(pkValue),
+              contentId,
+              contentIdStr: String(contentId),
+              match
+            });
+            return match;
           });
 
           if (!dataRecord) {
@@ -2453,12 +2460,12 @@ function Preview() {
                         const isLastDataCol = !hasActionCol && colIndex === row.length - 1;
 
                         // 判断是否为标题关联基础表
-                        const form = forms.find(f => f.id === cfg.formId);
+                        const form = forms.find(formItem => formItem.id === cfg.formId);
                         const isTitleRelatedForm = form && form.subType === '标题关联基础表';
                         const detailPageId = isTitleRelatedForm ? form.detailPageId : null;
 
                         // 判断该字段是否为关联字段
-                        const fieldConfig = form?.structure?.fields?.find(f => f.fieldId === fieldId);
+                        const fieldConfig = form?.structure?.fields?.find(field => field.fieldId === fieldId);
                         const isRelatedField = fieldConfig?.isRelatedField;
 
                         // 判断是否为跳转字段
