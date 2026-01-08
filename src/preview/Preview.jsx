@@ -518,6 +518,9 @@ function Preview() {
           // 加载表单的所有数据
           const formDataList = await window.dndDB.getFormDataList(projectId, detailForm.id);
 
+          console.log('详情页数据列表:', formDataList);
+          console.log('查找的contentId:', contentId);
+
           if (!formDataList || formDataList.length === 0) {
             setError('404内容不存在');
             setLoading(false);
@@ -525,13 +528,21 @@ function Preview() {
           }
 
           // 根据contentId查找对应的数据记录
+          const pkFieldId = detailForm.structure.primaryKey;
+          console.log('详情页主键字段ID:', pkFieldId);
+
           const dataRecord = formDataList.find(data => {
-            // 获取主键字段的值
-            const pkFieldId = detailForm.structure.primaryKey;
-            return data[pkFieldId] == contentId;  // 使用宽松比较
+            const pkValue = data[pkFieldId];
+            console.log('对比:', { pkValue, contentId, match: pkValue === contentId });
+            return pkValue === contentId;
           });
 
           if (!dataRecord) {
+            console.log('未找到匹配的数据记录');
+            setError('404内容不存在');
+            setLoading(false);
+            return;
+          }
             setError('404内容不存在');
             setLoading(false);
             return;
