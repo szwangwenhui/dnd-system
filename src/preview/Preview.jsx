@@ -20,6 +20,7 @@ function Preview() {
   const [formDataCache, setFormDataCache] = React.useState({});
   const [forms, setForms] = React.useState([]);
   const [fields, setFields] = React.useState([]);
+  const [project, setProject] = React.useState(null);
 
   // Icon相关状态
   const [iconInstances, setIconInstances] = React.useState([]);
@@ -426,8 +427,9 @@ function Preview() {
       }
       
       // 加载项目数据
-      const project = await window.dndDB.getProjectById(projectId);
-      console.log('项目数据:', project);
+      const projectData = await window.dndDB.getProjectById(projectId);
+      setProject(projectData);
+      console.log('项目数据:', projectData);
       if (!project) {
         throw new Error('项目不存在');
       }
@@ -504,7 +506,7 @@ function Preview() {
 
         try {
           // 加载详情独立基础表
-          const allForms = project.forms || [];
+          const allForms = projectData.forms || [];
           const detailForm = allForms.find(f => f.id === page.detailFormId);
 
           if (!detailForm) {
@@ -631,7 +633,7 @@ function Preview() {
             return;
           }
 
-          const detailForm = project.forms?.find(f => f.id === detailFormId);
+          const detailForm = projectData.forms?.find(f => f.id === detailFormId);
           if (!detailForm) {
             console.error('未找到详情表单:', detailFormId);
             setError('未找到详情表单');
@@ -684,12 +686,12 @@ function Preview() {
       }
       
       // 加载表单和字段数据
-      setForms(project.forms || []);
-      
+      setForms(projectData.forms || []);
+
       // 获取角色的字段，并合并项目级系统字段
-      const role = project.roles?.find(r => r.id === roleId);
+      const role = projectData.roles?.find(r => r.id === roleId);
       const roleFields = role?.fields || [];
-      const projectFields = project.fields || [];
+      const projectFields = projectData.fields || [];
       // 合并字段：项目级字段 + 角色字段（去重，优先使用角色字段）
       const mergedFields = [...projectFields];
       roleFields.forEach(rf => {
@@ -700,7 +702,7 @@ function Preview() {
       setFields(mergedFields);
       
       // 预加载所有表单数据
-      await loadAllFormData(page.design?.blocks || [], project.forms || []);
+      await loadAllFormData(page.design?.blocks || [], projectData.forms || []);
       
       // 初始化流程引擎
       if (window.initFlowEngine) {
