@@ -7,7 +7,7 @@ function RelatedBaseForm({ projectId, onClose, onSuccess }) {
   const [formName, setFormName] = React.useState('');
   const [formSubType, setFormSubType] = React.useState('普通关联基础表'); // '普通关联基础表' | '标题关联基础表'
   const [detailPageId, setDetailPageId] = React.useState(''); // 标题关联基础表关联的详情页ID
-  const [managedFormId, setManagedFormId] = React.useState(''); // 标题关联基础表关联的管理表单ID
+  const [managedFormId, setManagedFormId] = React.useState(''); // 标题关联基础表关联的关联表单ID
   const [step, setStep] = React.useState(1);
   // 1: 输入表单名称
   // 2: 添加关联字段（可多个）
@@ -116,16 +116,16 @@ function RelatedBaseForm({ projectId, onClose, onSuccess }) {
       .filter(Boolean);
   };
 
-  // 从管理表单添加字段（标题关联基础表专用）
+  // 从关联表单添加字段（标题关联基础表专用）
   const handleAddRelatedFieldFromManagedForm = (fieldId) => {
     if (!managedFormId) {
-      alert('请先选择管理表单');
+      alert('请先选择关联表单');
       return;
     }
 
     const managedForm = independentForms.find(f => f.id === managedFormId);
     if (!managedForm) {
-      alert('管理表单不存在');
+      alert('关联表单不存在');
       return;
     }
 
@@ -147,7 +147,7 @@ function RelatedBaseForm({ projectId, onClose, onSuccess }) {
     ]);
   };
 
-  // 自动添加管理表单的主键（标题关联基础表专用）
+  // 自动添加关联表单的主键（标题关联基础表专用）
   const handleAutoAddPrimaryKey = () => {
     if (!managedFormId) return;
 
@@ -164,7 +164,7 @@ function RelatedBaseForm({ projectId, onClose, onSuccess }) {
     }
   };
 
-  // 监听管理表单选择变化，自动添加主键
+  // 监听关联表单选择变化，自动添加主键
   React.useEffect(() => {
     if (formSubType === '标题关联基础表' && managedFormId) {
       handleAutoAddPrimaryKey();
@@ -467,7 +467,7 @@ function RelatedBaseForm({ projectId, onClose, onSuccess }) {
         formNature: '基础表单',
         subType: formSubType, // '普通关联基础表' | '标题关联基础表'
         detailPageId: formSubType === '标题关联基础表' ? detailPageId : null, // 仅标题关联基础表需要关联详情页
-        managedFormId: formSubType === '标题关联基础表' ? managedFormId : null, // 仅标题关联基础表需要关联管理表单
+        managedFormId: formSubType === '标题关联基础表' ? managedFormId : null, // 仅标题关联基础表需要关联表单
         structure: formStructure
       });
 
@@ -578,12 +578,12 @@ function RelatedBaseForm({ projectId, onClose, onSuccess }) {
                 </p>
               </div>
 
-              {/* 标题关联基础表需要选择关联的详情页和管理表单 */}
+              {/* 标题关联基础表需要选择关联的详情页和关联表单 */}
               {formSubType === '标题关联基础表' && (
                 <>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
-                      选择管理表单 <span className="text-red-500">*</span>
+                      选择关联表单 <span className="text-red-500">*</span>
                     </label>
                     <select
                       value={managedFormId}
@@ -595,9 +595,11 @@ function RelatedBaseForm({ projectId, onClose, onSuccess }) {
                       className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                       required
                     >
-                      <option value="">请选择管理表单（独立基础表）</option>
+                      <option value="">请选择关联表单（独立基础表）</option>
                       {independentForms.filter(f =>
-                        f.subType === '普通独立基础表' || f.subType === '独立基础表'
+                        f.subType === '普通独立基础表' ||
+                        f.subType === '详情独立基础表' ||
+                        f.subType === '独立基础表'
                       ).map(form => {
                         const pkInfo = getFormPrimaryKeyInfo(form.id);
                         return (
@@ -608,7 +610,7 @@ function RelatedBaseForm({ projectId, onClose, onSuccess }) {
                       })}
                     </select>
                     <p className="mt-1 text-xs text-gray-500">
-                      选择要管理的表单，该表单的主键会自动成为关联字段
+                      选择要关联的表单，该表单的主键会自动成为关联字段
                     </p>
                   </div>
 
@@ -656,7 +658,7 @@ function RelatedBaseForm({ projectId, onClose, onSuccess }) {
               {formSubType === '标题关联基础表' && (
                 <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
                   <p className="text-sm text-blue-700">
-                    <strong>标题关联基础表：</strong>管理表单的主键已自动添加为关联字段，您可以从下方选择管理表单的其他字段一起加入。
+                    <strong>标题关联基础表：</strong>关联表单的主键已自动添加为关联字段，您可以从下方选择关联表单的其他字段一起加入。
                   </p>
                 </div>
               )}
@@ -701,20 +703,20 @@ function RelatedBaseForm({ projectId, onClose, onSuccess }) {
                   添加关联字段
                 </label>
                 {formSubType === '标题关联基础表' ? (
-                  /* 标题关联基础表：显示管理表单的字段 */
+                  /* 标题关联基础表：显示关联表单的字段 */
                   (() => {
                     const managedForm = independentForms.find(f => f.id === managedFormId);
                     if (!managedForm) {
                       return (
                         <div className="bg-red-50 border border-red-200 rounded-lg p-4">
                           <p className="text-sm text-red-700">
-                            请先选择管理表单
+                            请先选择关联表单
                           </p>
                         </div>
                       );
                     }
 
-                    // 获取管理表单的字段列表（排除主键和已添加的字段）
+                    // 获取关联表单的字段列表（排除主键和已添加的字段）
                     const availableFields = getFormAvailableFields(managedForm.id);
 
                     return availableFields.length === 0 ? (
