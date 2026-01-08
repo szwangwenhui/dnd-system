@@ -430,7 +430,7 @@ function Preview() {
       const projectData = await window.dndDB.getProjectById(projectId);
       setProject(projectData);
       console.log('项目数据:', projectData);
-      if (!project) {
+      if (!projectData) {
         throw new Error('项目不存在');
       }
       
