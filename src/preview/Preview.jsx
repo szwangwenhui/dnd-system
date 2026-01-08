@@ -2450,71 +2450,71 @@ function Preview() {
                   );
               })
             )}
+          </tbody>
 
-            {/* 表尾 - 显示汇总数据 */}
-            {cfg.footerEnabled && tableRows.length > 0 && (
-              <tfoot>
-                <tr>
-                  {headers.map((_, colIndex) => {
-                    const fieldId = cfg.fieldInfos?.[colIndex]?.fieldId || cfg.displayFields?.[colIndex];
-                    const colWidth = cfg.columnWidths?.[fieldId];
-                    const hasActionCol = actionColumn?.enabled;
-                    const isLastDataCol = !hasActionCol && colIndex === headers.length - 1;
+          {/* 表尾 - 显示汇总数据 */}
+          {cfg.footerEnabled && tableRows.length > 0 && (
+            <tfoot>
+              <tr>
+                {headers.map((_, colIndex) => {
+                  const fieldId = cfg.fieldInfos?.[colIndex]?.fieldId || cfg.displayFields?.[colIndex];
+                  const colWidth = cfg.columnWidths?.[fieldId];
+                  const hasActionCol = actionColumn?.enabled;
+                  const isLastDataCol = !hasActionCol && colIndex === headers.length - 1;
 
-                    // 汇总该列的所有数据
-                    const values = displayData.map(row => {
-                      const val = row[fieldId];
-                      return parseFloat(val);
-                    }).filter(v => !isNaN(v));
+                  // 汇总该列的所有数据
+                  const values = displayData.map(row => {
+                    const val = row[fieldId];
+                    return parseFloat(val);
+                  }).filter(v => !isNaN(v));
 
-                    let summaryText = 'NA';
-                    if (values.length > 0) {
-                      const sum = values.reduce((a, b) => a + b, 0);
-                      const avg = sum / values.length;
-                      const max = Math.max(...values);
-                      const min = Math.min(...values);
-                      const count = values.length;
-                      summaryText = `Σ${sum.toFixed(2)}  ̄x${avg.toFixed(2)}  Max${max.toFixed(2)}  Min${min.toFixed(2)}  N${count}`;
-                    }
+                  let summaryText = 'NA';
+                  if (values.length > 0) {
+                    const sum = values.reduce((a, b) => a + b, 0);
+                    const avg = sum / values.length;
+                    const max = Math.max(...values);
+                    const min = Math.min(...values);
+                    const count = values.length;
+                    summaryText = `Σ${sum.toFixed(2)}  ̄x${avg.toFixed(2)}  Max${max.toFixed(2)}  Min${min.toFixed(2)}  N${count}`;
+                  }
 
-                    return (
-                      <td key={colIndex} style={{
-                        backgroundColor: cfg.footerBgColor || '#f3f4f6',
-                        color: cfg.footerTextColor || '#374151',
-                        height: `${cfg.footerHeight || 36}px`,
-                        width: colWidth ? `${colWidth}px` : 'auto',
-                        padding: `${cfg.cellPaddingTop || 4}px ${cfg.cellPaddingRight || 8}px ${cfg.cellPaddingBottom || 4}px ${cfg.cellPaddingLeft || 8}px`,
-                        textAlign: 'right',
-                        fontWeight: 'bold',
-                        fontSize: `${cfg.footerFontSize || 12}px`,
-                        fontFamily: cfg.footerFontFamily || 'Arial',
-                        borderTop: showInnerBorder ? `${innerHorizontalBorderWidth}px solid ${innerHorizontalBorderColor}` : 'none',
-                        borderRight: showInnerBorder && !isLastDataCol ? `${innerVerticalBorderWidth}px solid ${innerVerticalBorderColor}` : 'none',
-                      }}>
-                        {summaryText}
-                      </td>
-                    );
-                  })}
-                  {/* 操作列表尾 */}
-                  {actionColumn?.enabled && (
-                    <td style={{
+                  return (
+                    <td key={colIndex} style={{
                       backgroundColor: cfg.footerBgColor || '#f3f4f6',
                       color: cfg.footerTextColor || '#374151',
                       height: `${cfg.footerHeight || 36}px`,
+                      width: colWidth ? `${colWidth}px` : 'auto',
                       padding: `${cfg.cellPaddingTop || 4}px ${cfg.cellPaddingRight || 8}px ${cfg.cellPaddingBottom || 4}px ${cfg.cellPaddingLeft || 8}px`,
-                      textAlign: 'center',
+                      textAlign: 'right',
                       fontWeight: 'bold',
                       fontSize: `${cfg.footerFontSize || 12}px`,
                       fontFamily: cfg.footerFontFamily || 'Arial',
                       borderTop: showInnerBorder ? `${innerHorizontalBorderWidth}px solid ${innerHorizontalBorderColor}` : 'none',
+                      borderRight: showInnerBorder && !isLastDataCol ? `${innerVerticalBorderWidth}px solid ${innerVerticalBorderColor}` : 'none',
                     }}>
-                      汇总
+                      {summaryText}
                     </td>
-                  )}
-                </tr>
-              </tfoot>
-            )}
-          </tbody>
+                  );
+                })}
+                {/* 操作列表尾 */}
+                {actionColumn?.enabled && (
+                  <td style={{
+                    backgroundColor: cfg.footerBgColor || '#f3f4f6',
+                    color: cfg.footerTextColor || '#374151',
+                    height: `${cfg.footerHeight || 36}px`,
+                    padding: `${cfg.cellPaddingTop || 4}px ${cfg.cellPaddingRight || 8}px ${cfg.cellPaddingBottom || 4}px ${cfg.cellPaddingLeft || 8}px`,
+                    textAlign: 'center',
+                    fontWeight: 'bold',
+                    fontSize: `${cfg.footerFontSize || 12}px`,
+                    fontFamily: cfg.footerFontFamily || 'Arial',
+                    borderTop: showInnerBorder ? `${innerHorizontalBorderWidth}px solid ${innerHorizontalBorderColor}` : 'none',
+                  }}>
+                    汇总
+                  </td>
+                )}
+              </tr>
+            </tfoot>
+          )}
           </table>
         </div>
       </div>
