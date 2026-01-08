@@ -519,6 +519,7 @@ function Preview() {
           const formDataList = await window.dndDB.getFormDataList(projectId, detailForm.id);
 
           console.log('详情页数据列表:', formDataList);
+          console.log('数据列表详情:', JSON.stringify(formDataList, null, 2));
           console.log('查找的contentId:', contentId);
 
           if (!formDataList || formDataList.length === 0) {
@@ -533,14 +534,20 @@ function Preview() {
 
           const dataRecord = formDataList.find(data => {
             const pkValue = data[pkFieldId];
-            const match = String(pkValue) === String(contentId);
-            console.log('对比:', {
-              pkValue,
-              pkValueStr: String(pkValue),
-              contentId,
-              contentIdStr: String(contentId),
-              match
-            });
+            const pkValueStr = String(pkValue || '');
+            const contentIdStr = String(contentId || '');
+            const match = pkValueStr === contentIdStr;
+
+            console.log('--- 对比 ---');
+            console.log('数据记录:', data);
+            console.log('主键字段ID:', pkFieldId);
+            console.log('主键值:', pkValue);
+            console.log('主键值(字符串):', pkValueStr);
+            console.log('contentId:', contentId);
+            console.log('contentId(字符串):', contentIdStr);
+            console.log('是否匹配:', match);
+            console.log('---');
+
             return match;
           });
 
