@@ -2575,6 +2575,18 @@ function Preview() {
                         // 判断是否为跳转字段
                         const isJumpField = isTitleRelatedForm && isRelatedField && detailPageId;
 
+                        // 调试日志
+                        if (isTitleRelatedForm && isRelatedField) {
+                          console.log('字段跳转检查:', {
+                            fieldId,
+                            fieldName: fieldConfig?.name,
+                            isTitleRelatedForm,
+                            isRelatedField,
+                            detailPageId,
+                            isJumpField
+                          });
+                        }
+
                         // 获取当前记录的主键值（用于跳转）
                         const primaryKeyFieldId = form?.structure?.primaryKey;
                         const primaryKeyValue = record[primaryKeyFieldId];
