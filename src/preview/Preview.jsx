@@ -2471,6 +2471,10 @@ function Preview() {
                         // 判断是否为跳转字段
                         const isJumpField = isTitleRelatedForm && isRelatedField && detailPageId;
 
+                        // 获取当前记录的主键值（用于跳转）
+                        const primaryKeyFieldId = form?.structure?.primaryKey;
+                        const primaryKeyValue = record[primaryKeyFieldId];
+
                         return (
                           <td key={colIndex} style={{
                             padding: `${cfg.cellPaddingTop || 4}px ${cfg.cellPaddingRight || 8}px ${cfg.cellPaddingBottom || 4}px ${cfg.cellPaddingLeft || 8}px`,
@@ -2486,9 +2490,9 @@ function Preview() {
                             {isJumpField ? (
                               <span
                                 onClick={() => {
-                                  console.log('跳转到详情页:', { detailPageId, record, cellValue: cell });
-                                  // 跳转到详情页，传递 contentId
-                                  window.location.href = `?projectId=${projectId}&roleId=${roleId}&pageId=${detailPageId}&contentId=${cell}`;
+                                  console.log('跳转到详情页:', { detailPageId, record, primaryKeyValue, cellValue: cell });
+                                  // 跳转到详情页，传递主键值
+                                  window.location.href = `?projectId=${projectId}&roleId=${roleId}&pageId=${detailPageId}&contentId=${primaryKeyValue}`;
                                 }}
                                 style={{
                                   color: '#3b82f6',
