@@ -308,20 +308,63 @@ function BaseFormDataEntry({ projectId, form, fields, forms, onClose, onSuccess 
 
     const relatedData = {};
 
-    for (const rf of form.structure.relatedFields) {
-      const relatedForm = forms.find(f => f.id === rf.formId);
-      if (relatedForm && relatedForm.data) {
-        // 获取关联表的主键字段和提醒字段信息
-        const primaryKeyId = relatedForm.structure?.primaryKey;
-        const reminderFieldId = rf.reminderFieldId;
+    // 对于标题关联基础表，优先加载 managedFormId 对应的关联表单
+    if (form.managedFormId) {
+      let relatedForm = forms.find(f => f.id === form.managedFormId);
 
-        relatedData[rf.formId] = {
+      // 如果关联表没有数据，尝试从数据库加载
+      if (relatedForm && !relatedForm.data) {
+        try {
+          const formData = await window.dndDB.getFormDataList(projectId, form.managedFormId);
+          relatedForm = { ...relatedForm, data: formData || [] };
+        } catch (error) {
+          console.error('加载关联表数据失败:', error);
+        }
+      }
+
+      if (relatedForm && relatedForm.data) {
+        // 找到主键关联字段对应的 reminderFieldId
+        const primaryKeyRelatedField = form.structure.fields?.find(f =>
+          f.isRelatedField && f.isPrimaryKey
+        );
+        const reminderFieldId = primaryKeyRelatedField?.reminderFieldId || '';
+
+        relatedData[form.managedFormId] = {
           formName: relatedForm.name,
-          primaryKeyId: primaryKeyId,
+          primaryKeyId: relatedForm.structure?.primaryKey,
           reminderFieldId: reminderFieldId,
-          data: relatedForm.data,
-          fieldId: rf.fieldId
+          data: relatedForm.data
         };
+      }
+    } else {
+      // 对于普通关联基础表，加载所有关联表单的数据
+      for (const rf of form.structure.relatedFields) {
+        let relatedForm = forms.find(f => f.id === rf.formId);
+
+        // 如果关联表没有数据，尝试从数据库加载
+        if (relatedForm && !relatedForm.data) {
+          try {
+            const formData = await window.dndDB.getFormDataList(projectId, rf.formId);
+            relatedForm = { ...relatedForm, data: formData || [] };
+          } catch (error) {
+            console.error('加载关联表数据失败:', error);
+            continue;
+          }
+        }
+
+        if (relatedForm && relatedForm.data) {
+          // 获取关联表的主键字段和提醒字段信息
+          const primaryKeyId = relatedForm.structure?.primaryKey;
+          const reminderFieldId = rf.reminderFieldId;
+
+          relatedData[rf.formId] = {
+            formName: relatedForm.name,
+            primaryKeyId: primaryKeyId,
+            reminderFieldId: reminderFieldId,
+            data: relatedForm.data,
+            fieldId: rf.fieldId
+          };
+        }
       }
     }
 
@@ -379,14 +422,14 @@ function BaseFormDataEntry({ projectId, form, fields, forms, onClose, onSuccess 
     const config = getFieldConfig(fieldId);
     if (!config || !config.isRelatedField) return null;
 
-    const relatedFormId = config.relatedFormId;
+    // 对于标题关联基础表，使用 managedFormId
+    const relatedFormId = form.managedFormId || config.relatedFormId;
     if (!relatedFormId) return null;
 
     // 找到同一个关联表单的主键关联字段
     const primaryKeyRelatedField = form.structure?.fields?.find(f =>
       f.isRelatedField === true &&
-      f.isPrimaryKey === true &&
-      f.relatedFormId === relatedFormId
+      f.isPrimaryKey === true
     );
 
     if (!primaryKeyRelatedField) return null;
@@ -408,7 +451,8 @@ function BaseFormDataEntry({ projectId, form, fields, forms, onClose, onSuccess 
     const primaryKeyValue = getPrimaryKeyRelatedFieldValue(fieldId);
     if (!primaryKeyValue) return null;
 
-    const relatedFormId = config.relatedFormId;
+    // 对于标题关联基础表，使用 managedFormId
+    const relatedFormId = form.managedFormId || config.relatedFormId;
     const relatedInfo = relatedFormData[relatedFormId];
     if (!relatedInfo || !relatedInfo.data) return null;
 
@@ -516,9 +560,14 @@ function BaseFormDataEntry({ projectId, form, fields, forms, onClose, onSuccess 
   // 获取关联字段对应的关联表数据
   const getRelatedFieldOptions = (fieldId) => {
     const config = getFieldConfig(fieldId);
-    if (!config || !config.relatedFormId) return [];
+    if (!config || !config.isRelatedField) return [];
 
-    const relatedInfo = relatedFormData[config.relatedFormId];
+    // 对于标题关联基础表，所有关联字段都来自同一个关联表单（managedFormId）
+    const relatedFormId = form.managedFormId || config.relatedFormId;
+
+    if (!relatedFormId) return [];
+
+    const relatedInfo = relatedFormData[relatedFormId];
     if (!relatedInfo || !relatedInfo.data) return [];
 
     return relatedInfo.data.map(item => {
@@ -548,29 +597,31 @@ function BaseFormDataEntry({ projectId, form, fields, forms, onClose, onSuccess 
 
       // 如果是主键关联字段，级联更新同一关联表单的其他关联字段
       const config = getFieldConfig(fieldId);
-      if (config?.isRelatedField && config?.isPrimaryKey && config?.relatedFormId) {
-        const relatedFormId = config.relatedFormId;
+      if (config?.isRelatedField && config?.isPrimaryKey) {
+        // 对于标题关联基础表，使用 managedFormId
+        const relatedFormId = form.managedFormId || config.relatedFormId;
 
-        // 查找同一关联表单的其他关联字段
-        const otherRelatedFields = form.structure?.fields?.filter(f =>
-          f.isRelatedField === true &&
-          !f.isPrimaryKey &&
-          f.relatedFormId === relatedFormId
-        );
+        if (relatedFormId) {
+          // 查找同一关联表单的其他关联字段
+          const otherRelatedFields = form.structure?.fields?.filter(f =>
+            f.isRelatedField === true &&
+            !f.isPrimaryKey
+          );
 
-        if (otherRelatedFields && otherRelatedFields.length > 0) {
-          const relatedInfo = relatedFormData[relatedFormId];
-          if (relatedInfo && relatedInfo.data) {
-            // 查找关联表中主键值对应的记录
-            const relatedRecord = relatedInfo.data.find(item =>
-              String(item[relatedInfo.primaryKeyId]) === String(value)
-            );
+          if (otherRelatedFields && otherRelatedFields.length > 0) {
+            const relatedInfo = relatedFormData[relatedFormId];
+            if (relatedInfo && relatedInfo.data) {
+              // 查找关联表中主键值对应的记录
+              const relatedRecord = relatedInfo.data.find(item =>
+                String(item[relatedInfo.primaryKeyId]) === String(value)
+              );
 
-            if (relatedRecord) {
-              // 更新其他关联字段的值
-              otherRelatedFields.forEach(f => {
-                newValues[f.fieldId] = relatedRecord[f.fieldId];
-              });
+              if (relatedRecord) {
+                // 更新其他关联字段的值
+                otherRelatedFields.forEach(f => {
+                  newValues[f.fieldId] = relatedRecord[f.fieldId];
+                });
+              }
             }
           }
         }
