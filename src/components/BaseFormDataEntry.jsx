@@ -489,8 +489,9 @@ function BaseFormDataEntry({ projectId, form, fields, forms, onClose, onSuccess 
 
     if (!relatedRecord) return null;
 
-    // 返回该记录中对应字段的值
-    return relatedRecord[fieldId];
+    // 使用 relatedFormFieldId 获取关联表单中对应字段的值
+    const relatedFormFieldId = config.relatedFormFieldId || fieldId;
+    return relatedRecord[relatedFormFieldId];
   };
 
   // 判断字段是否为属性字段

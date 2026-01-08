@@ -432,6 +432,7 @@ function RelatedBaseForm({ projectId, onClose, onSuccess }) {
           isPrimaryKey: isThisPrimaryKey,
           isRelatedField: true,
           relatedFormId: rf.formId,
+          relatedFormFieldId: rf.fieldId, // 存储关联表单中的字段ID，用于级联获取值
           reminderFieldId: isThisPrimaryKey ? reminderFieldId : ''
         });
       });
