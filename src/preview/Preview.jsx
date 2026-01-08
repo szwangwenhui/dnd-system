@@ -492,7 +492,7 @@ function Preview() {
       setCurrentPage(page);
       setBlocks(page.design?.blocks || []);
       setIconInstances(page.design?.iconInstances || []);
-      setProjectIcons(project.icons || []);
+      setProjectIcons(projectData.icons || []);
 
       // ====== 详情页数据加载 ======
       if (page.category === '详情页' && contentId) {
