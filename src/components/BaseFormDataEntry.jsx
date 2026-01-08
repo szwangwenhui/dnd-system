@@ -673,15 +673,15 @@ function BaseFormDataEntry({ projectId, form, fields, forms, onClose, onSuccess 
 
       // 如果是主键关联字段，级联更新同一关联表单的其他关联字段
       const config = getFieldConfig(fieldId);
-      if (config?.isRelatedField && config?.isPrimaryKey) {
+      if (isPrimaryKeyRelatedField(fieldId)) {
         // 对于标题关联基础表，使用 managedFormId
         const relatedFormId = form.managedFormId || config.relatedFormId;
 
         if (relatedFormId) {
-          // 查找同一关联表单的其他关联字段
+          // 查找同一关联表单的其他关联字段（排除当前主键关联字段）
           const otherRelatedFields = form.structure?.fields?.filter(f =>
             f.isRelatedField === true &&
-            !f.isPrimaryKey
+            f.fieldId !== fieldId
           );
 
           if (otherRelatedFields && otherRelatedFields.length > 0) {
@@ -695,8 +695,10 @@ function BaseFormDataEntry({ projectId, form, fields, forms, onClose, onSuccess 
               if (relatedRecord) {
                 // 更新其他关联字段的值
                 otherRelatedFields.forEach(f => {
-                  newValues[f.fieldId] = relatedRecord[f.fieldId];
+                  const relatedFormFieldId = f.relatedFormFieldId || f.fieldId;
+                  newValues[f.fieldId] = relatedRecord[relatedFormFieldId];
                 });
+                console.log('级联更新其他关联字段:', newValues);
               }
             }
           }
