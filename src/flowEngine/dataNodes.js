@@ -304,7 +304,7 @@ proto.executeReadNode = async function(node, design) {
   }
   
   return this.getNextNodeId(node.id, design);
-}
+};
 
   // 执行写入节点
 proto.executeWriteNode = async function(node, design) {
@@ -340,7 +340,7 @@ proto.executeWriteNode = async function(node, design) {
   console.log('');
   
   return this.getNextNodeId(node.id, design);
-}
+};
 
   // 批量写入
 proto.executeBatchWrite = async function(config) {
@@ -641,7 +641,7 @@ proto.executeUpdateNode = async function(node, design) {
   // TODO: 实现更新逻辑
   
   return this.getNextNodeId(node.id, design);
-}
+};
 
   // 执行删除节点
 proto.executeDeleteNode = async function(node, design) {
@@ -651,7 +651,7 @@ proto.executeDeleteNode = async function(node, design) {
   // TODO: 实现删除逻辑
   
   return this.getNextNodeId(node.id, design);
-}
+};
 
 
   console.log('[DND2] flowEngine/dataNodes.js 加载完成 - 数据操作节点已注册');

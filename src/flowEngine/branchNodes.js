@@ -230,7 +230,7 @@ proto.executeExistCheckNode = async function(node, design) {
 }
 
   // 比较两个值
-compareValues(left, right, operator) {
+  proto.compareValues = function(left, right, operator) {
   // 类型转换，尝试数字比较
   const leftNum = parseFloat(left);
   const rightNum = parseFloat(right);
@@ -260,7 +260,7 @@ compareValues(left, right, operator) {
 }
 
   // 计算变量比较条件
-evaluateCompareCondition(config) {
+  proto.evaluateCompareCondition = function(config) {
   console.log('');
   console.log('【1. 获取左侧变量值】');
   console.log('左侧变量ID:', config.leftVariableId);
@@ -519,7 +519,7 @@ proto.executeCalculateNode = async function(node, design) {
 }
 
   // 计算-赋值
-calculateAssign(cfg) {
+  proto.calculateAssign = function(cfg) {
   if (!cfg || !cfg.varId) return null;
   let value = this.getVariableValue(cfg.varId);
   if (cfg.path && value && typeof value === 'object') {
@@ -529,7 +529,7 @@ calculateAssign(cfg) {
 }
 
   // 计算-加法
-calculateAddition(cfg) {
+  proto.calculateAddition = function(cfg) {
   if (!cfg) return 0;
   let result = cfg.constant || 0;
   (cfg.terms || []).forEach(term => {
@@ -542,7 +542,7 @@ calculateAddition(cfg) {
 }
 
   // 计算-减法
-calculateSubtraction(cfg) {
+  proto.calculateSubtraction = function(cfg) {
   if (!cfg) return 0;
   const minuend = Number(this.getVariableValue(cfg.minuend)) || 0;
   const subtrahend = Number(this.getVariableValue(cfg.subtrahend)) || 0;
@@ -550,7 +550,7 @@ calculateSubtraction(cfg) {
 }
 
   // 计算-乘法
-calculateMultiplication(cfg) {
+  proto.calculateMultiplication = function(cfg) {
   if (!cfg || !cfg.factors) return 0;
   const validFactors = cfg.factors.filter(f => f);
   if (validFactors.length === 0) return 0;
@@ -563,7 +563,7 @@ calculateMultiplication(cfg) {
 }
 
   // 计算-除法
-calculateDivision(cfg) {
+  proto.calculateDivision = function(cfg) {
   if (!cfg) return 0;
   const dividend = Number(this.getVariableValue(cfg.dividend)) || 0;
   const divisor = Number(this.getVariableValue(cfg.divisor)) || 0;
@@ -572,7 +572,7 @@ calculateDivision(cfg) {
 }
 
   // 计算-文本拼接
-calculateConcat(cfg) {
+  proto.calculateConcat = function(cfg) {
   if (!cfg || !cfg.items) return '';
   let result = '';
   cfg.items.forEach(item => {
@@ -590,7 +590,7 @@ calculateConcat(cfg) {
 }
 
   // 获取变量值（支持循环变量）
-getVariableValue(varId) {
+  proto.getVariableValue = function(varId) {
   if (!varId) return null;
   // 支持带$和不带$的变量ID
   const normalizedId = varId.startsWith('$') ? varId.substring(1) : varId;
