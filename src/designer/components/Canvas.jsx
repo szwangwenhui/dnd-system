@@ -224,8 +224,14 @@ function DesignerCanvas({
 
     // 获取区块内容
     const getBlockContent = () => {
-      if (block.content && block.content.html) {
-        return block.content.html;
+      if (!block.content) return '';
+      // 如果是对象格式 { html: ..., text: ... }
+      if (typeof block.content === 'object') {
+        return block.content.html || block.content.text || '';
+      }
+      // 如果是字符串格式
+      if (typeof block.content === 'string') {
+        return block.content;
       }
       return '';
     };
@@ -276,8 +282,10 @@ function DesignerCanvas({
 
     // 渲染图片内容
     const renderImageContent = () => {
-      const hasImage = block.imageUrl;
-      
+      // 支持两种格式：block.imageUrl 或 block.content.imageUrl
+      const imageUrl = block.imageUrl || (block.content?.imageUrl) || '';
+      const hasImage = !!imageUrl;
+
       if (!hasImage) {
         return (
           <div style={{
@@ -294,7 +302,7 @@ function DesignerCanvas({
           </div>
         );
       }
-      
+
       return (
         <div style={{
           width: '100%',
@@ -305,7 +313,7 @@ function DesignerCanvas({
           overflow: 'hidden',
         }}>
           <img
-            src={block.imageUrl}
+            src={imageUrl}
             alt={block.imageName || '图片'}
             style={{
               maxWidth: '100%',
@@ -316,7 +324,7 @@ function DesignerCanvas({
               e.stopPropagation();
               // 触发图片预览
               window.dispatchEvent(new CustomEvent('previewImage', {
-                detail: { url: block.imageUrl, name: block.imageName }
+                detail: { url: imageUrl, name: block.imageName }
               }));
             }}
           />
@@ -1472,11 +1480,11 @@ function DesignerCanvas({
         }}
       >
         {/* 区块标签 */}
-        <div 
+        <div
           className="absolute -top-5 left-0 text-xs bg-blue-500 text-white px-1 rounded whitespace-nowrap"
           style={{ fontSize: Math.max(10, 12 * s), zIndex: 10 }}
         >
-          {block.id} · {block.type} · {block.level || 1}级{isPopupBlock ? ' · 弹窗' : ''}{block.parentId ? ` · 父:${block.parentId}` : ''}
+          {block.id} · {block.type} · {block.level || 1}级{isPopupBlock ? ' · 弹窗' : ''}{block.parentId ? ` · 父:${block.parentId}` : ''}{block.isDetailFieldBlock ? ` · 字段:${block.detailFieldName}` : ''}
         </div>
         
         {/* 弹窗关闭按钮❌ - 仅弹窗区块且层级≥0时显示，默认隐藏，hover时显示 */}

@@ -175,12 +175,19 @@ function PageDesigner({ projectId, roleId, page, onClose, onSave }) {
           const field = fields.find(f => f.id === fieldConfig.fieldId);
           if (!field) continue;
 
-          // 根据字段类型确定区块类型
+          // 根据字段类型确定区块类型和内容格式
           let contentType = '文字';
+          let contentValue = '';
+
           if (field.type === '图片') {
             contentType = '图片';
+            contentValue = { imageUrl: '' }; // 图片内容格式
           } else if (field.type === '富文本') {
             contentType = '富文本';
+            contentValue = { html: '', text: '' }; // 富文本内容格式
+          } else {
+            contentType = '文字';
+            contentValue = { html: `[${field.name}]`, text: `[${field.name}]` }; // 文字内容格式
           }
 
           // 创建区块（放在左上角，稍微错开）
@@ -190,14 +197,18 @@ function PageDesigner({ projectId, roleId, page, onClose, onSave }) {
             y: 20 + i * 80, // 每个区块向下偏移80px
             width: 400,
             height: 60,
+            type: '显示',
             contentType: contentType,
-            content: `[${field.name}]`, // 占位文本
+            content: contentValue,
             style: {
               backgroundColor: '#ffffff',
               color: '#000000',
               fontSize: 14,
               fontFamily: 'Arial',
-              fontWeight: 'normal'
+              fontWeight: 'normal',
+              padding: 8,
+              border: '1px solid #e5e7eb',
+              borderRadius: 4
             },
             isDetailFieldBlock: true, // 标记为详情字段区块
             detailFormId: detailForm.id,
