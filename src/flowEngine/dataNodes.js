@@ -619,10 +619,9 @@ proto.getNextPrimaryKeyValue = async function(formId) {
     console.error('获取最大主键值失败:', error);
     return 1;
   }
-}
 
   // 获取变量路径值（如 $item.F001）
-getVariablePathValue(varId, path) {
+  getVariablePathValue(varId, path) {
   if (!varId) return undefined;
   
   let value = this.getVariableValue(varId);

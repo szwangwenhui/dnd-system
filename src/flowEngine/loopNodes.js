@@ -476,7 +476,6 @@ proto.findCurrentLoopStartId = function(nodeId, design) {
   }
   return null;
 }
-}
 
   console.log('[DND2] flowEngine/loopNodes.js 加载完成 - 循环控制节点和辅助方法已注册');
 })();
