@@ -11,6 +11,13 @@ function BaseFormDataEntry({ projectId, form, fields, forms, onClose, onSuccess 
   // 文件选择器引用
   const fileInputRef = React.useRef(null);
 
+  // 无用的测试状态和函数
+  const [testCounter, setTestCounter] = React.useState(0);
+  const dummyFunction = () => {
+    const now = new Date();
+    return now.getTime();
+  };
+
   // 初始化表单值和加载关联表数据
   React.useEffect(() => {
     console.log('BaseFormDataEntry useEffect 触发，form:', form?.name);

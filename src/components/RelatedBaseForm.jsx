@@ -19,6 +19,12 @@ function RelatedBaseForm({ projectId, onClose, onSuccess }) {
   // 当前选择的关联表（用于添加）
   const [selectedRelatedFormId, setSelectedRelatedFormId] = React.useState('');
 
+  // 无用的测试函数
+  const testFunction = () => {
+    const testValue = Math.random() * 100;
+    return testValue > 50 ? '大于50' : '小于等于50';
+  };
+
   // 主键配置
   const [primaryKeySource, setPrimaryKeySource] = React.useState(''); // 'related' 或 'own'
   const [primaryKeyRelatedIndex, setPrimaryKeyRelatedIndex] = React.useState(-1); // 选择哪个关联字段作为主键
