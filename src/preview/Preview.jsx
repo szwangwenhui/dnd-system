@@ -2241,7 +2241,7 @@ function Preview() {
 
     return (
       <div key={block.id} style={{ ...blockStyle, overflow: 'auto' }}>
-        {PopupCloseButton && <PopupCloseButton()}
+        {PopupCloseButton && <PopupCloseButton />}
 
         {/* 表单名称 */}
         {cfg.formName && (
