@@ -89,6 +89,15 @@ export const createFormRenderer = (props) => {
     // 获取标题关联基础表关联的详情页ID
     const detailPageId = isTitleRelatedForm ? form.detailPageId : null;
 
+    // 调试信息
+    if (isTitleRelatedForm) {
+      console.log('=== 标题关联基础表调试 ===');
+      console.log('表单ID:', cfg.formId);
+      console.log('表单subType:', form?.subType);
+      console.log('关联的详情页ID:', detailPageId);
+      console.log('表单结构:', form?.structure);
+    }
+
     if (!cfg || !cfg.formId) {
       return (
         <div key={block.id} style={blockStyle}>
@@ -280,6 +289,17 @@ export const createFormRenderer = (props) => {
 
                         // 判断是否为标题关联基础表的跳转字段
                         const isJumpField = isTitleRelatedForm && isRelatedField && detailPageId;
+
+                        // 调试信息
+                        if (isTitleRelatedForm && isRelatedField) {
+                          console.log('字段调试:', {
+                            fieldId,
+                            isRelatedField,
+                            detailPageId,
+                            isJumpField,
+                            fieldConfig
+                          });
+                        }
 
                         return (
                           <td key={colIndex} style={{
