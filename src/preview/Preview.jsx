@@ -619,8 +619,68 @@ function Preview() {
           return;
         }
       } else if (page.category === '详情页' && !contentId) {
-        // 详情页但没有contentId参数
-        console.warn('详情页缺少contentId参数');
+        // 详情页但没有contentId参数 - 直接预览时默认加载第一条记录
+        console.warn('详情页缺少contentId参数，尝试加载第一条记录');
+
+        try {
+          const detailFormId = page.detailFormId;
+          if (!detailFormId) {
+            console.error('详情页未配置关联表单');
+            setError('详情页未配置关联表单');
+            setLoading(false);
+            return;
+          }
+
+          const detailForm = project.forms?.find(f => f.id === detailFormId);
+          if (!detailForm) {
+            console.error('未找到详情表单:', detailFormId);
+            setError('未找到详情表单');
+            setLoading(false);
+            return;
+          }
+
+          console.log('加载详情表单数据，表单ID:', detailFormId);
+
+          // 获取表单数据
+          const formDataList = await fetchFormData(detailFormId, projectId, roleId);
+          console.log('详情页数据列表:', formDataList);
+
+          if (!formDataList || formDataList.length === 0) {
+            setError('详情表单暂无数据');
+            setLoading(false);
+            return;
+          }
+
+          // 使用第一条记录
+          const firstRecord = formDataList[0];
+          const pkFieldId = detailForm.structure.primaryKey;
+          const pkValue = firstRecord[pkFieldId];
+
+          console.log('使用第一条记录:', firstRecord);
+          console.log('主键字段:', pkFieldId, '主键值:', pkValue);
+
+          setDetailPageData(firstRecord);
+
+          // 更新字段区块的内容
+          const updatedBlocks = (page.design?.blocks || []).map(block => {
+            if (block.isDetailFieldBlock && block.detailFieldId) {
+              const fieldValue = firstRecord[block.detailFieldId];
+              return {
+                ...block,
+                content: fieldValue !== undefined && fieldValue !== null ? String(fieldValue) : block.content
+              };
+            }
+            return block;
+          });
+
+          setBlocks(updatedBlocks);
+          console.log('更新详情页区块内容:', updatedBlocks.length, '个');
+        } catch (error) {
+          console.error('加载详情页第一条记录失败:', error);
+          setError('加载详情页数据失败：' + error.message);
+          setLoading(false);
+          return;
+        }
       }
       
       // 加载表单和字段数据
