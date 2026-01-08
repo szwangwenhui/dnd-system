@@ -7,6 +7,7 @@ function RelatedBaseForm({ projectId, onClose, onSuccess }) {
   const [formName, setFormName] = React.useState('');
   const [formSubType, setFormSubType] = React.useState('普通关联基础表'); // '普通关联基础表' | '标题关联基础表'
   const [detailPageId, setDetailPageId] = React.useState(''); // 标题关联基础表关联的详情页ID
+  const [managedFormId, setManagedFormId] = React.useState(''); // 标题关联基础表关联的管理表单ID
   const [step, setStep] = React.useState(1);
   // 1: 输入表单名称
   // 2: 添加关联字段（可多个）
@@ -95,6 +96,80 @@ function RelatedBaseForm({ projectId, onClose, onSuccess }) {
     const addedFormIds = relatedFields.map(rf => rf.formId);
     return independentForms.filter(f => !addedFormIds.includes(f.id));
   };
+
+  // 获取表单的可用字段（排除主键和已添加的字段）
+  const getFormAvailableFields = (formId) => {
+    const form = independentForms.find(f => f.id === formId);
+    if (!form || !form.structure || !form.structure.fields) return [];
+
+    // 已添加的字段ID
+    const addedFieldIds = relatedFields
+      .filter(rf => rf.formId === formId)
+      .map(rf => rf.fieldId);
+
+    return form.structure.fields
+      .filter(f => !addedFieldIds.includes(f.fieldId))
+      .map(f => {
+        const fieldInfo = fields.find(field => field.id === f.fieldId);
+        return fieldInfo || null;
+      })
+      .filter(Boolean);
+  };
+
+  // 从管理表单添加字段（标题关联基础表专用）
+  const handleAddRelatedFieldFromManagedForm = (fieldId) => {
+    if (!managedFormId) {
+      alert('请先选择管理表单');
+      return;
+    }
+
+    const managedForm = independentForms.find(f => f.id === managedFormId);
+    if (!managedForm) {
+      alert('管理表单不存在');
+      return;
+    }
+
+    const fieldInfo = fields.find(f => f.id === fieldId);
+    if (!fieldInfo) {
+      alert('字段信息不存在');
+      return;
+    }
+
+    setRelatedFields([
+      ...relatedFields,
+      {
+        fieldId: fieldId,
+        fieldName: fieldInfo.name,
+        formId: managedFormId,
+        formName: managedForm.name,
+        isPrimaryKey: false
+      }
+    ]);
+  };
+
+  // 自动添加管理表单的主键（标题关联基础表专用）
+  const handleAutoAddPrimaryKey = () => {
+    if (!managedFormId) return;
+
+    const pkInfo = getFormPrimaryKeyInfo(managedFormId);
+    if (!pkInfo) return;
+
+    // 检查是否已添加
+    const alreadyAdded = relatedFields.some(
+      rf => rf.fieldId === pkInfo.fieldId && rf.formId === managedFormId
+    );
+
+    if (!alreadyAdded) {
+      setRelatedFields([pkInfo]);
+    }
+  };
+
+  // 监听管理表单选择变化，自动添加主键
+  React.useEffect(() => {
+    if (formSubType === '标题关联基础表' && managedFormId) {
+      handleAutoAddPrimaryKey();
+    }
+  }, [managedFormId]);
 
   // 添加关联字段
   const handleAddRelatedField = () => {
@@ -392,6 +467,7 @@ function RelatedBaseForm({ projectId, onClose, onSuccess }) {
         formNature: '基础表单',
         subType: formSubType, // '普通关联基础表' | '标题关联基础表'
         detailPageId: formSubType === '标题关联基础表' ? detailPageId : null, // 仅标题关联基础表需要关联详情页
+        managedFormId: formSubType === '标题关联基础表' ? managedFormId : null, // 仅标题关联基础表需要关联管理表单
         structure: formStructure
       });
 
@@ -502,29 +578,62 @@ function RelatedBaseForm({ projectId, onClose, onSuccess }) {
                 </p>
               </div>
 
-              {/* 标题关联基础表需要选择关联的详情页 */}
+              {/* 标题关联基础表需要选择关联的详情页和管理表单 */}
               {formSubType === '标题关联基础表' && (
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    关联详情页 <span className="text-red-500">*</span>
-                  </label>
-                  <select
-                    value={detailPageId}
-                    onChange={(e) => setDetailPageId(e.target.value)}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    required
-                  >
-                    <option value="">请选择详情页</option>
-                    {pages.filter(p => p.category === '详情页').map(page => (
-                      <option key={page.id} value={page.id}>
-                        {page.name}
-                      </option>
-                    ))}
-                  </select>
-                  <p className="mt-1 text-xs text-gray-500">
-                    选择标题点击后要跳转到的详情页
-                  </p>
-                </div>
+                <>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      选择管理表单 <span className="text-red-500">*</span>
+                    </label>
+                    <select
+                      value={managedFormId}
+                      onChange={(e) => {
+                        setManagedFormId(e.target.value);
+                        // 清空已添加的关联字段
+                        setRelatedFields([]);
+                      }}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      required
+                    >
+                      <option value="">请选择管理表单（独立基础表）</option>
+                      {independentForms.filter(f =>
+                        f.subType === '普通独立基础表' || f.subType === '独立基础表'
+                      ).map(form => {
+                        const pkInfo = getFormPrimaryKeyInfo(form.id);
+                        return (
+                          <option key={form.id} value={form.id}>
+                            {form.name}（主键：{pkInfo?.fieldName || '未知'}）
+                          </option>
+                        );
+                      })}
+                    </select>
+                    <p className="mt-1 text-xs text-gray-500">
+                      选择要管理的表单，该表单的主键会自动成为关联字段
+                    </p>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      关联详情页 <span className="text-red-500">*</span>
+                    </label>
+                    <select
+                      value={detailPageId}
+                      onChange={(e) => setDetailPageId(e.target.value)}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      required
+                    >
+                      <option value="">请选择详情页</option>
+                      {pages.filter(p => p.category === '详情页').map(page => (
+                        <option key={page.id} value={page.id}>
+                          {page.name}
+                        </option>
+                      ))}
+                    </select>
+                    <p className="mt-1 text-xs text-gray-500">
+                      选择标题点击后要跳转到的详情页
+                    </p>
+                  </div>
+                </>
               )}
 
               <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
@@ -543,6 +652,15 @@ function RelatedBaseForm({ projectId, onClose, onSuccess }) {
           {/* 步骤2: 添加关联字段 */}
           {step === 2 && (
             <div className="space-y-4">
+              {/* 标题关联基础表的说明 */}
+              {formSubType === '标题关联基础表' && (
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                  <p className="text-sm text-blue-700">
+                    <strong>标题关联基础表：</strong>管理表单的主键已自动添加为关联字段，您可以从下方选择管理表单的其他字段一起加入。
+                  </p>
+                </div>
+              )}
+
               {/* 已添加的关联字段 */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -582,29 +700,73 @@ function RelatedBaseForm({ projectId, onClose, onSuccess }) {
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   添加关联字段
                 </label>
-                <div className="flex space-x-2">
-                  <select
-                    value={selectedRelatedFormId}
-                    onChange={(e) => setSelectedRelatedFormId(e.target.value)}
-                    className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  >
-                    <option value="">选择独立基础表</option>
-                    {getAvailableIndependentForms().map(form => {
-                      const pkInfo = getFormPrimaryKeyInfo(form.id);
+                {formSubType === '标题关联基础表' ? (
+                  /* 标题关联基础表：显示管理表单的字段 */
+                  (() => {
+                    const managedForm = independentForms.find(f => f.id === managedFormId);
+                    if (!managedForm) {
                       return (
-                        <option key={form.id} value={form.id}>
-                          {form.name}（主键：{pkInfo?.fieldName || '未知'}）
-                        </option>
+                        <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+                          <p className="text-sm text-red-700">
+                            请先选择管理表单
+                          </p>
+                        </div>
                       );
-                    })}
-                  </select>
-                  <button
-                    onClick={handleAddRelatedField}
-                    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-                  >
-                    添加
-                  </button>
-                </div>
+                    }
+
+                    // 获取管理表单的字段列表（排除主键和已添加的字段）
+                    const availableFields = getFormAvailableFields(managedForm.id);
+
+                    return availableFields.length === 0 ? (
+                      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                        <p className="text-sm text-blue-700">
+                          所有可用字段都已添加。
+                        </p>
+                      </div>
+                    ) : (
+                      <div className="space-y-2">
+                        {availableFields.map(field => (
+                          <div key={field.id} className="flex items-center justify-between p-3 border border-gray-200 rounded-lg hover:bg-gray-50">
+                            <span className="text-sm font-medium text-gray-900">{field.name}</span>
+                            <button
+                              onClick={() => handleAddRelatedFieldFromManagedForm(field.id)}
+                              className="px-3 py-1 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700"
+                            >
+                              添加
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    );
+                  })()
+                ) : (
+                  /* 普通关联基础表：显示所有独立基础表 */
+                  <>
+                    <div className="flex space-x-2">
+                      <select
+                        value={selectedRelatedFormId}
+                        onChange={(e) => setSelectedRelatedFormId(e.target.value)}
+                        className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      >
+                        <option value="">选择独立基础表</option>
+                        {getAvailableIndependentForms().map(form => {
+                          const pkInfo = getFormPrimaryKeyInfo(form.id);
+                          return (
+                            <option key={form.id} value={form.id}>
+                              {form.name}（主键：{pkInfo?.fieldName || '未知'}）
+                            </option>
+                          );
+                        })}
+                      </select>
+                      <button
+                        onClick={handleAddRelatedField}
+                        className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                      >
+                        添加
+                      </button>
+                    </div>
+                  </>
+                )}
               </div>
 
               {independentForms.length === 0 && (
@@ -615,7 +777,7 @@ function RelatedBaseForm({ projectId, onClose, onSuccess }) {
                 </div>
               )}
 
-              {getAvailableIndependentForms().length === 0 && independentForms.length > 0 && relatedFields.length > 0 && (
+              {getAvailableIndependentForms().length === 0 && independentForms.length > 0 && relatedFields.length > 0 && formSubType !== '标题关联基础表' && (
                 <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
                   <p className="text-sm text-blue-700">
                     所有独立基础表都已添加为关联字段。
