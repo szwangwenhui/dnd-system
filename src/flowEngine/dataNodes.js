@@ -590,35 +590,36 @@ proto.executeCellUpdate = async function(config) {
 }
 
   // 获取表单的主键字段ID
-proto.getPrimaryKeyFieldId = async function(formId) {
-  const form = this.forms.find(f => f.id === formId);
-  if (form && form.structure && form.structure.fields) {
-    const pkField = form.structure.fields.find(f => f.isPrimary);
-    return pkField?.fieldId || null;
-  }
-  return null;
-}
+  proto.getPrimaryKeyFieldId = async function(formId) {
+    const form = this.forms.find(f => f.id === formId);
+    if (form && form.structure && form.structure.fields) {
+      const pkField = form.structure.fields.find(f => f.isPrimary);
+      return pkField?.fieldId || null;
+    }
+    return null;
+  };
 
   // 获取下一个主键值（查询最大值+1）
-proto.getNextPrimaryKeyValue = async function(formId) {
-  try {
-    const allData = await window.dndDB.getFormDataList(this.projectId, formId);
-    const pkFieldId = await this.getPrimaryKeyFieldId(formId);
-    
-    if (!pkFieldId || allData.length === 0) {
+  proto.getNextPrimaryKeyValue = async function(formId) {
+    try {
+      const allData = await window.dndDB.getFormDataList(this.projectId, formId);
+      const pkFieldId = await this.getPrimaryKeyFieldId(formId);
+
+      if (!pkFieldId || allData.length === 0) {
+        return 1;
+      }
+
+      const maxValue = Math.max(...allData.map(record => {
+        const val = record[pkFieldId];
+        return typeof val === 'number' ? val : parseInt(val) || 0;
+      }));
+
+      return maxValue + 1;
+    } catch (error) {
+      console.error('获取最大主键值失败:', error);
       return 1;
     }
-    
-    const maxValue = Math.max(...allData.map(record => {
-      const val = record[pkFieldId];
-      return typeof val === 'number' ? val : parseInt(val) || 0;
-    }));
-    
-    return maxValue + 1;
-  } catch (error) {
-    console.error('获取最大主键值失败:', error);
-    return 1;
-  }
+  };
 
   // 获取变量路径值（如 $item.F001）
   proto.getVariablePathValue = function(varId, path) {
@@ -634,24 +635,24 @@ proto.getNextPrimaryKeyValue = async function(formId) {
   };
 
   // 执行更新节点
-proto.executeUpdateNode = async function(node, design) {
-  const config = node.config || {};
-  console.log('更新节点配置:', config);
-  
-  // TODO: 实现更新逻辑
-  
-  return this.getNextNodeId(node.id, design);
-};
+  proto.executeUpdateNode = async function(node, design) {
+    const config = node.config || {};
+    console.log('更新节点配置:', config);
+
+    // TODO: 实现更新逻辑
+
+    return this.getNextNodeId(node.id, design);
+  };
 
   // 执行删除节点
-proto.executeDeleteNode = async function(node, design) {
-  const config = node.config || {};
-  console.log('删除节点配置:', config);
-  
-  // TODO: 实现删除逻辑
-  
-  return this.getNextNodeId(node.id, design);
-};
+  proto.executeDeleteNode = async function(node, design) {
+    const config = node.config || {};
+    console.log('删除节点配置:', config);
+
+    // TODO: 实现删除逻辑
+
+    return this.getNextNodeId(node.id, design);
+  };
 
 
   console.log('[DND2] flowEngine/dataNodes.js 加载完成 - 数据操作节点已注册');
