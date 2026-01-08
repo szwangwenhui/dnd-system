@@ -447,7 +447,22 @@ function BaseFormDataEntry({ projectId, form, fields, forms, onClose, onSuccess 
   // 判断字段是否为主键关联字段（可以下拉选择）
   const isPrimaryKeyRelatedField = (fieldId) => {
     const config = getFieldConfig(fieldId);
-    return config?.isRelatedField === true && config?.isPrimaryKey === true;
+    if (!config?.isRelatedField) return false;
+
+    // 方式1：使用关联字段作为主键
+    if (config.isPrimaryKey === true) return true;
+
+    // 方式2：使用自己的主键时，对于标题关联基础表，第一个关联字段作为主键关联字段
+    if (form.managedFormId && config.isPrimaryKey === false) {
+      // 找到所有关联字段
+      const allRelatedFields = form.structure?.fields?.filter(f => f.isRelatedField === true);
+      if (allRelatedFields && allRelatedFields.length > 0) {
+        // 第一个关联字段（通常是主键对应的关联字段）
+        return allRelatedFields[0].fieldId === fieldId;
+      }
+    }
+
+    return false;
   };
 
   // 获取同一关联表单的主键关联字段的值
@@ -844,6 +859,18 @@ function BaseFormDataEntry({ projectId, form, fields, forms, onClose, onSuccess 
       const isPKRelated = isPrimaryKeyRelatedField(fieldConfig.fieldId);
       const cascadedValue = getCascadedFieldValue(fieldConfig.fieldId);
       const options = getRelatedFieldOptions(fieldConfig.fieldId);
+
+      console.log('=== 渲染关联字段 ===');
+      console.log('字段ID:', fieldConfig.fieldId);
+      console.log('isPKRelated:', isPKRelated);
+      console.log('loadingRelatedData:', loadingRelatedData);
+      console.log('options.length:', options.length);
+      console.log('formValues[fieldId]:', formValues[fieldConfig.fieldId]);
+      if (isPKRelated) {
+        console.log('主键关联字段，渲染下拉菜单');
+      } else {
+        console.log('级联字段，cascadedValue:', cascadedValue);
+      }
 
       return (
         <div key={fieldConfig.fieldId} className="mb-4">
