@@ -134,6 +134,94 @@ function PageDesigner({ projectId, roleId, page, onClose, onSave }) {
     loadProjectData();
   }, [projectId, roleId]);
 
+  // ===== 详情页自动创建字段区块 =====
+  React.useEffect(() => {
+    const autoCreateDetailPageBlocks = async () => {
+      // 检查是否为详情页
+      if (page.category !== '详情页') return;
+      // 检查是否已有区块
+      if (blocks.length > 0) return;
+      // 检查是否关联了详情独立基础表
+      if (!page.detailFormId) return;
+
+      try {
+        // 加载详情独立基础表
+        const allForms = await window.dndDB.getFormsByProjectId(projectId);
+        const detailForm = allForms.find(f => f.id === page.detailFormId);
+        if (!detailForm) {
+          console.error('未找到关联的详情独立基础表:', page.detailFormId);
+          return;
+        }
+
+        // 检查表单类型
+        if (detailForm.subType !== '详情独立基础表') {
+          console.error('关联的表单不是详情独立基础表:', detailForm.subType);
+          return;
+        }
+
+        // 检查表单是否有数据
+        const formData = await window.dndDB.getFormDataList(projectId, detailForm.id);
+        if (!formData || formData.length === 0) {
+          alert('提示：关联的"详情独立基础表"还没有数据，请先添加数据后再设计详情页。');
+          return;
+        }
+
+        // 为所有字段创建区块
+        const fieldIds = detailForm.structure?.fields || [];
+        const newBlocks = [];
+
+        for (let i = 0; i < fieldIds.length; i++) {
+          const fieldConfig = fieldIds[i];
+          const field = fields.find(f => f.id === fieldConfig.fieldId);
+          if (!field) continue;
+
+          // 根据字段类型确定区块类型
+          let contentType = '文字';
+          if (field.type === '图片') {
+            contentType = '图片';
+          } else if (field.type === '富文本') {
+            contentType = '富文本';
+          }
+
+          // 创建区块（放在左上角，稍微错开）
+          const block = {
+            id: 'detail_field_' + field.id,
+            x: 20,
+            y: 20 + i * 80, // 每个区块向下偏移80px
+            width: 400,
+            height: 60,
+            contentType: contentType,
+            content: `[${field.name}]`, // 占位文本
+            style: {
+              backgroundColor: '#ffffff',
+              color: '#000000',
+              fontSize: 14,
+              fontFamily: 'Arial',
+              fontWeight: 'normal'
+            },
+            isDetailFieldBlock: true, // 标记为详情字段区块
+            detailFormId: detailForm.id,
+            detailFieldId: field.id,
+            detailFieldName: field.name
+          };
+
+          newBlocks.push(block);
+        }
+
+        if (newBlocks.length > 0) {
+          setBlocks(newBlocks);
+          console.log('自动创建详情页字段区块:', newBlocks.length, '个');
+        }
+      } catch (error) {
+        console.error('自动创建详情页字段区块失败:', error);
+      }
+    };
+
+    if (fields.length > 0) {
+      autoCreateDetailPageBlocks();
+    }
+  }, [page, fields, blocks, projectId]);
+
   // ===== 富文本编辑器状态 =====
   const [showEditor, setShowEditor] = React.useState(false);
   const [editorContent, setEditorContent] = React.useState('');

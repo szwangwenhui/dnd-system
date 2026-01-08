@@ -5,10 +5,11 @@ function PageDefinition({ projectId, roleId }) {
   const [editingPage, setEditingPage] = React.useState(null);
   const [formData, setFormData] = React.useState({
     name: '',
-    category: '固定页',
+    category: '其它页',
     level: 1,
     parentId: '',
-    designProgress: 0
+    designProgress: 0,
+    detailFormId: ''
   });
   
   // 设计页面相关状态
@@ -25,9 +26,13 @@ function PageDefinition({ projectId, roleId }) {
   const [showParamsConfig, setShowParamsConfig] = React.useState(false);
   const [paramsConfigPage, setParamsConfigPage] = React.useState(null);
 
+  // 详情独立基础表列表
+  const [detailForms, setDetailForms] = React.useState([]);
+
   // 加载页面列表
   React.useEffect(() => {
     loadPages();
+    loadDetailForms();
   }, [projectId, roleId]);
 
   const loadPages = async () => {
@@ -39,6 +44,19 @@ function PageDefinition({ projectId, roleId }) {
     }
   };
 
+  const loadDetailForms = async () => {
+    try {
+      // 获取所有独立基础表，过滤出type为'详情独立基础表'的
+      const allForms = await window.dndDB.getAllForms(projectId);
+      const detailFormList = allForms.filter(form =>
+        form.type === '独立基础表' && form.subType === '详情独立基础表'
+      );
+      setDetailForms(detailFormList);
+    } catch (error) {
+      console.error('加载详情独立基础表失败：', error);
+    }
+  };
+
   // 打开新建模态框
   const openCreateModal = () => {
     setEditingPage(null);
@@ -46,10 +64,11 @@ function PageDefinition({ projectId, roleId }) {
     const hasHomePage = pages.some(p => p.level === 0);
     setFormData({
       name: '',
-      category: '固定页',
+      category: '其它页',
       level: hasHomePage ? 1 : 0,
       parentId: hasHomePage ? getHomePage()?.id || '' : '',
-      designProgress: 0
+      designProgress: 0,
+      detailFormId: ''
     });
     setShowModal(true);
   };
@@ -57,12 +76,16 @@ function PageDefinition({ projectId, roleId }) {
   // 打开编辑模态框
   const openEditModal = (page) => {
     setEditingPage(page);
+    // 兼容旧数据：固定页、独立页 → 其它页
+    const oldCategory = page.category || '固定页';
+    const newCategory = (oldCategory === '固定页' || oldCategory === '独立页') ? '其它页' : oldCategory;
     setFormData({
       name: page.name,
-      category: page.category || '固定页',
+      category: newCategory,
       level: page.level,
       parentId: page.parentId || '',
-      designProgress: page.designProgress || 0
+      designProgress: page.designProgress || 0,
+      detailFormId: page.detailFormId || ''
     });
     setShowModal(true);
   };
@@ -132,7 +155,8 @@ function PageDefinition({ projectId, roleId }) {
         category: formData.category,
         level: level,
         parentId: level === 0 ? null : formData.parentId,
-        designProgress: formData.designProgress
+        designProgress: formData.designProgress,
+        detailFormId: formData.category === '详情页' ? formData.detailFormId : null
       };
 
       if (editingPage) {
@@ -370,6 +394,16 @@ function PageDefinition({ projectId, roleId }) {
     return { paddingLeft: `${level * 24}px` };
   };
 
+  // 获取显示的页面类别（兼容旧数据）
+  const getDisplayCategory = (category) => {
+    if (!category) return '其它页';
+    // 兼容旧数据：固定页、独立页 → 其它页
+    if (category === '固定页' || category === '独立页') {
+      return '其它页';
+    }
+    return category;
+  };
+
   return (
     <div>
       {/* 顶部操作栏 */}
@@ -455,11 +489,11 @@ function PageDefinition({ projectId, roleId }) {
                   </td>
                   <td className="px-4 py-3 whitespace-nowrap">
                     <span className={`px-2 py-1 text-xs rounded ${
-                      page.category === '独立页' 
-                        ? 'bg-orange-100 text-orange-700' 
+                      page.category === '详情页'
+                        ? 'bg-purple-100 text-purple-700'
                         : 'bg-green-100 text-green-700'
                     }`}>
-                      {page.category || '固定页'}
+                      {getDisplayCategory(page.category)}
                     </span>
                   </td>
                   <td className="px-4 py-3 whitespace-nowrap">
@@ -615,28 +649,27 @@ function PageDefinition({ projectId, roleId }) {
                       <input
                         type="radio"
                         name="category"
-                        value="固定页"
-                        checked={formData.category === '固定页'}
+                        value="其它页"
+                        checked={formData.category === '其它页'}
                         onChange={handleInputChange}
                         className="form-radio text-blue-600"
                       />
-                      <span className="ml-2">固定页</span>
+                      <span className="ml-2">其它页</span>
                     </label>
-                    <label className="inline-flex items-center opacity-50">
+                    <label className="inline-flex items-center">
                       <input
                         type="radio"
                         name="category"
-                        value="独立页"
-                        checked={formData.category === '独立页'}
+                        value="详情页"
+                        checked={formData.category === '详情页'}
                         onChange={handleInputChange}
-                        disabled
                         className="form-radio text-blue-600"
                       />
-                      <span className="ml-2">独立页（暂不支持）</span>
+                      <span className="ml-2">详情页</span>
                     </label>
                   </div>
                   <p className="mt-1 text-xs text-gray-500">
-                    固定页：在页面树状结构中的页面；独立页：临时页面（如营销活动页）
+                    其它页：普通页面；详情页：用于TCM标题内容管理系统的详情展示页，需要关联"详情独立基础表"
                   </p>
                 </div>
 
@@ -701,10 +734,10 @@ function PageDefinition({ projectId, roleId }) {
                     />
                     <span className="text-gray-500">%</span>
                     <div className="flex-1 bg-gray-200 rounded-full h-2">
-                      <div 
+                      <div
                         className={`h-2 rounded-full transition-all ${
-                          formData.designProgress === 100 
-                            ? 'bg-green-500' 
+                          formData.designProgress === 100
+                            ? 'bg-green-500'
                             : 'bg-blue-500'
                         }`}
                         style={{ width: `${formData.designProgress}%` }}
@@ -715,6 +748,32 @@ function PageDefinition({ projectId, roleId }) {
                     手动输入页面设计完成度（0-100%）
                   </p>
                 </div>
+
+                {/* 详情独立基础表选择（仅详情页显示） */}
+                {formData.category === '详情页' && (
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      详情独立基础表 <span className="text-red-500">*</span>
+                    </label>
+                    <select
+                      name="detailFormId"
+                      value={formData.detailFormId}
+                      onChange={handleInputChange}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      required
+                    >
+                      <option value="">请选择详情独立基础表</option>
+                      {detailForms.map(form => (
+                        <option key={form.id} value={form.id}>
+                          {form.name}
+                        </option>
+                      ))}
+                    </select>
+                    <p className="mt-1 text-xs text-gray-500">
+                      选择要关联的"详情独立基础表"，详情页将根据此表的字段自动创建区块
+                    </p>
+                  </div>
+                )}
 
                 {editingPage && (
                   <div className="text-sm text-gray-500 pt-2 border-t">

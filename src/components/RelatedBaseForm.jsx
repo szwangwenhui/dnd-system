@@ -3,7 +3,10 @@ function RelatedBaseForm({ projectId, onClose, onSuccess }) {
   const [fields, setFields] = React.useState([]);
   const [independentForms, setIndependentForms] = React.useState([]);
   const [allForms, setAllForms] = React.useState([]); // 所有表单（用于查找属性表）
+  const [pages, setPages] = React.useState([]); // 所有页面（用于标题关联基础表选择详情页）
   const [formName, setFormName] = React.useState('');
+  const [formSubType, setFormSubType] = React.useState('普通关联基础表'); // '普通关联基础表' | '标题关联基础表'
+  const [detailPageId, setDetailPageId] = React.useState(''); // 标题关联基础表关联的详情页ID
   const [step, setStep] = React.useState(1);
   // 1: 输入表单名称
   // 2: 添加关联字段（可多个）
@@ -20,7 +23,7 @@ function RelatedBaseForm({ projectId, onClose, onSuccess }) {
   const [primaryKeyRelatedIndex, setPrimaryKeyRelatedIndex] = React.useState(-1); // 选择哪个关联字段作为主键
   const [ownPrimaryKeyId, setOwnPrimaryKeyId] = React.useState('');
   const [reminderFieldId, setReminderFieldId] = React.useState(''); // 提醒字段（非必填）
-  
+
   // 主键自增配置（仅当使用自己的主键时有效）
   const [primaryKeyConfig, setPrimaryKeyConfig] = React.useState({
     mode: 'manual',       // 'manual' 手动填写, 'auto' 系统自增
@@ -31,7 +34,7 @@ function RelatedBaseForm({ projectId, onClose, onSuccess }) {
 
   // 其他字段
   const [selectedFields, setSelectedFields] = React.useState([]);
-  
+
   // 属性字段
   const [selectedAttributeFields, setSelectedAttributeFields] = React.useState([]);
 
@@ -51,6 +54,10 @@ function RelatedBaseForm({ projectId, onClose, onSuccess }) {
         f.type === '对象表单' && f.subType === '独立基础表'
       );
       setIndependentForms(independentList);
+
+      // 加载所有页面（用于标题关联基础表选择详情页）
+      const pageList = await window.dndDB.getAllPages(projectId);
+      setPages(pageList);
     } catch (error) {
       alert('加载数据失败：' + error);
     }
@@ -372,7 +379,8 @@ function RelatedBaseForm({ projectId, onClose, onSuccess }) {
         name: formName,
         type: '对象表单',
         formNature: '基础表单',
-        subType: '关联基础表',
+        subType: formSubType, // '普通关联基础表' | '标题关联基础表'
+        detailPageId: formSubType === '标题关联基础表' ? detailPageId : null, // 仅标题关联基础表需要关联详情页
         structure: formStructure
       });
 
@@ -447,6 +455,66 @@ function RelatedBaseForm({ projectId, onClose, onSuccess }) {
                   onChange={(e) => setFormName(e.target.value)}
                   placeholder="例如：学生成绩表、订单明细表"
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  表单分类 <span className="text-red-500">*</span>
+                </label>
+                <div className="space-x-4">
+                  <label className="inline-flex items-center">
+                    <input
+                      type="radio"
+                      name="formSubType"
+                      value="普通关联基础表"
+                      checked={formSubType === '普通关联基础表'}
+                      onChange={(e) => setFormSubType(e.target.value)}
+                      className="form-radio text-blue-600"
+                    />
+                    <span className="ml-2">普通关联基础表</span>
+                  </label>
+                  <label className="inline-flex items-center">
+                    <input
+                      type="radio"
+                      name="formSubType"
+                      value="标题关联基础表"
+                      checked={formSubType === '标题关联基础表'}
+                      onChange={(e) => setFormSubType(e.target.value)}
+                      className="form-radio text-blue-600"
+                    />
+                    <span className="ml-2">标题关联基础表</span>
+                  </label>
+                </div>
+                <p className="mt-1 text-xs text-gray-500">
+                  普通关联基础表：现有功能；标题关联基础表：用于TCM功能，点击标题跳转到详情页
+                </p>
+              </div>
+
+              {/* 标题关联基础表需要选择关联的详情页 */}
+              {formSubType === '标题关联基础表' && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    关联详情页 <span className="text-red-500">*</span>
+                  </label>
+                  <select
+                    value={detailPageId}
+                    onChange={(e) => setDetailPageId(e.target.value)}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    required
+                  >
+                    <option value="">请选择详情页</option>
+                    {pages.filter(p => p.category === '详情页').map(page => (
+                      <option key={page.id} value={page.id}>
+                        {page.name}
+                      </option>
+                    ))}
+                  </select>
+                  <p className="mt-1 text-xs text-gray-500">
+                    选择标题点击后要跳转到的详情页
+                  </p>
+                </div>
+              )}
                 />
               </div>
 

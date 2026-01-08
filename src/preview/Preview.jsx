@@ -20,40 +20,44 @@ function Preview() {
   const [formDataCache, setFormDataCache] = React.useState({});
   const [forms, setForms] = React.useState([]);
   const [fields, setFields] = React.useState([]);
-  
+
   // Icon相关状态
   const [iconInstances, setIconInstances] = React.useState([]);
   const [projectIcons, setProjectIcons] = React.useState([]);
-  
+
   // 当前登录用户状态
   const [currentUser, setCurrentUser] = React.useState(null);
-  
+
   // 数据录入弹窗状态
   const [dataEntryModal, setDataEntryModal] = React.useState({ show: false, formId: null, formName: null });
   const [entryFormData, setEntryFormData] = React.useState({});
-  
+
   // 交互区块输入数据状态（默认样式）
   const [interactionInputData, setInteractionInputData] = React.useState({});
   // 子区块输入数据状态（自行设计样式）
   const [childBlockInputData, setChildBlockInputData] = React.useState({});
-  
+
   // 流程对话框状态
   const [flowDialogModal, setFlowDialogModal] = React.useState({ show: false });
   const [flowDialogData, setFlowDialogData] = React.useState({});
-  
+
   // 流程多项选择状态
   const [flowSelectionModal, setFlowSelectionModal] = React.useState({ show: false });
   const [flowSelectionData, setFlowSelectionData] = React.useState([]);
-  
+
   // 页面参数状态
   const [pageParams, setPageParams] = React.useState({});  // 读取到的参数
   const [paramError, setParamError] = React.useState(null);  // 参数错误信息
-  
+
+  // 详情页数据状态
+  const [detailPageData, setDetailPageData] = React.useState(null);  // 详情页的数据记录
+
   // 从URL参数获取预览信息
   const urlParams = new URLSearchParams(window.location.search);
   const projectId = urlParams.get('projectId');
   const roleId = urlParams.get('roleId');
   const pageId = urlParams.get('pageId');
+  const contentId = urlParams.get('contentId');  // 详情页的内容ID（主键）
 
   // 初始化加载
   React.useEffect(() => {
@@ -487,6 +491,79 @@ function Preview() {
       setBlocks(page.design?.blocks || []);
       setIconInstances(page.design?.iconInstances || []);
       setProjectIcons(project.icons || []);
+
+      // ====== 详情页数据加载 ======
+      if (page.category === '详情页' && contentId) {
+        console.log('=== 详情页数据加载 ===');
+        console.log('详情页关联表:', page.detailFormId);
+        console.log('内容ID:', contentId);
+
+        if (!page.detailFormId) {
+          throw new Error('详情页未关联详情独立基础表');
+        }
+
+        try {
+          // 加载详情独立基础表
+          const allForms = project.forms || [];
+          const detailForm = allForms.find(f => f.id === page.detailFormId);
+
+          if (!detailForm) {
+            throw new Error('未找到关联的详情独立基础表');
+          }
+
+          if (detailForm.subType !== '详情独立基础表') {
+            throw new Error('关联的表单不是详情独立基础表');
+          }
+
+          // 加载表单的所有数据
+          const formDataList = await window.dndDB.getFormDataList(projectId, detailForm.id);
+
+          if (!formDataList || formDataList.length === 0) {
+            setError('404内容不存在');
+            setLoading(false);
+            return;
+          }
+
+          // 根据contentId查找对应的数据记录
+          const dataRecord = formDataList.find(data => {
+            // 获取主键字段的值
+            const pkFieldId = detailForm.structure.primaryKey;
+            return data[pkFieldId] == contentId;  // 使用宽松比较
+          });
+
+          if (!dataRecord) {
+            setError('404内容不存在');
+            setLoading(false);
+            return;
+          }
+
+          console.log('找到详情页数据:', dataRecord);
+          setDetailPageData(dataRecord);
+
+          // 更新字段区块的内容
+          const updatedBlocks = (page.design?.blocks || []).map(block => {
+            if (block.isDetailFieldBlock && block.detailFieldId) {
+              const fieldValue = dataRecord[block.detailFieldId];
+              return {
+                ...block,
+                content: fieldValue !== undefined && fieldValue !== null ? String(fieldValue) : block.content
+              };
+            }
+            return block;
+          });
+
+          setBlocks(updatedBlocks);
+          console.log('更新详情页区块内容:', updatedBlocks.length, '个');
+        } catch (error) {
+          console.error('加载详情页数据失败:', error);
+          setError('加载详情页数据失败：' + error.message);
+          setLoading(false);
+          return;
+        }
+      } else if (page.category === '详情页' && !contentId) {
+        // 详情页但没有contentId参数
+        console.warn('详情页缺少contentId参数');
+      }
       
       // 加载表单和字段数据
       setForms(project.forms || []);

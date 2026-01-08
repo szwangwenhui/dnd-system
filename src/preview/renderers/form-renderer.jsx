@@ -82,6 +82,13 @@ export const createFormRenderer = (props) => {
     const fontFamily = contentStyle.fontFamily || 'inherit';
     const tableFontSize = fontSize * 0.85; // 表格字体稍小
 
+    // 判断是否为标题关联基础表
+    const form = forms.find(f => f.id === cfg.formId);
+    const isTitleRelatedForm = form && form.subType === '标题关联基础表';
+
+    // 获取标题关联基础表关联的详情页ID
+    const detailPageId = isTitleRelatedForm ? form.detailPageId : null;
+
     if (!cfg || !cfg.formId) {
       return (
         <div key={block.id} style={blockStyle}>
@@ -266,6 +273,14 @@ export const createFormRenderer = (props) => {
                         const colWidth = cfg.columnWidths?.[fieldId];
                         const hasActionCol = actionColumn?.enabled;
                         const isLastDataCol = !hasActionCol && colIndex === row.length - 1;
+
+                        // 判断该字段是否为关联字段（外键）
+                        const fieldConfig = form?.structure?.fields?.find(f => f.fieldId === fieldId);
+                        const isRelatedField = fieldConfig?.isRelatedField;
+
+                        // 判断是否为标题关联基础表的跳转字段
+                        const isJumpField = isTitleRelatedForm && isRelatedField && detailPageId;
+
                         return (
                           <td key={colIndex} style={{
                             padding: `${cfg.cellPaddingTop || 4}px ${cfg.cellPaddingRight || 8}px ${cfg.cellPaddingBottom || 4}px ${cfg.cellPaddingLeft || 8}px`,
@@ -276,7 +291,19 @@ export const createFormRenderer = (props) => {
                             borderBottom: showInnerBorder ? `${innerHorizontalBorderWidth}px solid ${innerHorizontalBorderColor}` : 'none',
                             borderRight: showInnerBorder && !isLastDataCol ? `${innerVerticalBorderWidth}px solid ${innerVerticalBorderColor}` : 'none',
                             width: colWidth ? `${colWidth}px` : 'auto',
-                          }}>
+                            cursor: isJumpField ? 'pointer' : 'default',
+                          }}
+                          onClick={() => {
+                            // 标题关联基础表的关联字段点击跳转
+                            if (isJumpField && record[fieldId]) {
+                              const currentUrl = new URL(window.location.href);
+                              currentUrl.searchParams.set('pageId', detailPageId);
+                              currentUrl.searchParams.set('contentId', record[fieldId]);
+                              window.location.href = currentUrl.toString();
+                            }
+                          }}
+                          title={isJumpField ? '点击查看详情' : ''}
+                          >
                             {record._isTop && colIndex === 0 && <span style={{ marginRight: '4px' }}>📌</span>}
                             {cell}
                           </td>

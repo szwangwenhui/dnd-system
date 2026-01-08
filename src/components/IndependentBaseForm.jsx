@@ -3,6 +3,7 @@ function IndependentBaseForm({ projectId, onClose, onSuccess }) {
   const [fields, setFields] = React.useState([]);
   const [forms, setForms] = React.useState([]); // 所有表单（用于查找属性表）
   const [formName, setFormName] = React.useState('');
+  const [formSubType, setFormSubType] = React.useState('普通独立基础表'); // '普通独立基础表' | '详情独立基础表'
   const [selectedPrimaryKey, setSelectedPrimaryKey] = React.useState('');
   const [selectedFields, setSelectedFields] = React.useState([]);
   const [selectedAttributeFields, setSelectedAttributeFields] = React.useState([]); // 已选的属性字段
@@ -248,7 +249,7 @@ function IndependentBaseForm({ projectId, onClose, onSuccess }) {
         name: formName,
         type: '对象表单',
         formNature: '基础表单',
-        subType: '独立基础表',
+        subType: formSubType, // '普通独立基础表' | '详情独立基础表'
         structure: formStructure
       });
 
@@ -337,6 +338,39 @@ function IndependentBaseForm({ projectId, onClose, onSuccess }) {
                   placeholder="例如：学生信息表"
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  表单分类 <span className="text-red-500">*</span>
+                </label>
+                <div className="space-x-4">
+                  <label className="inline-flex items-center">
+                    <input
+                      type="radio"
+                      name="formSubType"
+                      value="普通独立基础表"
+                      checked={formSubType === '普通独立基础表'}
+                      onChange={(e) => setFormSubType(e.target.value)}
+                      className="form-radio text-blue-600"
+                    />
+                    <span className="ml-2">普通独立基础表</span>
+                  </label>
+                  <label className="inline-flex items-center">
+                    <input
+                      type="radio"
+                      name="formSubType"
+                      value="详情独立基础表"
+                      checked={formSubType === '详情独立基础表'}
+                      onChange={(e) => setFormSubType(e.target.value)}
+                      className="form-radio text-blue-600"
+                    />
+                    <span className="ml-2">详情独立基础表</span>
+                  </label>
+                </div>
+                <p className="mt-1 text-xs text-gray-500">
+                  普通独立基础表：用于现有的表单区块；详情独立基础表：用于TCM详情页，自动创建字段区块
+                </p>
               </div>
 
               <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
