@@ -304,22 +304,39 @@ function BaseFormDataEntry({ projectId, form, fields, forms, onClose, onSuccess 
 
   // 加载关联表数据
   const loadRelatedFormData = async () => {
-    if (!form || !form.structure || !form.structure.relatedFields) return;
+    console.log('=== loadRelatedFormData 开始 ===');
+    console.log('表单信息:', {
+      formId: form?.id,
+      formName: form?.name,
+      subType: form?.subType,
+      managedFormId: form?.managedFormId
+    });
+
+    if (!form || !form.structure || !form.structure.relatedFields) {
+      console.log('表单结构不完整，跳过加载');
+      return;
+    }
 
     const relatedData = {};
 
     // 对于标题关联基础表，优先加载 managedFormId 对应的关联表单
     if (form.managedFormId) {
+      console.log('标题关联基础表，加载关联表单:', form.managedFormId);
       let relatedForm = forms.find(f => f.id === form.managedFormId);
+      console.log('找到的关联表单:', relatedForm?.name);
 
       // 如果关联表没有数据，尝试从数据库加载
       if (relatedForm && !relatedForm.data) {
         try {
+          console.log('关联表单没有数据，从数据库加载...');
           const formData = await window.dndDB.getFormDataList(projectId, form.managedFormId);
+          console.log('从数据库加载的数据:', formData?.length, '条');
           relatedForm = { ...relatedForm, data: formData || [] };
         } catch (error) {
           console.error('加载关联表数据失败:', error);
         }
+      } else {
+        console.log('关联表单已有数据:', relatedForm?.data?.length, '条');
       }
 
       if (relatedForm && relatedForm.data) {
@@ -328,6 +345,9 @@ function BaseFormDataEntry({ projectId, form, fields, forms, onClose, onSuccess 
           f.isRelatedField && f.isPrimaryKey
         );
         const reminderFieldId = primaryKeyRelatedField?.reminderFieldId || '';
+
+        console.log('关联表单主键:', relatedForm.structure?.primaryKey);
+        console.log('提醒字段ID:', reminderFieldId);
 
         relatedData[form.managedFormId] = {
           formName: relatedForm.name,
@@ -338,6 +358,7 @@ function BaseFormDataEntry({ projectId, form, fields, forms, onClose, onSuccess 
       }
     } else {
       // 对于普通关联基础表，加载所有关联表单的数据
+      console.log('普通关联基础表，加载所有关联表单');
       for (const rf of form.structure.relatedFields) {
         let relatedForm = forms.find(f => f.id === rf.formId);
 
@@ -368,6 +389,8 @@ function BaseFormDataEntry({ projectId, form, fields, forms, onClose, onSuccess 
       }
     }
 
+    console.log('加载的关联数据对象:', Object.keys(relatedData));
+    console.log('设置 relatedFormData');
     setRelatedFormData(relatedData);
   };
 
@@ -559,18 +582,39 @@ function BaseFormDataEntry({ projectId, form, fields, forms, onClose, onSuccess 
 
   // 获取关联字段对应的关联表数据
   const getRelatedFieldOptions = (fieldId) => {
+    console.log('=== getRelatedFieldOptions ===');
+    console.log('字段ID:', fieldId);
+
     const config = getFieldConfig(fieldId);
-    if (!config || !config.isRelatedField) return [];
+    console.log('字段配置:', config);
+
+    if (!config || !config.isRelatedField) {
+      console.log('不是关联字段，返回空数组');
+      return [];
+    }
 
     // 对于标题关联基础表，所有关联字段都来自同一个关联表单（managedFormId）
     const relatedFormId = form.managedFormId || config.relatedFormId;
+    console.log('关联表单ID:', relatedFormId);
+    console.log('managedFormId:', form.managedFormId);
+    console.log('relatedFormData keys:', Object.keys(relatedFormData));
 
-    if (!relatedFormId) return [];
+    if (!relatedFormId) {
+      console.log('关联表单ID为空，返回空数组');
+      return [];
+    }
 
     const relatedInfo = relatedFormData[relatedFormId];
-    if (!relatedInfo || !relatedInfo.data) return [];
+    console.log('关联信息:', relatedInfo);
 
-    return relatedInfo.data.map(item => {
+    if (!relatedInfo || !relatedInfo.data) {
+      console.log('关联信息或数据不存在，返回空数组');
+      return [];
+    }
+
+    console.log('关联数据条数:', relatedInfo.data.length);
+
+    const options = relatedInfo.data.map(item => {
       const primaryKeyValue = item[relatedInfo.primaryKeyId];
       let displayText = String(primaryKeyValue);
 
@@ -584,6 +628,11 @@ function BaseFormDataEntry({ projectId, form, fields, forms, onClose, onSuccess 
         label: displayText
       };
     });
+
+    console.log('选项数量:', options.length);
+    console.log('前3个选项:', options.slice(0, 3));
+
+    return options;
   };
 
   // 处理输入变化

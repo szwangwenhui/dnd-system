@@ -29,8 +29,20 @@ function FormDefinition({ projectId }) {
   const loadFormsAndFields = async () => {
     try {
       const formList = await window.dndDB.getFormsByProjectId(projectId);
+
+      // 为每个表单加载数据
+      for (const form of formList) {
+        try {
+          const formData = await window.dndDB.getFormDataList(projectId, form.id);
+          form.data = formData || [];
+        } catch (error) {
+          console.error(`加载表单 ${form.name} 的数据失败:`, error);
+          form.data = [];
+        }
+      }
+
       setForms(formList);
-      
+
       const fieldList = await window.dndDB.getFieldsByProjectId(projectId);
       setFields(fieldList);
     } catch (error) {
