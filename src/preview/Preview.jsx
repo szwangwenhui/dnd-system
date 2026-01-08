@@ -2444,6 +2444,19 @@ function Preview() {
                         const colWidth = cfg.columnWidths?.[fieldId];
                         const hasActionCol = actionColumn?.enabled;
                         const isLastDataCol = !hasActionCol && colIndex === row.length - 1;
+
+                        // 判断是否为标题关联基础表
+                        const form = forms.find(f => f.id === cfg.formId);
+                        const isTitleRelatedForm = form && form.subType === '标题关联基础表';
+                        const detailPageId = isTitleRelatedForm ? form.detailPageId : null;
+
+                        // 判断该字段是否为关联字段
+                        const fieldConfig = form?.structure?.fields?.find(f => f.fieldId === fieldId);
+                        const isRelatedField = fieldConfig?.isRelatedField;
+
+                        // 判断是否为跳转字段
+                        const isJumpField = isTitleRelatedForm && isRelatedField && detailPageId;
+
                         return (
                           <td key={colIndex} style={{
                             padding: `${cfg.cellPaddingTop || 4}px ${cfg.cellPaddingRight || 8}px ${cfg.cellPaddingBottom || 4}px ${cfg.cellPaddingLeft || 8}px`,
@@ -2456,7 +2469,25 @@ function Preview() {
                             width: colWidth ? `${colWidth}px` : 'auto',
                           }}>
                             {record._isTop && colIndex === 0 && <span style={{ marginRight: '4px' }}>📌</span>}
-                            {cell}
+                            {isJumpField ? (
+                              <span
+                                onClick={() => {
+                                  console.log('跳转到详情页:', { detailPageId, record, cellValue: cell });
+                                  // 跳转到详情页，传递 contentId
+                                  window.location.href = `?projectId=${projectId}&roleId=${roleId}&pageId=${detailPageId}&contentId=${cell}`;
+                                }}
+                                style={{
+                                  color: '#3b82f6',
+                                  cursor: 'pointer',
+                                  textDecoration: 'underline',
+                                }}
+                                title="点击查看详情"
+                              >
+                                {cell}
+                              </span>
+                            ) : (
+                              cell
+                            )}
                           </td>
                         );
                       })}
