@@ -423,7 +423,7 @@ function RelatedBaseForm({ projectId, onClose, onSuccess }) {
         });
       }
 
-      // 添加关联字段
+      // 添加关联字段到表单结构中
       relatedFields.forEach((rf, index) => {
         const isThisPrimaryKey = primaryKeySource === 'related' && index === primaryKeyRelatedIndex;
         fieldsStructure.push({

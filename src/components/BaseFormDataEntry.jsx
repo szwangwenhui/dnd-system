@@ -490,6 +490,7 @@ function BaseFormDataEntry({ projectId, form, fields, forms, onClose, onSuccess 
     if (!relatedRecord) return null;
 
     // 使用 relatedFormFieldId 获取关联表单中对应字段的值
+    // 如果配置中没有 relatedFormFieldId，则使用当前字段ID作为默认值
     const relatedFormFieldId = config.relatedFormFieldId || fieldId;
     return relatedRecord[relatedFormFieldId];
   };
