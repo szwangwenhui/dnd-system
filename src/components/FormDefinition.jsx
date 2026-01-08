@@ -27,25 +27,23 @@ function FormDefinition({ projectId }) {
   }, [projectId]);
 
   const loadFormsAndFields = async () => {
+    console.log('=== loadFormsAndFields 开始 ===');
     try {
+      console.log('加载表单列表...');
       const formList = await window.dndDB.getFormsByProjectId(projectId);
+      console.log('表单列表加载完成，数量:', formList?.length);
 
-      // 为每个表单加载数据
-      for (const form of formList) {
-        try {
-          const formData = await window.dndDB.getFormDataList(projectId, form.id);
-          form.data = formData || [];
-        } catch (error) {
-          console.error(`加载表单 ${form.name} 的数据失败:`, error);
-          form.data = [];
-        }
-      }
-
+      console.log('设置表单列表');
       setForms(formList);
 
+      console.log('加载字段列表...');
       const fieldList = await window.dndDB.getFieldsByProjectId(projectId);
+      console.log('字段列表加载完成，数量:', fieldList?.length);
       setFields(fieldList);
+
+      console.log('=== loadFormsAndFields 完成 ===');
     } catch (error) {
+      console.error('loadFormsAndFields 失败:', error);
       alert('加载数据失败：' + error);
     }
   };

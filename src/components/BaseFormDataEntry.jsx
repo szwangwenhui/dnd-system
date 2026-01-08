@@ -4,6 +4,7 @@ function BaseFormDataEntry({ projectId, form, fields, forms, onClose, onSuccess 
   const [relatedFormData, setRelatedFormData] = React.useState({}); // 关联表的数据（用于下拉选择）
   const [attributeFormData, setAttributeFormData] = React.useState({}); // 属性表的数据
   const [loading, setLoading] = React.useState(false);
+  const [loadingRelatedData, setLoadingRelatedData] = React.useState(false); // 加载关联数据中
   const [existingData, setExistingData] = React.useState([]); // 已录入的数据
   const [importing, setImporting] = React.useState(false); // Excel导入中
 
@@ -12,8 +13,10 @@ function BaseFormDataEntry({ projectId, form, fields, forms, onClose, onSuccess 
 
   // 初始化表单值和加载关联表数据
   React.useEffect(() => {
+    console.log('BaseFormDataEntry useEffect 触发，form:', form?.name);
     initializeForm();
     loadExistingData();
+    loadRelatedFormData(); // 加载关联表数据
   }, [form]);
 
   // Excel导入功能
@@ -260,9 +263,6 @@ function BaseFormDataEntry({ projectId, form, fields, forms, onClose, onSuccess 
     
     setFormValues(initialValues);
 
-    // 加载关联表数据（用于关联字段的下拉选择）
-    await loadRelatedFormData();
-
     // 加载属性表数据（用于属性字段的级联选择）
     await loadAttributeFormData();
   };
@@ -316,6 +316,8 @@ function BaseFormDataEntry({ projectId, form, fields, forms, onClose, onSuccess 
       console.log('表单结构不完整，跳过加载');
       return;
     }
+
+    setLoadingRelatedData(true);
 
     const relatedData = {};
 
@@ -392,6 +394,7 @@ function BaseFormDataEntry({ projectId, form, fields, forms, onClose, onSuccess 
     console.log('加载的关联数据对象:', Object.keys(relatedData));
     console.log('设置 relatedFormData');
     setRelatedFormData(relatedData);
+    setLoadingRelatedData(false);
   };
 
   // 加载属性表数据
@@ -851,6 +854,11 @@ function BaseFormDataEntry({ projectId, form, fields, forms, onClose, onSuccess 
                 级联字段
               </span>
             )}
+            {loadingRelatedData && isPKRelated && (
+              <span className="ml-2 px-2 py-0.5 text-xs bg-gray-200 text-gray-600 rounded-full animate-pulse">
+                加载中...
+              </span>
+            )}
           </label>
 
           {isPKRelated ? (
@@ -861,15 +869,18 @@ function BaseFormDataEntry({ projectId, form, fields, forms, onClose, onSuccess 
                 onChange={(e) => handleInputChange(fieldConfig.fieldId, e.target.value)}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 required={isRequired}
+                disabled={loadingRelatedData}
               >
-                <option value="">请选择</option>
-                {options.map((opt, idx) => (
+                <option value="">
+                  {loadingRelatedData ? '加载中...' : '请选择'}
+                </option>
+                {!loadingRelatedData && options.map((opt, idx) => (
                   <option key={idx} value={opt.value}>
                     {opt.label}
                   </option>
                 ))}
               </select>
-              {options.length === 0 && (
+              {!loadingRelatedData && options.length === 0 && (
                 <p className="text-xs text-yellow-600 mt-1">
                   提示：关联表暂无数据，请先在关联表中添加数据
                 </p>
@@ -880,10 +891,11 @@ function BaseFormDataEntry({ projectId, form, fields, forms, onClose, onSuccess 
             <div
               className="w-full px-3 py-2 border border-gray-200 bg-gray-50 rounded-lg text-gray-700"
             >
-              {cascadedValue !== undefined && cascadedValue !== null && cascadedValue !== ''
-                ? String(cascadedValue)
-                : '请先选择主键关联字段'
-              }
+              {loadingRelatedData ? '加载中...' : (
+                cascadedValue !== undefined && cascadedValue !== null && cascadedValue !== ''
+                  ? String(cascadedValue)
+                  : '请先选择主键关联字段'
+              )}
             </div>
           )}
         </div>
