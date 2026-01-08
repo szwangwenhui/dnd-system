@@ -2594,9 +2594,11 @@ function Preview() {
                             {isJumpField ? (
                               <span
                                 onClick={() => {
-                                  console.log('跳转到详情页:', { detailPageId, record, primaryKeyValue, cellValue: cell });
-                                  // 跳转到详情页，传递主键值
-                                  window.location.href = `?projectId=${projectId}&roleId=${roleId}&pageId=${detailPageId}&contentId=${primaryKeyValue}`;
+                                  console.log('跳转到详情页:', { detailPageId, record, primaryKeyValue, cellValue: cell, fieldId });
+                                  // 跳转到详情页，传递关联字段的值（即详情独立基础表的主键值）
+                                  const detailPrimaryKeyValue = cell;
+                                  console.log('详情页主键值:', detailPrimaryKeyValue);
+                                  window.location.href = `?projectId=${projectId}&roleId=${roleId}&pageId=${detailPageId}&contentId=${detailPrimaryKeyValue}`;
                                 }}
                                 style={{
                                   color: '#3b82f6',
