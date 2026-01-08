@@ -103,7 +103,10 @@ function FormDefinition({ projectId }) {
   // 判断是否为基础表（可以添加数据）
   const isBaseForm = (form) => {
     const subType = form.subType || '';
-    return subType === '普通独立基础表' ||
+    // 兼容旧数据（独立基础表、关联基础表）和新数据
+    return subType === '独立基础表' ||
+           subType === '关联基础表' ||
+           subType === '普通独立基础表' ||
            subType === '详情独立基础表' ||
            subType === '普通关联基础表' ||
            subType === '标题关联基础表';
@@ -220,8 +223,10 @@ function FormDefinition({ projectId }) {
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
                     <span className={`px-2 py-1 text-xs font-semibold rounded-full ${
+                      form.subType === '独立基础表' ? 'bg-green-100 text-green-800' :
                       form.subType === '普通独立基础表' ? 'bg-green-100 text-green-800' :
                       form.subType === '详情独立基础表' ? 'bg-teal-100 text-teal-800' :
+                      form.subType === '关联基础表' ? 'bg-yellow-100 text-yellow-800' :
                       form.subType === '普通关联基础表' ? 'bg-yellow-100 text-yellow-800' :
                       form.subType === '标题关联基础表' ? 'bg-orange-100 text-orange-800' :
                       form.subType === '合表' ? 'bg-pink-100 text-pink-800' :
