@@ -51,7 +51,11 @@ function RelatedBaseForm({ projectId, onClose, onSuccess }) {
       const formList = await window.dndDB.getFormsByProjectId(projectId);
       setAllForms(formList); // 保存所有表单
       const independentList = formList.filter(f =>
-        f.type === '对象表单' && f.subType === '独立基础表'
+        f.type === '对象表单' && (
+          f.subType === '独立基础表' ||
+          f.subType === '普通独立基础表' ||
+          f.subType === '详情独立基础表'
+        )
       );
       setIndependentForms(independentList);
 
