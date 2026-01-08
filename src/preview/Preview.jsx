@@ -519,7 +519,11 @@ function Preview() {
           const formDataList = await window.dndDB.getFormDataList(projectId, detailForm.id);
 
           console.log('详情页数据列表:', formDataList);
-          console.log('数据列表详情:', JSON.stringify(formDataList, null, 2));
+          console.log('数据列表长度:', formDataList.length);
+          formDataList.forEach((item, index) => {
+            console.log(`数据记录 ${index}:`, item);
+            console.log(`  主键字段 ${pkFieldId} 的值:`, item[pkFieldId], typeof item[pkFieldId]);
+          });
           console.log('查找的contentId:', contentId);
 
           if (!formDataList || formDataList.length === 0) {
@@ -534,17 +538,23 @@ function Preview() {
 
           const dataRecord = formDataList.find(data => {
             const pkValue = data[pkFieldId];
-            const pkValueStr = String(pkValue || '');
-            const contentIdStr = String(contentId || '');
+            const pkValueStr = String(pkValue || '').trim();
+            const contentIdStr = String(contentId || '').trim();
             const match = pkValueStr === contentIdStr;
 
             console.log('--- 对比 ---');
             console.log('数据记录:', data);
             console.log('主键字段ID:', pkFieldId);
             console.log('主键值:', pkValue);
+            console.log('主键值类型:', typeof pkValue);
             console.log('主键值(字符串):', pkValueStr);
+            console.log('主键值长度:', pkValueStr.length);
+            console.log('主键值字符码:', pkValueStr.split('').map(c => c.charCodeAt(0)));
             console.log('contentId:', contentId);
+            console.log('contentId类型:', typeof contentId);
             console.log('contentId(字符串):', contentIdStr);
+            console.log('contentId长度:', contentIdStr.length);
+            console.log('contentId字符码:', contentIdStr.split('').map(c => c.charCodeAt(0)));
             console.log('是否匹配:', match);
             console.log('---');
 
