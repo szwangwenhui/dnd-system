@@ -563,7 +563,34 @@ function Preview() {
 
           if (!dataRecord) {
             console.log('未找到匹配的数据记录');
-            setError('404内容不存在');
+            console.log('主键值和contentId不匹配，尝试宽松比较...');
+
+            // 尝试宽松比较（数字）
+            const dataRecordLoose = formDataList.find(data => {
+              const pkValue = data[pkFieldId];
+              return pkValue == contentId;  // 使用宽松比较
+            });
+
+            if (dataRecordLoose) {
+              console.log('宽松比较找到数据记录:', dataRecordLoose);
+              setDetailPageData(dataRecordLoose);
+              // 继续执行后续逻辑...
+              const updatedBlocks = (page.design?.blocks || []).map(block => {
+                if (block.isDetailFieldBlock && block.detailFieldId) {
+                  const fieldValue = dataRecordLoose[block.detailFieldId];
+                  return {
+                    ...block,
+                    content: fieldValue !== undefined && fieldValue !== null ? String(fieldValue) : block.content
+                  };
+                }
+                return block;
+              });
+              setBlocks(updatedBlocks);
+              setLoading(false);
+              return;
+            }
+
+            setError('404内容不存在 - 严格和宽松比较都失败');
             setLoading(false);
             return;
           }
