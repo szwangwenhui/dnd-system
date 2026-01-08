@@ -368,6 +368,61 @@ function BaseFormDataEntry({ projectId, form, fields, forms, onClose, onSuccess 
     return config?.isRelatedField === true;
   };
 
+  // 判断字段是否为主键关联字段（可以下拉选择）
+  const isPrimaryKeyRelatedField = (fieldId) => {
+    const config = getFieldConfig(fieldId);
+    return config?.isRelatedField === true && config?.isPrimaryKey === true;
+  };
+
+  // 获取同一关联表单的主键关联字段的值
+  const getPrimaryKeyRelatedFieldValue = (fieldId) => {
+    const config = getFieldConfig(fieldId);
+    if (!config || !config.isRelatedField) return null;
+
+    const relatedFormId = config.relatedFormId;
+    if (!relatedFormId) return null;
+
+    // 找到同一个关联表单的主键关联字段
+    const primaryKeyRelatedField = form.structure?.fields?.find(f =>
+      f.isRelatedField === true &&
+      f.isPrimaryKey === true &&
+      f.relatedFormId === relatedFormId
+    );
+
+    if (!primaryKeyRelatedField) return null;
+
+    return formValues[primaryKeyRelatedField.fieldId];
+  };
+
+  // 根据主键值获取关联字段对应的值（级联）
+  const getCascadedFieldValue = (fieldId) => {
+    const config = getFieldConfig(fieldId);
+    if (!config || !config.isRelatedField) return null;
+
+    // 如果是主键关联字段，返回当前值
+    if (config.isPrimaryKey) {
+      return formValues[fieldId];
+    }
+
+    // 如果是其他关联字段，根据主键查找对应的值
+    const primaryKeyValue = getPrimaryKeyRelatedFieldValue(fieldId);
+    if (!primaryKeyValue) return null;
+
+    const relatedFormId = config.relatedFormId;
+    const relatedInfo = relatedFormData[relatedFormId];
+    if (!relatedInfo || !relatedInfo.data) return null;
+
+    // 查找关联表中主键值对应的记录
+    const relatedRecord = relatedInfo.data.find(item =>
+      String(item[relatedInfo.primaryKeyId]) === String(primaryKeyValue)
+    );
+
+    if (!relatedRecord) return null;
+
+    // 返回该记录中对应字段的值
+    return relatedRecord[fieldId];
+  };
+
   // 判断字段是否为属性字段
   const isAttributeField = (fieldId) => {
     const config = getFieldConfig(fieldId);
@@ -484,10 +539,45 @@ function BaseFormDataEntry({ projectId, form, fields, forms, onClose, onSuccess 
 
   // 处理输入变化
   const handleInputChange = (fieldId, value) => {
-    setFormValues(prev => ({
-      ...prev,
-      [fieldId]: value
-    }));
+    // 更新字段值
+    setFormValues(prev => {
+      const newValues = {
+        ...prev,
+        [fieldId]: value
+      };
+
+      // 如果是主键关联字段，级联更新同一关联表单的其他关联字段
+      const config = getFieldConfig(fieldId);
+      if (config?.isRelatedField && config?.isPrimaryKey && config?.relatedFormId) {
+        const relatedFormId = config.relatedFormId;
+
+        // 查找同一关联表单的其他关联字段
+        const otherRelatedFields = form.structure?.fields?.filter(f =>
+          f.isRelatedField === true &&
+          !f.isPrimaryKey &&
+          f.relatedFormId === relatedFormId
+        );
+
+        if (otherRelatedFields && otherRelatedFields.length > 0) {
+          const relatedInfo = relatedFormData[relatedFormId];
+          if (relatedInfo && relatedInfo.data) {
+            // 查找关联表中主键值对应的记录
+            const relatedRecord = relatedInfo.data.find(item =>
+              String(item[relatedInfo.primaryKeyId]) === String(value)
+            );
+
+            if (relatedRecord) {
+              // 更新其他关联字段的值
+              otherRelatedFields.forEach(f => {
+                newValues[f.fieldId] = relatedRecord[f.fieldId];
+              });
+            }
+          }
+        }
+      }
+
+      return newValues;
+    });
   };
 
   // 验证表单
@@ -637,10 +727,12 @@ function BaseFormDataEntry({ projectId, form, fields, forms, onClose, onSuccess 
       );
     }
 
-    // 关联字段 - 显示下拉选择
+    // 关联字段 - 显示下拉选择或只读级联值
     if (isRelated) {
+      const isPKRelated = isPrimaryKeyRelatedField(fieldConfig.fieldId);
+      const cascadedValue = getCascadedFieldValue(fieldConfig.fieldId);
       const options = getRelatedFieldOptions(fieldConfig.fieldId);
-      
+
       return (
         <div key={fieldConfig.fieldId} className="mb-4">
           <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -654,24 +746,45 @@ function BaseFormDataEntry({ projectId, form, fields, forms, onClose, onSuccess 
             <span className="ml-2 px-2 py-0.5 text-xs bg-yellow-100 text-yellow-800 rounded-full">
               关联字段
             </span>
+            {!isPKRelated && (
+              <span className="ml-2 px-2 py-0.5 text-xs bg-gray-100 text-gray-800 rounded-full">
+                级联字段
+              </span>
+            )}
           </label>
-          <select
-            value={formValues[fieldConfig.fieldId] || ''}
-            onChange={(e) => handleInputChange(fieldConfig.fieldId, e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            required={isRequired}
-          >
-            <option value="">请选择</option>
-            {options.map((opt, idx) => (
-              <option key={idx} value={opt.value}>
-                {opt.label}
-              </option>
-            ))}
-          </select>
-          {options.length === 0 && (
-            <p className="text-xs text-yellow-600 mt-1">
-              提示：关联表暂无数据，请先在关联表中添加数据
-            </p>
+
+          {isPKRelated ? (
+            /* 主键关联字段：可下拉选择 */
+            <>
+              <select
+                value={formValues[fieldConfig.fieldId] || ''}
+                onChange={(e) => handleInputChange(fieldConfig.fieldId, e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                required={isRequired}
+              >
+                <option value="">请选择</option>
+                {options.map((opt, idx) => (
+                  <option key={idx} value={opt.value}>
+                    {opt.label}
+                  </option>
+                ))}
+              </select>
+              {options.length === 0 && (
+                <p className="text-xs text-yellow-600 mt-1">
+                  提示：关联表暂无数据，请先在关联表中添加数据
+                </p>
+              )}
+            </>
+          ) : (
+            /* 其他关联字段：只读级联值 */
+            <div
+              className="w-full px-3 py-2 border border-gray-200 bg-gray-50 rounded-lg text-gray-700"
+            >
+              {cascadedValue !== undefined && cascadedValue !== null && cascadedValue !== ''
+                ? String(cascadedValue)
+                : '请先选择主键关联字段'
+              }
+            </div>
           )}
         </div>
       );
