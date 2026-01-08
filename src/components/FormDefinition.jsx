@@ -102,7 +102,11 @@ function FormDefinition({ projectId }) {
 
   // 判断是否为基础表（可以添加数据）
   const isBaseForm = (form) => {
-    return form.subType === '独立基础表' || form.subType === '关联基础表';
+    const subType = form.subType || '';
+    return subType === '普通独立基础表' ||
+           subType === '详情独立基础表' ||
+           subType === '普通关联基础表' ||
+           subType === '标题关联基础表';
   };
 
   // 判断是否为属性表
@@ -216,10 +220,12 @@ function FormDefinition({ projectId }) {
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
                     <span className={`px-2 py-1 text-xs font-semibold rounded-full ${
-                      form.subType === '独立基础表' ? 'bg-green-100 text-green-800' :
-                      form.subType === '关联基础表' ? 'bg-yellow-100 text-yellow-800' :
-                      form.subType === '合表' ? 'bg-orange-100 text-orange-800' :
-                      form.subType === '衍生表' ? 'bg-pink-100 text-pink-800' :
+                      form.subType === '普通独立基础表' ? 'bg-green-100 text-green-800' :
+                      form.subType === '详情独立基础表' ? 'bg-teal-100 text-teal-800' :
+                      form.subType === '普通关联基础表' ? 'bg-yellow-100 text-yellow-800' :
+                      form.subType === '标题关联基础表' ? 'bg-orange-100 text-orange-800' :
+                      form.subType === '合表' ? 'bg-pink-100 text-pink-800' :
+                      form.subType === '衍生表' ? 'bg-red-100 text-red-800' :
                       form.subType === '子表' ? 'bg-purple-100 text-purple-800' :
                       form.subType === '再造表' ? 'bg-indigo-100 text-indigo-800' :
                       'bg-gray-100 text-gray-800'
