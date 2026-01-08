@@ -543,10 +543,6 @@ function Preview() {
             setLoading(false);
             return;
           }
-            setError('404内容不存在');
-            setLoading(false);
-            return;
-          }
 
           console.log('找到详情页数据:', dataRecord);
           setDetailPageData(dataRecord);
