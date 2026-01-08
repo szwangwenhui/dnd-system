@@ -642,7 +642,7 @@ function Preview() {
           console.log('加载详情表单数据，表单ID:', detailFormId);
 
           // 获取表单数据
-          const formDataList = await fetchFormData(detailFormId, projectId, roleId);
+          const formDataList = await window.dndDB.getFormDataList(projectId, detailFormId);
           console.log('详情页数据列表:', formDataList);
 
           if (!formDataList || formDataList.length === 0) {
