@@ -2594,10 +2594,44 @@ function Preview() {
                             {isJumpField ? (
                               <span
                                 onClick={() => {
-                                  console.log('跳转到详情页:', { detailPageId, record, primaryKeyValue, cellValue: cell, fieldId });
-                                  // 跳转到详情页，传递关联字段的值（即详情独立基础表的主键值）
-                                  const detailPrimaryKeyValue = cell;
-                                  console.log('详情页主键值:', detailPrimaryKeyValue);
+                                  console.log('跳转到详情页:', { detailPageId, record, primaryKeyValue, cellValue: cell, fieldId, fieldConfig });
+
+                                  // 对于关联字段，需要找到详情表的主键字段值
+                                  // 方法1: 如果点击的字段本身就是关联到详情表主键的字段，直接使用该字段的值
+                                  // 方法2: 否则，查找记录中关联到详情表主键的字段值
+
+                                  let detailPrimaryKeyValue;
+
+                                  // 检查该关联字段是否就是详情表的主键字段
+                                  const detailForm = project.forms?.find(f => f.id === fieldConfig.relatedFormId);
+                                  const detailPrimaryKeyFieldId = detailForm?.structure?.primaryKey;
+                                  const detailPrimaryKeyField = detailForm?.structure?.fields?.find(f => f.fieldId === detailPrimaryKeyFieldId);
+
+                                  console.log('详情表主键字段:', detailPrimaryKeyFieldId);
+                                  console.log('当前字段是否关联到详情表主键:', fieldConfig.relatedFormFieldId === detailPrimaryKeyFieldId);
+
+                                  if (fieldConfig.relatedFormFieldId === detailPrimaryKeyFieldId) {
+                                    // 如果当前字段就是关联到详情表主键的，直接使用该字段的值
+                                    detailPrimaryKeyValue = cell;
+                                    console.log('当前字段是关联到详情表主键的，使用值:', detailPrimaryKeyValue);
+                                  } else {
+                                    // 否则，在当前记录中查找关联到详情表主键的字段值
+                                    const detailPkRelatedField = form?.structure?.fields?.find(f =>
+                                      f.isRelatedField &&
+                                      f.relatedFormId === fieldConfig.relatedFormId &&
+                                      f.relatedFormFieldId === detailPrimaryKeyFieldId
+                                    );
+
+                                    if (detailPkRelatedField) {
+                                      detailPrimaryKeyValue = record[detailPkRelatedField.fieldId];
+                                      console.log('找到关联到详情表主键的字段:', detailPkRelatedField.fieldId, '值:', detailPrimaryKeyValue);
+                                    } else {
+                                      // 如果找不到，使用当前字段的值
+                                      detailPrimaryKeyValue = cell;
+                                      console.log('未找到关联到详情表主键的字段，使用当前字段值:', detailPrimaryKeyValue);
+                                    }
+                                  }
+
                                   window.location.href = `?projectId=${projectId}&roleId=${roleId}&pageId=${detailPageId}&contentId=${detailPrimaryKeyValue}`;
                                 }}
                                 style={{
