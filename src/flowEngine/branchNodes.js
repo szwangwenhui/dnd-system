@@ -196,11 +196,11 @@ proto.executeExistCheckNode = async function(node, design) {
 }
 
   // 获取存在性校验的下一个节点
-  getExistCheckNextNode(node, design, exists) {
-  const edges = design.edges || design.connections || [];
-  const nodeEdges = edges.filter(e => e.from === node.id);
-  
-  console.log('查找分支连线:', nodeEdges);
+  proto.getExistCheckNextNode = function(node, design, exists) {
+    const edges = design.edges || design.connections || [];
+    const nodeEdges = edges.filter(e => e.from === node.id);
+
+    console.log('查找分支连线:', nodeEdges);
   
   if (exists) {
     // 存在 - 走 yes 分支

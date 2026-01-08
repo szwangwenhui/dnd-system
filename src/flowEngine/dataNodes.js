@@ -621,17 +621,17 @@ proto.getNextPrimaryKeyValue = async function(formId) {
   }
 
   // 获取变量路径值（如 $item.F001）
-  getVariablePathValue(varId, path) {
-  if (!varId) return undefined;
-  
-  let value = this.getVariableValue(varId);
-  
-  if (path && value && typeof value === 'object') {
-    value = value[path];
-  }
-  
-  return value;
-}
+  proto.getVariablePathValue = function(varId, path) {
+    if (!varId) return undefined;
+
+    let value = this.getVariableValue(varId);
+
+    if (path && value && typeof value === 'object') {
+      value = value[path];
+    }
+
+    return value;
+  };
 
   // 执行更新节点
 proto.executeUpdateNode = async function(node, design) {
