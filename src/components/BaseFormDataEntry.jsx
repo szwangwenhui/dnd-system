@@ -178,10 +178,8 @@ function BaseFormDataEntry({ projectId, form, fields, forms, onClose, onSuccess 
       recordsToImport.push(record);
     }
 
-    // 批量保存数据
-    for (const record of recordsToImport) {
-      await window.dndDB.addFormData(projectId, form.id, record);
-    }
+    // 批量保存数据（性能优化：只调用一次数据库更新）
+    await window.dndDB.addFormDataBatch(projectId, form.id, recordsToImport);
 
     alert(`成功导入 ${recordsToImport.length} 条数据`);
 

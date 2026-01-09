@@ -518,6 +518,29 @@
       return newRecord;
     },
 
+    // 批量添加表单数据（性能优化）
+    async addFormDataBatch(projectId, formId, records) {
+      const project = await this.getProjectById(projectId);
+      if (!project) throw new Error('项目不存在');
+
+      const formIdx = project.forms.findIndex(f => f.id === formId);
+      if (formIdx === -1) throw new Error('表单不存在');
+
+      if (!project.forms[formIdx].data) {
+        project.forms[formIdx].data = [];
+      }
+
+      const newRecords = records.map(record => ({
+        ...record,
+        id: record.id || `DATA-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+        createdAt: record.createdAt || new Date().toISOString()
+      }));
+      project.forms[formIdx].data.push(...newRecords);
+
+      await this.updateProject(project);
+      return newRecords;
+    },
+
     async updateFormData(projectId, formId, primaryKeyValue, updates) {
       const project = await this.getProjectById(projectId);
       if (!project) throw new Error('项目不存在');
