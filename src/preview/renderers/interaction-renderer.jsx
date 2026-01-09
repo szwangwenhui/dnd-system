@@ -20,6 +20,15 @@ export const createInteractionRenderer = (props) => {
     loadAllFormData
   } = props;
 
+  // 富文本编辑器状态
+  const [richTextEditor, setRichTextEditor] = React.useState({
+    isOpen: false,
+    blockId: null,
+    fieldId: null,
+    fieldName: '',
+    content: ''
+  });
+
   // 处理交互区块提交
   const handleInteractionSubmit = async (block) => {
     const formId = block.targetFormId;
@@ -33,10 +42,26 @@ export const createInteractionRenderer = (props) => {
     const purposeFlow = block.purposeFlow === true;
 
     try {
+      // 获取表单结构
+      const form = forms.find(f => f.id === formId);
+      if (!form || !form.structure) {
+        throw new Error('表单结构不存在');
+      }
+
+      const primaryKeyId = form.structure.primaryKey;
+      const primaryKeyValue = inputData[primaryKeyId];
+
       // 存入数据
       if (purposeSave) {
-        await window.dndDB.addFormData(projectId, formId, inputData);
-        console.log('数据已写入表单:', formId);
+        if (primaryKeyValue && primaryKeyValue.trim() !== '') {
+          // 如果输入了主键值，则更新现有数据
+          await window.dndDB.updateFormData(projectId, formId, primaryKeyValue, inputData);
+          console.log('数据已更新到表单:', formId, '主键:', primaryKeyValue);
+        } else {
+          // 如果没有主键值，则添加新数据
+          await window.dndDB.addFormData(projectId, formId, inputData);
+          console.log('数据已写入表单:', formId);
+        }
       }
 
       // 启动流程
@@ -71,6 +96,50 @@ export const createInteractionRenderer = (props) => {
     } catch (error) {
       alert('提交失败：' + error.message);
     }
+  };
+
+  // 打开富文本编辑器
+  const handleOpenRichTextEditor = (blockId, fieldId, fieldName) => {
+    const currentContent = interactionInputData[blockId]?.[fieldId] || '';
+    setRichTextEditor({
+      isOpen: true,
+      blockId: blockId,
+      fieldId: fieldId,
+      fieldName: fieldName,
+      content: currentContent
+    });
+  };
+
+  // 保存富文本内容
+  const handleSaveRichText = (html) => {
+    setInteractionInputData(prev => ({
+      ...prev,
+      [richTextEditor.blockId]: {
+        ...(prev[richTextEditor.blockId] || {}),
+        [richTextEditor.fieldId]: html
+      }
+    }));
+    setRichTextEditor(prev => ({ ...prev, isOpen: false }));
+  };
+
+  // 取消富文本编辑
+  const handleCloseRichTextEditor = () => {
+    setRichTextEditor(prev => ({ ...prev, isOpen: false }));
+  };
+
+  // 截取HTML文本（提取纯文本并截取前n个汉字）
+  const truncateHtmlText = (html, maxChars = 20) => {
+    if (!html) return '';
+
+    const tempDiv = document.createElement('div');
+    tempDiv.innerHTML = html;
+    let text = tempDiv.textContent || tempDiv.innerText || '';
+
+    if (text.length > maxChars) {
+      text = text.substring(0, maxChars) + '...';
+    }
+
+    return text;
   };
 
   // 渲染交互区块
@@ -137,6 +206,55 @@ export const createInteractionRenderer = (props) => {
             const field = fields.find(f => f.id === fieldId);
             const fieldType = field?.type || '文本';
 
+            // 富文本字段特殊处理
+            if (fieldType === '富文本') {
+              const currentValue = interactionInputData[block.id]?.[fieldId] || '';
+              return (
+                <div key={fieldId} style={{ display: 'flex', alignItems: 'flex-start', gap: '8px' }}>
+                  <label style={{
+                    width: '80px',
+                    fontSize: labelFontSize,
+                    color: labelColor,
+                    textAlign: 'right',
+                    flexShrink: 0,
+                    fontFamily: contentStyle.fontFamily || 'inherit',
+                    paddingTop: '6px',
+                  }}>
+                    {field?.name || fieldId}
+                  </label>
+                  <div
+                    style={{
+                      flex: 1,
+                      padding: '6px 8px',
+                      border: '1px solid #d1d5db',
+                      borderRadius: '4px',
+                      fontSize: inputFontSize,
+                      fontFamily: contentStyle.fontFamily || 'inherit',
+                      minHeight: '80px',
+                      cursor: 'pointer',
+                      backgroundColor: currentValue ? '#f9fafb' : '#ffffff',
+                    }}
+                    onClick={() => handleOpenRichTextEditor(block.id, fieldId, field?.name || fieldId)}
+                    title="点击打开富文本编辑器"
+                  >
+                    {currentValue ? (
+                      <div
+                        dangerouslySetInnerHTML={{
+                          __html: truncateHtmlText(currentValue, 20)
+                        }}
+                        style={{ color: '#374151' }}
+                      />
+                    ) : (
+                      <div style={{ color: '#9ca3af', fontStyle: 'italic' }}>
+                        点击编辑富文本内容...
+                      </div>
+                    )}
+                  </div>
+                </div>
+              );
+            }
+
+            // 普通字段
             return (
               <div key={fieldId} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <label style={{
@@ -198,6 +316,16 @@ export const createInteractionRenderer = (props) => {
             确认提交
           </button>
         )}
+
+        {/* 富文本编辑器 */}
+        {richTextEditor.isOpen && window.RichTextEditor && (
+          <window.RichTextEditor
+            isOpen={richTextEditor.isOpen}
+            initialContent={richTextEditor.content}
+            onSave={handleSaveRichText}
+            onCancel={handleCloseRichTextEditor}
+          />
+        )}
       </div>
     );
   };
@@ -225,10 +353,26 @@ export const createInteractionRenderer = (props) => {
     const purposeFlow = parentBlock.purposeFlow === true;
 
     try {
+      // 获取表单结构
+      const form = forms.find(f => f.id === formId);
+      if (!form || !form.structure) {
+        throw new Error('表单结构不存在');
+      }
+
+      const primaryKeyId = form.structure.primaryKey;
+      const primaryKeyValue = inputData[primaryKeyId];
+
       // 存入数据
       if (purposeSave) {
-        await window.dndDB.addFormData(projectId, formId, inputData);
-        console.log('数据已写入表单:', formId);
+        if (primaryKeyValue && primaryKeyValue.trim() !== '') {
+          // 如果输入了主键值，则更新现有数据
+          await window.dndDB.updateFormData(projectId, formId, primaryKeyValue, inputData);
+          console.log('数据已更新到表单:', formId, '主键:', primaryKeyValue);
+        } else {
+          // 如果没有主键值，则添加新数据
+          await window.dndDB.addFormData(projectId, formId, inputData);
+          console.log('数据已写入表单:', formId);
+        }
       }
 
       // 启动流程
