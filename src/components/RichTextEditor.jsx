@@ -8,12 +8,10 @@ const wangEditorPromise = new Promise((resolve) => {
   const checkWangEditor = () => {
     console.log('[RichTextEditor] 检查 wangEditor...');
     console.log('[RichTextEditor] window.wangEditor:', window.wangEditor);
-    console.log('[RichTextEditor] window.wangEditorForReact:', window.wangEditorForReact);
-    console.log('[RichTextEditor] window.Editor:', window.Editor);
-    console.log('[RichTextEditor] window.Toolbar:', window.Toolbar);
+    console.log('[RichTextEditor] window.WangEditorForReact:', window.WangEditorForReact);
 
     // wangEditor 5.x 的导出方式
-    if (window.wangEditor && window.wangEditorForReact) {
+    if (window.wangEditor && window.WangEditorForReact) {
       console.log('[RichTextEditor] wangEditor 加载完成');
       resolve();
     } else {
@@ -83,7 +81,7 @@ function RichTextEditor({ isOpen, initialContent, onSave, onCancel }) {
   }
 
   // 获取 Editor 和 Toolbar 组件
-  const { Editor, Toolbar } = window.wangEditorForReact || {};
+  const { Editor, Toolbar } = window.WangEditorForReact || {};
   if (!Editor || !Toolbar) {
     console.error('[RichTextEditor] Editor 或 Toolbar 组件未找到');
     return (
