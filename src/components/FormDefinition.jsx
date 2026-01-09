@@ -8,7 +8,9 @@ function FormDefinition({ projectId }) {
   const [selectedSubType, setSelectedSubType] = React.useState('');
   const [showFormBuilder, setShowFormBuilder] = React.useState(false);
   const [showBaseFormModal, setShowBaseFormModal] = React.useState(false);
-  
+  const [globalLoading, setGlobalLoading] = React.useState(false); // 全局加载状态
+  const [globalLoadingText, setGlobalLoadingText] = React.useState(''); // 全局加载文本
+
   // 数据录入相关状态
   const [showDataEntryModal, setShowDataEntryModal] = React.useState(false);
   const [dataEntryForm, setDataEntryForm] = React.useState(null);
@@ -489,6 +491,10 @@ function FormDefinition({ projectId }) {
                 closeFormBuilder();
               }}
               onSuccess={loadFormsAndFields}
+              onLoadingChange={(loading, text) => {
+                setGlobalLoading(loading);
+                setGlobalLoadingText(text || '正在创建表单...');
+              }}
             />
           )}
 
@@ -501,6 +507,10 @@ function FormDefinition({ projectId }) {
                 closeFormBuilder();
               }}
               onSuccess={loadFormsAndFields}
+              onLoadingChange={(loading, text) => {
+                setGlobalLoading(loading);
+                setGlobalLoadingText(text || '正在创建表单...');
+              }}
             />
           )}
 
@@ -577,6 +587,17 @@ function FormDefinition({ projectId }) {
           onClose={() => setShowRebuildTableManager(false)}
           onSuccess={loadFormsAndFields}
         />
+      )}
+
+      {/* 全局加载遮罩 */}
+      {globalLoading && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-8 flex flex-col items-center">
+            <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-blue-600 mb-4"></div>
+            <div className="text-gray-700 font-medium text-lg">{globalLoadingText}</div>
+            <div className="text-gray-500 text-sm mt-2">请稍候，这可能需要几秒钟</div>
+          </div>
+        </div>
       )}
     </div>
   );

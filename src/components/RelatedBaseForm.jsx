@@ -1,5 +1,5 @@
 // 关联基础表构建组件（按照设计文档重新实现）
-function RelatedBaseForm({ projectId, onClose, onSuccess }) {
+function RelatedBaseForm({ projectId, onClose, onSuccess, onLoadingChange }) {
   const [fields, setFields] = React.useState([]);
   const [independentForms, setIndependentForms] = React.useState([]);
   const [allForms, setAllForms] = React.useState([]); // 所有表单（用于查找属性表）
@@ -399,7 +399,15 @@ function RelatedBaseForm({ projectId, onClose, onSuccess }) {
       return;
     }
 
+    // 通知父组件开始加载
+    if (onLoadingChange) onLoadingChange(true, '正在创建表单...');
+    console.log('[RelatedBaseForm] 开始创建表单');
+
     try {
+      // 延迟确保UI渲染
+      await new Promise(resolve => setTimeout(resolve, 50));
+      console.log('[RelatedBaseForm] 延迟50ms后, 开始处理');
+
       // 确定主键
       let primaryKeyFieldId;
       if (primaryKeySource === 'related') {
@@ -467,6 +475,7 @@ function RelatedBaseForm({ projectId, onClose, onSuccess }) {
         fields: fieldsStructure
       };
 
+      console.log('[RelatedBaseForm] 开始调用 addForm');
       // 创建表单
       const newForm = await window.dndDB.addForm(projectId, {
         name: formName,
@@ -477,6 +486,7 @@ function RelatedBaseForm({ projectId, onClose, onSuccess }) {
         managedFormId: formSubType === '标题关联基础表' ? managedFormId : null, // 仅标题关联基础表需要关联表单
         structure: formStructure
       });
+      console.log('[RelatedBaseForm] addForm 完成');
 
       // 更新字段的 relatedForms
       const allFieldIds = new Set();
@@ -487,15 +497,21 @@ function RelatedBaseForm({ projectId, onClose, onSuccess }) {
       selectedFields.forEach(f => allFieldIds.add(f.fieldId));
       selectedAttributeFields.forEach(af => allFieldIds.add(af.fieldId));
 
+      console.log('[RelatedBaseForm] 开始更新字段关联, 共', allFieldIds.size, '个字段');
       for (const fieldId of allFieldIds) {
         await window.dndDB.updateFieldRelatedForms(projectId, fieldId, newForm.id, 'add');
       }
+      console.log('[RelatedBaseForm] 字段关联更新完成');
 
       alert('关联基础表创建成功！');
       onSuccess();
       onClose();
     } catch (error) {
       alert('创建失败：' + error.message);
+    } finally {
+      // 通知父组件结束加载
+      if (onLoadingChange) onLoadingChange(false);
+      console.log('[RelatedBaseForm] 创建完成');
     }
   };
 
@@ -1321,6 +1337,10 @@ function RelatedBaseForm({ projectId, onClose, onSuccess }) {
               </button>
             )}
           </div>
+
+          {/* 创建表单加载遮罩 */}
+          {loading && (
+            <div className="absolute inset-0 bg-white bg-opacity-90 flex items-center justify-center z-50">
         </div>
       </div>
     </div>
