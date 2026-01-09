@@ -22,19 +22,16 @@ const wangEditorPromise = new Promise((resolve) => {
   checkWangEditor();
 });
 
-async function RichTextEditor({ isOpen, initialContent, onSave, onCancel }) {
-  // 等待 wangEditor 加载完成
-  await wangEditorPromise;
-
+function RichTextEditor({ isOpen, initialContent, onSave, onCancel }) {
+  const [isLoaded, setIsLoaded] = useState(false);
   const [editor, setEditor] = useState(null);
   const [html, setHtml] = useState(initialContent || '');
-  const [isLoaded, setIsLoaded] = useState(false);
 
-  // 检查 wangEditor 是否加载完成
+  // 等待 wangEditor 加载完成
   useEffect(() => {
-    if (window.wangEditor && window.wangEditorForReact) {
+    wangEditorPromise.then(() => {
       setIsLoaded(true);
-    }
+    });
   }, []);
 
   // 编辑器配置
