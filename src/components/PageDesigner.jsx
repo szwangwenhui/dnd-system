@@ -125,9 +125,54 @@ function PageDesigner({ projectId, roleId, page, onClose, onSave }) {
 
   // 删除区块
   const handleDeleteBlock = (blockId) => {
-    if (!confirm('确定要删除该区块吗？')) return;
-    
-    const newBlocks = blocks.filter(b => b.id !== blockId);
+    // 检查是否有子区块
+    const childBlocks = blocks.filter(b => b.parentId === blockId);
+    const hasChildBlocks = childBlocks.length > 0;
+
+    let confirmed = false;
+    let deleteChildren = false;
+
+    if (!hasChildBlocks) {
+      // 没有子区块，直接删除
+      confirmed = confirm('确定要删除该区块吗？');
+    } else {
+      // 有子区块，询问是否同时删除
+      const message = `该区块下有 ${childBlocks.length} 个子区块。\n\n` +
+                   `是否同时删除所有下级区块（包括子区块、孙区块等）？\n\n` +
+                   `点击"确定"：同时删除所有下级区块\n` +
+                   `点击"取消"：仅删除该区块，下级区块保留`;
+      confirmed = confirm(message);
+      deleteChildren = confirmed;
+    }
+
+    if (!confirmed) return;
+
+    let newBlocks;
+    if (deleteChildren) {
+      // 级联删除：递归删除所有子孙区块
+      const allBlockIdsToDelete = new Set([blockId]);
+      const queue = [blockId];
+
+      while (queue.length > 0) {
+        const currentId = queue.shift();
+        // 查找当前区块的子区块
+        const children = blocks.filter(b => b.parentId === currentId);
+        children.forEach(child => {
+          if (!allBlockIdsToDelete.has(child.id)) {
+            allBlockIdsToDelete.add(child.id);
+            queue.push(child.id);
+          }
+        });
+      }
+
+      console.log('[PageDesigner] 级联删除区块，总计删除:', allBlockIdsToDelete.size, '个');
+      newBlocks = blocks.filter(b => !allBlockIdsToDelete.has(b.id));
+    } else {
+      // 仅删除当前区块，保留子区块
+      console.log('[PageDesigner] 仅删除区块:', blockId, '，保留子区块');
+      newBlocks = blocks.filter(b => b.id !== blockId);
+    }
+
     setBlocks(newBlocks);
     if (selectedBlockId === blockId) {
       setSelectedBlockId(null);
