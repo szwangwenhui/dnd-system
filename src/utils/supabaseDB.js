@@ -1,7 +1,7 @@
 /**
  * DND2 Supabase 数据库模块
  * 公测版 - 精简版本
- * 
+ *
  * 提供与原 IndexedDB 版本兼容的 API
  */
 
@@ -15,6 +15,19 @@
     }
     return window.supabaseClient;
   };
+
+  // ==================== 缓存管理 ====================
+  const cache = {
+    project: null,
+    projectCacheTime: 0,
+    CACHE_TTL: 5 * 60 * 1000 // 5分钟缓存
+  };
+
+  // 清除项目缓存
+  function clearProjectCache() {
+    cache.project = null;
+    cache.projectCacheTime = 0;
+  }
 
   // ==================== 认证模块 ====================
   const auth = {
@@ -73,8 +86,17 @@
       return (data || []).map(this._formatProject);
     },
 
-    // 根据ID获取项目
+    // 根据ID获取项目（带缓存）
     async getProjectById(id) {
+      // 检查缓存
+      const now = Date.now();
+      if (cache.project && cache.project.id === id && (now - cache.projectCacheTime) < cache.CACHE_TTL) {
+        console.log('[SupabaseDB] 从缓存获取项目:', id);
+        return cache.project;
+      }
+
+      // 从数据库获取
+      console.log('[SupabaseDB] 从数据库获取项目:', id);
       const { data, error } = await getClient()
         .from('projects')
         .select('*')
@@ -82,11 +104,21 @@
         .single();
 
       if (error && error.code !== 'PGRST116') throw error;
-      return data ? this._formatProject(data) : null;
+
+      const project = data ? this._formatProject(data) : null;
+
+      // 更新缓存
+      if (project) {
+        cache.project = project;
+        cache.projectCacheTime = now;
+      }
+
+      return project;
     },
 
     // 添加项目
     async addProject(project) {
+      clearProjectCache(); // 清除缓存
       const user = await auth.getCurrentUser();
       if (!user) throw new Error('请先登录');
 
@@ -189,6 +221,8 @@
 
     // 更新项目
     async updateProject(project) {
+      clearProjectCache(); // 清除缓存
+
       const updates = {
         name: project.name,
         description: project.description,
