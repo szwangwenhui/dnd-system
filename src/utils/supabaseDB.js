@@ -527,6 +527,11 @@
 
       const form = project.forms[formIdx];
       const primaryKey = form.structure?.primaryKey;
+
+      // 确保 data 存在
+      if (!form.data) {
+        form.data = [];
+      }
       
       let dataIdx = -1;
       if (primaryKey) {
