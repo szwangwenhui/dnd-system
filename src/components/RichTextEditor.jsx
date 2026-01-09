@@ -1,14 +1,40 @@
 // 富文本编辑器组件
-import React, { useState, useEffect, useRef } from 'react';
-import { Editor, Toolbar } from '@wangeditor/editor-for-react';
-import { IDomEditor, IEditorConfig, IToolbarConfig } from '@wangeditor/editor';
+// 使用全局 React
+const React = window.React;
+const { useState, useEffect, useRef } = React;
 
-// 引入 wangEditor 样式
-import '@wangeditor/editor/dist/css/style.css';
+// 引入 wangEditor 样式（通过 CDN）
+const wangEditorStyle = document.createElement('link');
+wangEditorStyle.rel = 'stylesheet';
+wangEditorStyle.href = 'https://cdn.jsdelivr.net/npm/@wangeditor/editor@latest/dist/css/style.css';
+document.head.appendChild(wangEditorStyle);
 
-function RichTextEditor({ isOpen, initialContent, onSave, onCancel }) {
+// 等待 wangEditor CDN 加载完成
+const wangEditorPromise = new Promise((resolve) => {
+  const checkWangEditor = () => {
+    if (window.wangEditor && window.wangEditorForReact) {
+      resolve();
+    } else {
+      setTimeout(checkWangEditor, 100);
+    }
+  };
+  checkWangEditor();
+});
+
+async function RichTextEditor({ isOpen, initialContent, onSave, onCancel }) {
+  // 等待 wangEditor 加载完成
+  await wangEditorPromise;
+
   const [editor, setEditor] = useState(null);
   const [html, setHtml] = useState(initialContent || '');
+  const [isLoaded, setIsLoaded] = useState(false);
+
+  // 检查 wangEditor 是否加载完成
+  useEffect(() => {
+    if (window.wangEditor && window.wangEditorForReact) {
+      setIsLoaded(true);
+    }
+  }, []);
 
   // 编辑器配置
   const editorConfig = {
@@ -45,6 +71,20 @@ function RichTextEditor({ isOpen, initialContent, onSave, onCancel }) {
   };
 
   if (!isOpen) return null;
+
+  // 如果 wangEditor 未加载完成，显示加载中
+  if (!isLoaded) {
+    return (
+      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div className="bg-white rounded-lg shadow-xl p-8 text-center">
+          <div className="text-gray-500">加载富文本编辑器中...</div>
+        </div>
+      </div>
+    );
+  }
+
+  // 获取 Editor 和 Toolbar 组件
+  const { Editor, Toolbar } = window.wangEditorForReact;
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
@@ -107,4 +147,4 @@ function RichTextEditor({ isOpen, initialContent, onSave, onCancel }) {
   );
 }
 
-export default RichTextEditor;
+window.RichTextEditor = RichTextEditor;
