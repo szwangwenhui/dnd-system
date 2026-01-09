@@ -8,6 +8,7 @@ function IndependentBaseForm({ projectId, onClose, onSuccess }) {
   const [selectedFields, setSelectedFields] = React.useState([]);
   const [selectedAttributeFields, setSelectedAttributeFields] = React.useState([]); // 已选的属性字段
   const [step, setStep] = React.useState(1); // 1: 输入表单名称, 2: 选择主键, 3: 添加字段
+  const [loading, setLoading] = React.useState(false); // 创建表单中
   
   // 主键自增配置
   const [primaryKeyConfig, setPrimaryKeyConfig] = React.useState({
@@ -218,7 +219,14 @@ function IndependentBaseForm({ projectId, onClose, onSuccess }) {
       return;
     }
 
+    setLoading(true);
+    console.log('[IndependentBaseForm] 开始创建表单, loading:', loading);
+
     try {
+      // 延迟确保UI渲染
+      await new Promise(resolve => setTimeout(resolve, 50));
+      console.log('[IndependentBaseForm] 延迟50ms后, loading:', loading);
+
       // 构建表单结构
       const formStructure = {
         primaryKey: selectedPrimaryKey,
@@ -244,6 +252,7 @@ function IndependentBaseForm({ projectId, onClose, onSuccess }) {
         ]
       };
 
+      console.log('[IndependentBaseForm] 开始调用 addForm');
       // 创建表单
       const newForm = await window.dndDB.addForm(projectId, {
         name: formName,
@@ -252,22 +261,28 @@ function IndependentBaseForm({ projectId, onClose, onSuccess }) {
         subType: formSubType, // '普通独立基础表' | '详情独立基础表'
         structure: formStructure
       });
+      console.log('[IndependentBaseForm] addForm 完成');
 
       // 更新所有使用的字段的 relatedForms
       const allFieldIds = [
-        selectedPrimaryKey, 
+        selectedPrimaryKey,
         ...selectedFields.map(f => f.fieldId),
         ...selectedAttributeFields.map(af => af.fieldId)
       ];
+      console.log('[IndependentBaseForm] 开始更新字段关联, 共', allFieldIds.length, '个字段');
       for (const fieldId of allFieldIds) {
         await window.dndDB.updateFieldRelatedForms(projectId, fieldId, newForm.id, 'add');
       }
+      console.log('[IndependentBaseForm] 字段关联更新完成');
 
       alert('独立基础表创建成功！');
       onSuccess();
       onClose();
     } catch (error) {
       alert('创建失败：' + error.message);
+    } finally {
+      setLoading(false);
+      console.log('[IndependentBaseForm] 创建完成, loading:', loading);
     }
   };
 
@@ -805,13 +820,25 @@ function IndependentBaseForm({ projectId, onClose, onSuccess }) {
             ) : (
               <button
                 onClick={handleSubmit}
-                className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
+                className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50"
+                disabled={loading}
               >
-                创建表单
+                {loading ? '创建中...' : '创建表单'}
               </button>
             )}
           </div>
         </div>
+
+        {/* 创建表单加载遮罩 */}
+        {loading && (
+          <div className="absolute inset-0 bg-white bg-opacity-90 flex items-center justify-center z-50">
+            <div className="flex flex-col items-center">
+              <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-blue-600 mb-4"></div>
+              <div className="text-gray-700 font-medium text-lg">正在创建表单...</div>
+              <div className="text-gray-500 text-sm mt-2">请稍候，这可能需要几秒钟</div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

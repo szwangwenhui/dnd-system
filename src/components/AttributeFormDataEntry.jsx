@@ -66,6 +66,9 @@ function AttributeFormDataEntry({ projectId, form, fields, onClose, onSuccess })
     setImporting(true);
 
     try {
+      // 延迟执行，确保 loading 状态被渲染
+      await new Promise(resolve => setTimeout(resolve, 50));
+
       const data = await readExcelFile(file);
       await processExcelData(data);
     } catch (error) {
@@ -607,6 +610,17 @@ function AttributeFormDataEntry({ projectId, form, fields, onClose, onSuccess })
             关闭
           </button>
         </div>
+
+        {/* Excel导入加载遮罩 */}
+        {importing && (
+          <div className="absolute inset-0 bg-white bg-opacity-90 flex items-center justify-center z-50">
+            <div className="flex flex-col items-center">
+              <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-blue-600 mb-4"></div>
+              <div className="text-gray-700 font-medium text-lg">正在导入Excel数据...</div>
+              <div className="text-gray-500 text-sm mt-2">请稍候，这可能需要几秒钟</div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
