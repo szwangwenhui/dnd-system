@@ -1232,12 +1232,12 @@ function PageDesigner({ projectId, roleId, page, onClose, onSave }) {
           textAlign: 'right',
           padding: 4,
           borderWidth: 0,
-          zIndex: parentBlock.style?.zIndex ?? 0
+          zIndex: (parentBlock.style?.zIndex ?? 0) + 10  // 子区块层级高于父区块
         },
         createdAt: new Date().toISOString()
       };
       generatedBlocks.push(promptBlock);
-      
+
       // 填写区块
       const inputBlock = {
         id: generateChildId(),
@@ -1263,7 +1263,7 @@ function PageDesigner({ projectId, roleId, page, onClose, onSave }) {
           borderRadius: 4,
           padding: 4,
           fontSize: 12,
-          zIndex: parentBlock.style?.zIndex ?? 0
+          zIndex: (parentBlock.style?.zIndex ?? 0) + 10  // 子区块层级高于父区块
         },
         createdAt: new Date().toISOString()
       };
@@ -1296,12 +1296,12 @@ function PageDesigner({ projectId, roleId, page, onClose, onSave }) {
           textAlign: 'right',
           padding: 4,
           borderWidth: 0,
-          zIndex: parentBlock.style?.zIndex ?? 0
+          zIndex: (parentBlock.style?.zIndex ?? 0) + 10  // 子区块层级高于父区块
         },
         createdAt: new Date().toISOString()
       };
       generatedBlocks.push(cascaderPromptBlock);
-      
+
       // 级联下拉区块
       const cascaderBlock = {
         id: generateChildId(),
@@ -1324,7 +1324,7 @@ function PageDesigner({ projectId, roleId, page, onClose, onSave }) {
           borderRadius: 4,
           padding: 4,
           fontSize: 12,
-          zIndex: parentBlock.style?.zIndex ?? 0
+          zIndex: (parentBlock.style?.zIndex ?? 0) + 10  // 子区块层级高于父区块
         },
         createdAt: new Date().toISOString()
       };
@@ -1358,7 +1358,7 @@ function PageDesigner({ projectId, roleId, page, onClose, onSave }) {
         borderWidth: 0,
         padding: 4,
         cursor: 'pointer',
-        zIndex: parentBlock.style?.zIndex ?? 0
+        zIndex: (parentBlock.style?.zIndex ?? 0) + 10  // 子区块层级高于父区块
       },
       createdAt: new Date().toISOString()
     };

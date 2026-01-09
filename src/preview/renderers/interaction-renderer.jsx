@@ -100,6 +100,20 @@ export const createInteractionRenderer = (props) => {
 
   // 打开富文本编辑器
   const handleOpenRichTextEditor = (blockId, fieldId, fieldName) => {
+    console.log('[InteractionRenderer] 打开富文本编辑器:', {
+      blockId,
+      fieldId,
+      fieldName,
+      windowRichTextEditor: !!window.RichTextEditor,
+      currentContent: interactionInputData[blockId]?.[fieldId]
+    });
+
+    if (!window.RichTextEditor) {
+      console.error('[InteractionRenderer] window.RichTextEditor 未定义');
+      alert('富文本编辑器组件未加载，请刷新页面重试');
+      return;
+    }
+
     const currentContent = interactionInputData[blockId]?.[fieldId] || '';
     setRichTextEditor({
       isOpen: true,
@@ -184,6 +198,15 @@ export const createInteractionRenderer = (props) => {
       ? [primaryKeyId, ...selectedFieldIds]
       : selectedFieldIds;
 
+    console.log('[InteractionRenderer] 字段渲染信息:', {
+      blockId: block.id,
+      targetFormId: block.targetFormId,
+      primaryKeyId,
+      selectedFieldIds,
+      allFieldIds,
+      formStructure: form?.structure
+    });
+
     // 从内容样式中获取字体设置
     const labelFontSize = contentStyle.fontSize ? contentStyle.fontSize * 0.85 : 12;
     const inputFontSize = contentStyle.fontSize || 14;
@@ -211,6 +234,13 @@ export const createInteractionRenderer = (props) => {
           {allFieldIds.map(fieldId => {
             const field = fields.find(f => f.id === fieldId);
             const fieldType = field?.type || '文本';
+
+            console.log('[InteractionRenderer] 渲染字段:', {
+              fieldId,
+              field,
+              fieldType,
+              isRichText: fieldType === '富文本'
+            });
 
             // 富文本字段特殊处理
             if (fieldType === '富文本') {
@@ -324,13 +354,28 @@ export const createInteractionRenderer = (props) => {
         )}
 
         {/* 富文本编辑器 */}
-        {richTextEditor.isOpen && window.RichTextEditor && (
+        {richTextEditor.isOpen && window.RichTextEditor ? (
           <window.RichTextEditor
             isOpen={richTextEditor.isOpen}
             initialContent={richTextEditor.content}
             onSave={handleSaveRichText}
             onCancel={handleCloseRichTextEditor}
           />
+        ) : richTextEditor.isOpen && !window.RichTextEditor && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div className="bg-white rounded-lg shadow-xl p-8 text-center">
+              <div className="text-red-500 mb-4">富文本编辑器组件未加载</div>
+              <div className="text-sm text-gray-500 mb-4">
+                请检查网络连接并刷新页面
+              </div>
+              <button
+                onClick={() => window.location.reload()}
+                className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+              >
+                刷新页面
+              </button>
+            </div>
+          </div>
         )}
       </div>
     );
