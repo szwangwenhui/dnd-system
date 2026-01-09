@@ -49,16 +49,20 @@ function BaseFormDataEntry({ projectId, form, fields, forms, onClose, onSuccess 
       'application/vnd.ms-excel', // .xls
     ];
     const fileExtension = file.name.split('.').pop().toLowerCase();
-    
+
     if (!validTypes.includes(file.type) && !['xlsx', 'xls'].includes(fileExtension)) {
       alert('请选择Excel文件（.xlsx 或 .xls）');
       event.target.value = '';
       return;
     }
 
+    // 使用 setTimeout 确保 UI 有时间渲染加载状态
     setImporting(true);
 
     try {
+      // 延迟执行，确保 loading 状态被渲染
+      await new Promise(resolve => setTimeout(resolve, 50));
+
       const data = await readExcelFile(file);
       await processExcelData(data);
     } catch (error) {
