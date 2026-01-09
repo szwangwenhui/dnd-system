@@ -1188,6 +1188,11 @@ function Preview() {
     try {
       // 根据配置决定是否写入数据
       if (writeOnSubmit) {
+        console.log('[Preview] 准备写入数据:', {
+          projectId,
+          formId,
+          entryFormData
+        });
         const savedRecord = await window.dndDB.addFormData(projectId, formId, entryFormData);
         console.log('数据已写入表单:', formId);
       } else {
