@@ -193,19 +193,10 @@ export const createInteractionRenderer = (props) => {
     const primaryKeyId = form?.structure?.primaryKey;
     // 显示主键字段（如果主键不是自动生成的话）和用户选择的字段
     const selectedFieldIds = (block.selectedFields || []).filter(Boolean);
-    // 如果主键不在selectedFields中，需要添加它（为了显示）
-    const allFieldIds = primaryKeyId && !selectedFieldIds.includes(primaryKeyId)
-      ? [primaryKeyId, ...selectedFieldIds]
+    // 始终添加主键字段（因为设计器中主键字段被禁用但不包含在selectedFields中）
+    const allFieldIds = primaryKeyId
+      ? [primaryKeyId, ...selectedFieldIds.filter(id => id !== primaryKeyId)]
       : selectedFieldIds;
-
-    console.log('[InteractionRenderer] 字段渲染信息:', {
-      blockId: block.id,
-      targetFormId: block.targetFormId,
-      primaryKeyId,
-      selectedFieldIds,
-      allFieldIds,
-      formStructure: form?.structure
-    });
 
     // 从内容样式中获取字体设置
     const labelFontSize = contentStyle.fontSize ? contentStyle.fontSize * 0.85 : 12;
@@ -234,13 +225,6 @@ export const createInteractionRenderer = (props) => {
           {allFieldIds.map(fieldId => {
             const field = fields.find(f => f.id === fieldId);
             const fieldType = field?.type || '文本';
-
-            console.log('[InteractionRenderer] 渲染字段:', {
-              fieldId,
-              field,
-              fieldType,
-              isRichText: fieldType === '富文本'
-            });
 
             // 富文本字段特殊处理
             if (fieldType === '富文本') {
