@@ -828,10 +828,6 @@ function IndependentBaseForm({ projectId, onClose, onSuccess, onLoadingChange })
             )}
           </div>
         </div>
-
-        {/* 创建表单加载遮罩 */}
-        {loading && (
-        )}
       </div>
     </div>
   );
