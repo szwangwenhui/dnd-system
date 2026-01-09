@@ -826,8 +826,21 @@ function BaseFormDataEntry({ projectId, form, fields, forms, onClose, onSuccess 
 
   // 保存富文本内容
   const handleSaveRichText = (result) => {
+    console.log('[BaseFormDataEntry] handleSaveRichText 调用, result:', result);
+
     // Quill版本返回 {html, text, isEmpty}
-    const html = result.html || '';
+    let html = '';
+
+    if (typeof result === 'string') {
+      html = result;
+    } else if (result && result.html) {
+      html = result.html;
+    } else if (result && typeof result === 'object') {
+      html = String(result);
+    }
+
+    console.log('[BaseFormDataEntry] 保存的HTML:', html);
+
     setFormValues(prev => ({
       ...prev,
       [richTextEditor.fieldId]: html
