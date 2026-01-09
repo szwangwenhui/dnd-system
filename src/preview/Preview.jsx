@@ -604,9 +604,17 @@ function Preview() {
           const updatedBlocks = (page.design?.blocks || []).map(block => {
             if (block.isDetailFieldBlock && block.detailFieldId) {
               const fieldValue = dataRecord[block.detailFieldId];
+
+              // 检查是否是富文本字段
+              const field = projectData.fields?.find(f => f.id === block.detailFieldId);
+              const isRichText = field && field.type === '富文本';
+
+              // 富文本字段需要特殊处理，将 HTML 内容存储在 block 中
               return {
                 ...block,
-                content: fieldValue !== undefined && fieldValue !== null ? String(fieldValue) : block.content
+                content: fieldValue !== undefined && fieldValue !== null ? String(fieldValue) : block.content,
+                isRichTextField: isRichText, // 标记是否为富文本字段
+                richTextContent: isRichText ? fieldValue : null // 存储富文本内容
               };
             }
             return block;
@@ -667,9 +675,17 @@ function Preview() {
           const updatedBlocks = (page.design?.blocks || []).map(block => {
             if (block.isDetailFieldBlock && block.detailFieldId) {
               const fieldValue = firstRecord[block.detailFieldId];
+
+              // 检查是否是富文本字段
+              const field = projectData.fields?.find(f => f.id === block.detailFieldId);
+              const isRichText = field && field.type === '富文本';
+
+              // 富文本字段需要特殊处理，将 HTML 内容存储在 block 中
               return {
                 ...block,
-                content: fieldValue !== undefined && fieldValue !== null ? String(fieldValue) : block.content
+                content: fieldValue !== undefined && fieldValue !== null ? String(fieldValue) : block.content,
+                isRichTextField: isRichText, // 标记是否为富文本字段
+                richTextContent: isRichText ? fieldValue : null // 存储富文本内容
               };
             }
             return block;
@@ -1080,6 +1096,19 @@ function Preview() {
     switch (block.contentType) {
       case '文本':
       case '文字':
+        // 如果是富文本字段区块，直接渲染 HTML 内容
+        if (block.isRichTextField && block.richTextContent) {
+          return (
+            <div key={block.id} style={blockStyle}>
+              {isPopupBlock && <PopupCloseButton />}
+              <div
+                style={contentStyle}
+                dangerouslySetInnerHTML={{ __html: block.richTextContent }}
+              />
+            </div>
+          );
+        }
+        // 普通文本区块
         return (
           <div key={block.id} style={blockStyle}>
             {isPopupBlock && <PopupCloseButton />}

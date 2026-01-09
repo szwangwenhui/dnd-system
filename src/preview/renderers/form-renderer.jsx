@@ -7,6 +7,7 @@ export const createFormRenderer = (props) => {
     setFormDataCache,
     projectId,
     forms,
+    fields,
     blocks,
     loadAllFormData
   } = props;
@@ -150,6 +151,20 @@ export const createFormRenderer = (props) => {
     const tableRows = displayData.map(record => {
       return cfg.fieldInfos?.map(f => {
         const value = record[f.fieldId];
+
+        // 检查是否是富文本字段
+        const field = fields.find(field => field.id === f.fieldId);
+        if (field && field.type === '富文本') {
+          // 提取纯文本并截取前20个汉字
+          const tempDiv = document.createElement('div');
+          tempDiv.innerHTML = value || '';
+          let text = tempDiv.textContent || tempDiv.innerText || '';
+          if (text.length > 20) {
+            text = text.substring(0, 20) + '...';
+          }
+          return text || '-';
+        }
+
         return value !== undefined && value !== null ? String(value) : '-';
       }) || [];
     });

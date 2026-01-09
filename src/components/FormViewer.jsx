@@ -756,7 +756,7 @@ function FormViewer({ projectId, form, fields, forms, onClose }) {
                       f.isDerivedField ? 'text-pink-600 bg-pink-50 font-medium' : 'text-gray-900'
                     }`}
                   >
-                    {formatCellValue(record[f.fieldId])}
+                    {formatCellValue(record[f.fieldId], f.fieldId)}
                   </td>
                 ))}
                 {/* 操作栏单元格 */}
@@ -805,14 +805,43 @@ function FormViewer({ projectId, form, fields, forms, onClose }) {
   };
 
   // 格式化单元格值
-  const formatCellValue = (value) => {
+  const formatCellValue = (value, fieldId) => {
     if (value === null || value === undefined || value === '') {
       return <span className="text-gray-300">-</span>;
     }
     if (typeof value === 'boolean') {
       return value ? '是' : '否';
     }
+
+    // 检查是否是富文本字段
+    const field = fields.find(f => f.id === fieldId);
+    if (field && field.type === '富文本') {
+      // 提取纯文本并截取前20个汉字
+      return (
+        <span dangerouslySetInnerHTML={{
+          __html: truncateHtmlText(value, 20)
+        }} />
+      );
+    }
+
     return String(value);
+  };
+
+  // 截取HTML文本（提取纯文本并截取前n个汉字）
+  const truncateHtmlText = (html, maxChars = 20) => {
+    if (!html) return '';
+
+    // 创建临时元素提取纯文本
+    const tempDiv = document.createElement('div');
+    tempDiv.innerHTML = html;
+    let text = tempDiv.textContent || tempDiv.innerText || '';
+
+    // 截取前maxChars个汉字
+    if (text.length > maxChars) {
+      text = text.substring(0, maxChars) + '...';
+    }
+
+    return text;
   };
 
   // 获取标签颜色

@@ -8,6 +8,14 @@ function BaseFormDataEntry({ projectId, form, fields, forms, onClose, onSuccess 
   const [existingData, setExistingData] = React.useState([]); // 已录入的数据
   const [importing, setImporting] = React.useState(false); // Excel导入中
 
+  // 富文本编辑器状态
+  const [richTextEditor, setRichTextEditor] = React.useState({
+    isOpen: false,
+    fieldId: null,
+    fieldName: '',
+    content: ''
+  });
+
   // 文件选择器引用
   const fileInputRef = React.useRef(null);
 
@@ -803,6 +811,47 @@ function BaseFormDataEntry({ projectId, form, fields, forms, onClose, onSuccess 
     }
   };
 
+  // 打开富文本编辑器
+  const handleOpenRichTextEditor = (fieldId, fieldName) => {
+    setRichTextEditor({
+      isOpen: true,
+      fieldId: fieldId,
+      fieldName: fieldName,
+      content: formValues[fieldId] || ''
+    });
+  };
+
+  // 保存富文本内容
+  const handleSaveRichText = (html) => {
+    setFormValues(prev => ({
+      ...prev,
+      [richTextEditor.fieldId]: html
+    }));
+    setRichTextEditor(prev => ({ ...prev, isOpen: false }));
+  };
+
+  // 取消富文本编辑
+  const handleCloseRichTextEditor = () => {
+    setRichTextEditor(prev => ({ ...prev, isOpen: false }));
+  };
+
+  // 截取HTML文本（提取纯文本并截取前n个汉字）
+  const truncateHtmlText = (html, maxChars = 20) => {
+    if (!html) return '';
+
+    // 创建临时元素提取纯文本
+    const tempDiv = document.createElement('div');
+    tempDiv.innerHTML = html;
+    let text = tempDiv.textContent || tempDiv.innerText || '';
+
+    // 截取前maxChars个汉字
+    if (text.length > maxChars) {
+      text = text.substring(0, maxChars) + '...';
+    }
+
+    return text;
+  };
+
   // 渲染输入控件
   const renderInputField = (fieldConfig) => {
     const fieldInfo = getFieldInfo(fieldConfig.fieldId);
@@ -940,10 +989,47 @@ function BaseFormDataEntry({ projectId, form, fields, forms, onClose, onSuccess 
       );
     }
 
+    // 富文本字段 - 显示文本框，双击打开编辑器
+    if (fieldInfo.type === '富文本') {
+      return (
+        <div key={fieldConfig.fieldId} className="mb-4">
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            {fieldInfo.name}
+            {isPrimaryKey && (
+              <span className="ml-2 px-2 py-0.5 text-xs bg-blue-100 text-blue-800 rounded-full">
+                主键
+              </span>
+            )}
+            {isRequired && <span className="text-red-500 ml-1">*</span>}
+            <span className="ml-2 px-2 py-0.5 text-xs bg-indigo-100 text-indigo-800 rounded-full">
+              富文本
+            </span>
+          </label>
+          <div
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg min-h-[80px] cursor-pointer hover:border-indigo-400 hover:bg-gray-50 transition-colors"
+            onDoubleClick={() => handleOpenRichTextEditor(fieldConfig.fieldId, fieldInfo.name)}
+            onClick={() => handleOpenRichTextEditor(fieldConfig.fieldId, fieldInfo.name)}
+            title="双击或点击打开富文本编辑器"
+          >
+            {formValues[fieldConfig.fieldId] ? (
+              <div
+                className="text-gray-700"
+                dangerouslySetInnerHTML={{
+                  __html: truncateHtmlText(formValues[fieldConfig.fieldId], 20)
+                }}
+              />
+            ) : (
+              <div className="text-gray-400 italic">点击编辑富文本内容...</div>
+            )}
+          </div>
+        </div>
+      );
+    }
+
     // 普通字段 - 根据类型显示不同输入控件
     let inputType = 'text';
     let inputProps = {};
-    
+
     // 检查是否是自增主键
     const pkConfig = form.structure?.primaryKeyConfig;
     const isAutoIncrement = isPrimaryKey && pkConfig && pkConfig.mode === 'auto';
@@ -1162,6 +1248,16 @@ function BaseFormDataEntry({ projectId, form, fields, forms, onClose, onSuccess 
           </div>
         </div>
       </div>
+
+      {/* 富文本编辑器 */}
+      {richTextEditor.isOpen && (
+        <RichTextEditor
+          isOpen={richTextEditor.isOpen}
+          initialContent={richTextEditor.content}
+          onSave={handleSaveRichText}
+          onCancel={handleCloseRichTextEditor}
+        />
+      )}
     </div>
   );
 }
