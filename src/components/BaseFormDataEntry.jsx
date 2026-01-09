@@ -822,7 +822,9 @@ function BaseFormDataEntry({ projectId, form, fields, forms, onClose, onSuccess 
   };
 
   // 保存富文本内容
-  const handleSaveRichText = (html) => {
+  const handleSaveRichText = (result) => {
+    // Quill版本返回 {html, text, isEmpty}
+    const html = result.html || '';
     setFormValues(prev => ({
       ...prev,
       [richTextEditor.fieldId]: html
@@ -1255,7 +1257,8 @@ function BaseFormDataEntry({ projectId, form, fields, forms, onClose, onSuccess 
           isOpen={richTextEditor.isOpen}
           initialContent={richTextEditor.content}
           onSave={handleSaveRichText}
-          onCancel={handleCloseRichTextEditor}
+          onClose={handleCloseRichTextEditor}
+          title={`编辑${richTextEditor.fieldName}`}
         />
       )}
     </div>
