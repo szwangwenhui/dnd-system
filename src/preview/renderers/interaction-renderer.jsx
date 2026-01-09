@@ -100,14 +100,6 @@ export const createInteractionRenderer = (props) => {
 
   // 打开富文本编辑器
   const handleOpenRichTextEditor = (blockId, fieldId, fieldName) => {
-    console.log('[InteractionRenderer] 打开富文本编辑器:', {
-      blockId,
-      fieldId,
-      fieldName,
-      windowRichTextEditor: !!window.RichTextEditor,
-      currentContent: interactionInputData[blockId]?.[fieldId]
-    });
-
     if (!window.RichTextEditor) {
       console.error('[InteractionRenderer] window.RichTextEditor 未定义');
       alert('富文本编辑器组件未加载，请刷新页面重试');

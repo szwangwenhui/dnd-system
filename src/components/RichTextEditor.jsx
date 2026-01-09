@@ -1,4 +1,4 @@
-// 富文本编辑器组件
+// 富文本编辑器组件 v2
 // 使用全局 React
 const React = window.React;
 const { useState, useEffect, useRef } = React;
@@ -16,10 +16,6 @@ const wangEditorPromise = new Promise((resolve) => {
     if (window.wangEditor && window.wangEditorForReact) {
       resolve();
     } else {
-      console.log('[RichTextEditor] 等待 wangEditor 加载...', {
-        wangEditor: !!window.wangEditor,
-        wangEditorForReact: !!window.wangEditorForReact
-      });
       setTimeout(checkWangEditor, 100);
     }
   };
@@ -36,11 +32,6 @@ async function RichTextEditor({ isOpen, initialContent, onSave, onCancel }) {
 
   // 检查 wangEditor 是否加载完成
   useEffect(() => {
-    console.log('[RichTextEditor] 检查 wangEditor:', {
-      wangEditor: !!window.wangEditor,
-      wangEditorForReact: !!window.wangEditorForReact,
-      isOpen
-    });
     if (window.wangEditor && window.wangEditorForReact) {
       setIsLoaded(true);
     }
@@ -94,7 +85,6 @@ async function RichTextEditor({ isOpen, initialContent, onSave, onCancel }) {
   }
 
   // 获取 Editor 和 Toolbar 组件
-  console.log('[RichTextEditor] 准备渲染编辑器，wangEditorForReact:', window.wangEditorForReact);
   const { Editor, Toolbar } = window.wangEditorForReact || {};
   if (!Editor || !Toolbar) {
     console.error('[RichTextEditor] Editor 或 Toolbar 组件未找到');
