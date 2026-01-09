@@ -6,6 +6,12 @@ const { useState, useEffect, useRef } = React;
 // 等待 wangEditor CDN 加载完成
 const wangEditorPromise = new Promise((resolve) => {
   const checkWangEditor = () => {
+    console.log('[RichTextEditor] 检查 wangEditor...');
+    console.log('[RichTextEditor] window.wangEditor:', window.wangEditor);
+    console.log('[RichTextEditor] window.wangEditorForReact:', window.wangEditorForReact);
+    console.log('[RichTextEditor] window.Editor:', window.Editor);
+    console.log('[RichTextEditor] window.Toolbar:', window.Toolbar);
+
     // wangEditor 5.x 的导出方式
     if (window.wangEditor && window.wangEditorForReact) {
       console.log('[RichTextEditor] wangEditor 加载完成');
