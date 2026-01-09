@@ -34,6 +34,11 @@ function BaseFormDataEntry({ projectId, form, fields, forms, onClose, onSuccess 
     loadRelatedFormData(); // 加载关联表数据
   }, [form]);
 
+  // 监控 importing 状态
+  React.useEffect(() => {
+    console.log('[BaseFormDataEntry] importing 状态变化:', importing);
+  }, [importing]);
+
   // Excel导入功能
   const handleExcelImport = () => {
     fileInputRef.current?.click();
