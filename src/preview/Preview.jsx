@@ -1181,6 +1181,15 @@ function Preview() {
   // 处理数据录入提交（基础表）
   const handleDataEntrySubmit = async () => {
     const formId = dataEntryModal.formId;
+    const blockId = dataEntryModal.blockId;  // 获取触发的区块ID
+    const writeOnSubmit = dataEntryModal.writeOnSubmit !== false; // 默认为true
+    if (!formId) return;
+
+    try {
+      // 根据配置决定是否写入数据
+      if (writeOnSubmit) {
+        const savedRecord = await window.dndDB.addFormData(projectId, formId, entryFormData);
+        console.log('数据已写入表单:', formId);
       } else {
         console.log('跳过数据写入（writeOnSubmit=false）');
       }
