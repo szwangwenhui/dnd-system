@@ -31,6 +31,7 @@ window.createInteractionRenderer = (props) => {
 
   // 处理交互区块提交
   const handleInteractionSubmit = async (block) => {
+    console.log('[InteractionRenderer] handleInteractionSubmit 调用, block:', block);
     const formId = block.targetFormId;
     if (!formId) {
       alert('未配置目标表单');
@@ -41,9 +42,13 @@ window.createInteractionRenderer = (props) => {
     const purposeSave = block.purposeSave !== false;
     const purposeFlow = block.purposeFlow === true;
 
+    console.log('[InteractionRenderer] inputData:', inputData);
+    console.log('[InteractionRenderer] forms:', forms?.length);
+
     try {
       // 获取表单结构
       const form = forms.find(f => f.id === formId);
+      console.log('[InteractionRenderer] 找到的表单:', form);
       if (!form || !form.structure) {
         throw new Error('表单结构不存在');
       }
@@ -94,6 +99,7 @@ window.createInteractionRenderer = (props) => {
       }
 
     } catch (error) {
+      console.error('[InteractionRenderer] 提交失败:', error);
       alert('提交失败：' + error.message);
     }
   };
