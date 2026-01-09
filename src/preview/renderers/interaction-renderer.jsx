@@ -55,15 +55,18 @@ window.createInteractionRenderer = (props) => {
 
       const primaryKeyId = form.structure.primaryKey;
       const primaryKeyValue = inputData[primaryKeyId];
+      console.log('[InteractionRenderer] primaryKeyId:', primaryKeyId, 'primaryKeyValue:', primaryKeyValue);
 
       // 存入数据
       if (purposeSave) {
         if (primaryKeyValue && primaryKeyValue.trim() !== '') {
           // 如果输入了主键值，则更新现有数据
+          console.log('[InteractionRenderer] 尝试更新数据, formId:', formId, 'primaryKeyValue:', primaryKeyValue);
           await window.dndDB.updateFormData(projectId, formId, primaryKeyValue, inputData);
           console.log('数据已更新到表单:', formId, '主键:', primaryKeyValue);
         } else {
           // 如果没有主键值，则添加新数据
+          console.log('[InteractionRenderer] 尝试添加新数据');
           await window.dndDB.addFormData(projectId, formId, inputData);
           console.log('数据已写入表单:', formId);
         }
@@ -394,15 +397,18 @@ window.createInteractionRenderer = (props) => {
 
       const primaryKeyId = form.structure.primaryKey;
       const primaryKeyValue = inputData[primaryKeyId];
+      console.log('[InteractionRenderer] primaryKeyId:', primaryKeyId, 'primaryKeyValue:', primaryKeyValue);
 
       // 存入数据
       if (purposeSave) {
         if (primaryKeyValue && primaryKeyValue.trim() !== '') {
           // 如果输入了主键值，则更新现有数据
+          console.log('[InteractionRenderer] 尝试更新数据, formId:', formId, 'primaryKeyValue:', primaryKeyValue);
           await window.dndDB.updateFormData(projectId, formId, primaryKeyValue, inputData);
           console.log('数据已更新到表单:', formId, '主键:', primaryKeyValue);
         } else {
           // 如果没有主键值，则添加新数据
+          console.log('[InteractionRenderer] 尝试添加新数据');
           await window.dndDB.addFormData(projectId, formId, inputData);
           console.log('数据已写入表单:', formId);
         }
