@@ -118,7 +118,7 @@
 
     // 添加项目
     async addProject(project) {
-      clearProjectCache(); // 清除缓存
+      // 不清除缓存，因为添加的是新项目
       const user = await auth.getCurrentUser();
       if (!user) throw new Error('请先登录');
 
@@ -221,8 +221,6 @@
 
     // 更新项目
     async updateProject(project) {
-      clearProjectCache(); // 清除缓存
-
       const updates = {
         name: project.name,
         description: project.description,
@@ -245,7 +243,15 @@
         .single();
 
       if (error) throw error;
-      return this._formatProject(data);
+
+      // 更新缓存而不是清除
+      const updatedProject = this._formatProject(data);
+      if (cache.project && cache.project.id === project.id) {
+        cache.project = updatedProject;
+        cache.projectCacheTime = Date.now();
+      }
+
+      return updatedProject;
     },
 
     // 删除项目

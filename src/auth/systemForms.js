@@ -158,6 +158,7 @@
   // 为旧项目创建系统表单（兼容已存在的项目）
   const createSystemFormsForOldProject = async (projectId) => {
     try {
+      // 注意：这里会触发缓存更新，但不会清除缓存
       const project = await window.dndDB.getProjectById(projectId);
       if (!project) {
         return { success: false, error: '项目不存在' };
