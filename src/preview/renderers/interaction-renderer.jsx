@@ -1,7 +1,7 @@
 // 交互区块渲染器
 // 负责渲染交互区块和子区块，以及处理相关的提交逻辑
 
-export const createInteractionRenderer = (props) => {
+window.createInteractionRenderer = (props) => {
   const {
     forms,
     fields,
