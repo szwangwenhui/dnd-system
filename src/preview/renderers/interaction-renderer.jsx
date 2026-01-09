@@ -175,8 +175,14 @@ export const createInteractionRenderer = (props) => {
 
     // 获取表单和字段信息
     const form = forms.find(f => f.id === block.targetFormId);
-    // 不显示主键字段（自动生成），只显示用户选择的字段
+    // 获取表单的所有字段ID（包括主键）
+    const primaryKeyId = form?.structure?.primaryKey;
+    // 显示主键字段（如果主键不是自动生成的话）和用户选择的字段
     const selectedFieldIds = (block.selectedFields || []).filter(Boolean);
+    // 如果主键不在selectedFields中，需要添加它（为了显示）
+    const allFieldIds = primaryKeyId && !selectedFieldIds.includes(primaryKeyId)
+      ? [primaryKeyId, ...selectedFieldIds]
+      : selectedFieldIds;
 
     // 从内容样式中获取字体设置
     const labelFontSize = contentStyle.fontSize ? contentStyle.fontSize * 0.85 : 12;
