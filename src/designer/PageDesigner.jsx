@@ -2776,6 +2776,8 @@ function PageDesigner({ projectId, roleId, page, onClose, onSave }) {
             onBlockContentChange={handleBlockContentChange}
             onBlockStyleChange={handleBlockStyleChange}
             projectId={projectId}
+            forms={forms}
+            fields={fields}
             canvasDecorations={canvasDecorations}
             iconInstances={iconInstances}
             projectIcons={projectIcons}

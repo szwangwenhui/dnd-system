@@ -11,6 +11,8 @@ function DesignerCanvas({
   onBlockContentChange,
   onBlockStyleChange,
   projectId,
+  forms = [],
+  fields = [],
   canvasDecorations = [],  // 画布装饰层（图形编辑器绘制的内容）
   areas = [],
   showAreas = false,
@@ -957,6 +959,14 @@ function DesignerCanvas({
       }
       
       // 默认样式 - 显示简单的表单输入界面
+      // 获取表单信息以获取主键字段
+      const form = forms?.find(f => f.id === block.targetFormId);
+      const primaryKeyId = form?.structure?.primaryKey;
+      // 构建显示的字段列表（主键 + 选中的字段）
+      const displayFieldIds = primaryKeyId && !(block.selectedFields || []).includes(primaryKeyId)
+        ? [primaryKeyId, ...(block.selectedFields || [])]
+        : (block.selectedFields || []);
+
       return (
         <div style={{
           ...contentStyle,
@@ -975,25 +985,38 @@ function DesignerCanvas({
             gap: '6px',
           }}>
             {/* 显示字段占位 */}
-            {(block.selectedFields || []).slice(0, 3).map((fieldId, index) => (
-              <div key={fieldId} style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px',
-              }}>
-                <span style={{ fontSize: '11px', color: '#9ca3af', width: '60px' }}>字段{index + 1}</span>
-                <div style={{
-                  flex: 1,
-                  height: '24px',
-                  backgroundColor: '#f3f4f6',
-                  borderRadius: '4px',
-                  border: '1px solid #e5e7eb',
-                }}></div>
-              </div>
-            ))}
-            {(block.selectedFields?.length || 0) > 3 && (
+            {displayFieldIds.slice(0, 3).map((fieldId, index) => {
+              const field = fields?.find(f => f.id === fieldId);
+              const isPrimaryKey = fieldId === primaryKeyId;
+              return (
+                <div key={fieldId} style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                }}>
+                  <span style={{
+                    fontSize: '11px',
+                    color: isPrimaryKey ? '#3b82f6' : '#9ca3af',
+                    width: '80px',
+                    whiteSpace: 'nowrap',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis'
+                  }}>
+                    {field?.name || `字段${index + 1}`}{isPrimaryKey ? '*' : ''}
+                  </span>
+                  <div style={{
+                    flex: 1,
+                    height: '24px',
+                    backgroundColor: isPrimaryKey ? '#eff6ff' : '#f3f4f6',
+                    borderRadius: '4px',
+                    border: isPrimaryKey ? '1px solid #bfdbfe' : '1px solid #e5e7eb',
+                  }}></div>
+                </div>
+              );
+            })}
+            {displayFieldIds.length > 3 && (
               <div style={{ fontSize: '10px', color: '#9ca3af', textAlign: 'center' }}>
-                ... 共 {(block.selectedFields?.length || 0) + 1} 个字段
+                ... 共 {displayFieldIds.length} 个字段
               </div>
             )}
           </div>
