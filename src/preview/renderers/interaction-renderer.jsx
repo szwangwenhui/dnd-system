@@ -59,13 +59,19 @@ window.createInteractionRenderer = (props) => {
 
       // 存入数据
       if (purposeSave) {
-        if (primaryKeyValue && primaryKeyValue.trim() !== '') {
-          // 如果输入了主键值，则更新现有数据
+        // 检查数据库中是否已存在该主键的记录
+        const formData = await window.dndDB.getFormData(projectId, formId);
+        const existingRecord = primaryKeyId
+          ? formData.find(d => d[primaryKeyId] === primaryKeyValue)
+          : formData.find(d => d.id === primaryKeyValue);
+
+        if (existingRecord) {
+          // 如果记录存在，更新数据
           console.log('[InteractionRenderer] 尝试更新数据, formId:', formId, 'primaryKeyValue:', primaryKeyValue);
           await window.dndDB.updateFormData(projectId, formId, primaryKeyValue, inputData);
           console.log('数据已更新到表单:', formId, '主键:', primaryKeyValue);
         } else {
-          // 如果没有主键值，则添加新数据
+          // 如果记录不存在，添加新数据
           console.log('[InteractionRenderer] 尝试添加新数据');
           await window.dndDB.addFormData(projectId, formId, inputData);
           console.log('数据已写入表单:', formId);
@@ -401,13 +407,19 @@ window.createInteractionRenderer = (props) => {
 
       // 存入数据
       if (purposeSave) {
-        if (primaryKeyValue && primaryKeyValue.trim() !== '') {
-          // 如果输入了主键值，则更新现有数据
+        // 检查数据库中是否已存在该主键的记录
+        const formData = await window.dndDB.getFormData(projectId, formId);
+        const existingRecord = primaryKeyId
+          ? formData.find(d => d[primaryKeyId] === primaryKeyValue)
+          : formData.find(d => d.id === primaryKeyValue);
+
+        if (existingRecord) {
+          // 如果记录存在，更新数据
           console.log('[InteractionRenderer] 尝试更新数据, formId:', formId, 'primaryKeyValue:', primaryKeyValue);
           await window.dndDB.updateFormData(projectId, formId, primaryKeyValue, inputData);
           console.log('数据已更新到表单:', formId, '主键:', primaryKeyValue);
         } else {
-          // 如果没有主键值，则添加新数据
+          // 如果记录不存在，添加新数据
           console.log('[InteractionRenderer] 尝试添加新数据');
           await window.dndDB.addFormData(projectId, formId, inputData);
           console.log('数据已写入表单:', formId);
