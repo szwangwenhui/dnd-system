@@ -183,12 +183,8 @@ function BaseFormDataEntry({ projectId, form, fields, forms, onClose, onSuccess 
 
     alert(`成功导入 ${recordsToImport.length} 条数据`);
 
-    // 刷新已录入数据
-    const formList = await window.dndDB.getFormsByProjectId(projectId);
-    const updatedForm = formList.find(f => f.id === form.id);
-    if (updatedForm && updatedForm.data) {
-      setExistingData(updatedForm.data);
-    }
+    // 直接使用添加的数据更新状态，避免重复获取
+    setExistingData(prev => [...prev, ...recordsToImport]);
 
     onSuccess();
   };
@@ -1258,6 +1254,17 @@ function BaseFormDataEntry({ projectId, form, fields, forms, onClose, onSuccess 
           onClose={handleCloseRichTextEditor}
           title={`编辑${richTextEditor.fieldName}`}
         />
+      )}
+
+      {/* Excel导入加载遮罩 */}
+      {importing && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-8 flex flex-col items-center">
+            <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-blue-600 mb-4"></div>
+            <div className="text-gray-700 font-medium text-lg">正在导入Excel数据...</div>
+            <div className="text-gray-500 text-sm mt-2">请稍候，这可能需要几秒钟</div>
+          </div>
+        </div>
       )}
     </div>
   );
