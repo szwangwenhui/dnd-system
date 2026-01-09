@@ -3,17 +3,12 @@
 const React = window.React;
 const { useState, useEffect, useRef } = React;
 
-// 引入 wangEditor 样式（通过 CDN）
-const wangEditorStyle = document.createElement('link');
-wangEditorStyle.rel = 'stylesheet';
-wangEditorStyle.href = 'https://cdn.jsdelivr.net/npm/@wangeditor/editor@latest/dist/css/style.css';
-document.head.appendChild(wangEditorStyle);
-
 // 等待 wangEditor CDN 加载完成
 const wangEditorPromise = new Promise((resolve) => {
   const checkWangEditor = () => {
     // wangEditor 5.x 的导出方式
     if (window.wangEditor && window.wangEditorForReact) {
+      console.log('[RichTextEditor] wangEditor 加载完成');
       resolve();
     } else {
       setTimeout(checkWangEditor, 100);
