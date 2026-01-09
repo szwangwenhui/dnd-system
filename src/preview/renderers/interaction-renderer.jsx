@@ -132,7 +132,22 @@ window.createInteractionRenderer = (props) => {
   };
 
   // 保存富文本内容
-  const handleSaveRichText = (html) => {
+  const handleSaveRichText = (result) => {
+    console.log('[InteractionRenderer] handleSaveRichText 调用, result:', result);
+
+    // Quill版本返回 {html, text, isEmpty}
+    let html = '';
+
+    if (typeof result === 'string') {
+      html = result;
+    } else if (result && result.html) {
+      html = result.html;
+    } else if (result && typeof result === 'object') {
+      html = String(result);
+    }
+
+    console.log('[InteractionRenderer] 保存的HTML:', html);
+
     setInteractionInputData(prev => ({
       ...prev,
       [richTextEditor.blockId]: {
@@ -236,6 +251,10 @@ window.createInteractionRenderer = (props) => {
             // 富文本字段特殊处理
             if (fieldType === '富文本') {
               const currentValue = interactionInputData[block.id]?.[fieldId] || '';
+              // 处理富文本值，兼容对象和字符串格式
+              const displayValue = typeof currentValue === 'object' && currentValue?.html
+                ? currentValue.html
+                : (typeof currentValue === 'string' ? currentValue : '');
               return (
                 <div key={fieldId} style={{ display: 'flex', alignItems: 'flex-start', gap: '8px' }}>
                   <label style={{
@@ -259,15 +278,15 @@ window.createInteractionRenderer = (props) => {
                       fontFamily: contentStyle.fontFamily || 'inherit',
                       minHeight: '80px',
                       cursor: 'pointer',
-                      backgroundColor: currentValue ? '#f9fafb' : '#ffffff',
+                      backgroundColor: displayValue ? '#f9fafb' : '#ffffff',
                     }}
                     onClick={() => handleOpenRichTextEditor(block.id, fieldId, field?.name || fieldId)}
                     title="点击打开富文本编辑器"
                   >
-                    {currentValue ? (
+                    {displayValue ? (
                       <div
                         dangerouslySetInnerHTML={{
-                          __html: truncateHtmlText(currentValue, 20)
+                          __html: truncateHtmlText(displayValue, 20)
                         }}
                         style={{ color: '#374151' }}
                       />

@@ -1197,16 +1197,24 @@ function BaseFormDataEntry({ projectId, form, fields, forms, onClose, onSuccess 
                     key={data.id || index} 
                     className="bg-white p-3 rounded-lg border border-gray-200 text-sm"
                   >
-                    {form.structure.fields.slice(0, 4).map(fieldConfig => (
-                      <div key={fieldConfig.fieldId} className="flex justify-between py-1">
-                        <span className="text-gray-500">
-                          {getFieldDisplayName(fieldConfig.fieldId)}:
-                        </span>
-                        <span className="text-gray-900 font-medium">
-                          {data[fieldConfig.fieldId] ?? '-'}
-                        </span>
-                      </div>
-                    ))}
+                    {form.structure.fields.slice(0, 4).map(fieldConfig => {
+                      const fieldValue = data[fieldConfig.fieldId];
+                      // 处理富文本字段的显示
+                      let displayValue = fieldValue;
+                      if (typeof fieldValue === 'object' && fieldValue?.html) {
+                        displayValue = truncateHtmlText(fieldValue.html, 20);
+                      }
+                      return (
+                        <div key={fieldConfig.fieldId} className="flex justify-between py-1">
+                          <span className="text-gray-500">
+                            {getFieldDisplayName(fieldConfig.fieldId)}:
+                          </span>
+                          <span className="text-gray-900 font-medium">
+                            {displayValue ?? '-'}
+                          </span>
+                        </div>
+                      );
+                    })}
                     {form.structure.fields.length > 4 && (
                       <div className="text-xs text-gray-400 mt-1">
                         ... 还有 {form.structure.fields.length - 4} 个字段
