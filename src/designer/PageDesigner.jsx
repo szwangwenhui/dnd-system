@@ -24,6 +24,9 @@ function PageDesigner({ projectId, roleId, page, onClose, onSave }) {
   const [closeProgress, setCloseProgress] = React.useState(page.designProgress || 0);
   const [hasChanges, setHasChanges] = React.useState(false);
 
+  // 加载状态
+  const [saving, setSaving] = React.useState(false);
+
   // ===== 画布装饰层（图形编辑器绘制的内容）=====
   const [canvasDecorations, setCanvasDecorations] = React.useState(page.design?.canvasDecorations || []);
 
@@ -2255,6 +2258,8 @@ function PageDesigner({ projectId, roleId, page, onClose, onSave }) {
 
   // ===== 保存和关闭 =====
   const handleSave = async () => {
+    setSaving(true);
+
     try {
       const updatedPage = {
         ...page,
@@ -2278,6 +2283,8 @@ function PageDesigner({ projectId, roleId, page, onClose, onSave }) {
       alert('保存成功！');
     } catch (error) {
       alert('保存失败：' + error.message);
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -3122,6 +3129,9 @@ function PageDesigner({ projectId, roleId, page, onClose, onSave }) {
           </div>
         </div>
       )}
+
+      {/* 加载遮罩 */}
+      <LoadingOverlay isOpen={saving} message="正在保存页面..." />
     </div>
   );
 }

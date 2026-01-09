@@ -29,6 +29,10 @@ function PageDefinition({ projectId, roleId }) {
   // 详情独立基础表列表
   const [detailForms, setDetailForms] = React.useState([]);
 
+  // 加载状态
+  const [loading, setLoading] = React.useState(false);
+  const [loadingMessage, setLoadingMessage] = React.useState('');
+
   // 加载页面列表
   React.useEffect(() => {
     loadPages();
@@ -149,6 +153,9 @@ function PageDefinition({ projectId, roleId }) {
       return;
     }
 
+    setLoading(true);
+    setLoadingMessage(editingPage ? '正在更新页面...' : '正在创建页面...');
+
     try {
       const pageData = {
         name: formData.name.trim(),
@@ -173,6 +180,8 @@ function PageDefinition({ projectId, roleId }) {
       loadPages();
     } catch (error) {
       alert('操作失败：' + error.message);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -852,6 +861,9 @@ function PageDefinition({ projectId, roleId }) {
           }}
         />
       )}
+
+      {/* 加载遮罩 */}
+      <LoadingOverlay isOpen={loading} message={loadingMessage} />
     </div>
   );
 }

@@ -29,6 +29,10 @@ window.createInteractionRenderer = (props) => {
     content: ''
   });
 
+  // 提交状态（从外部传入）
+  const { setSubmitting } = props;
+  const [submitting, setSubmittingState] = React.useState(false);
+
   // 处理交互区块提交
   const handleInteractionSubmit = async (block) => {
     console.log('[InteractionRenderer] handleInteractionSubmit 调用, block:', block);
@@ -44,6 +48,8 @@ window.createInteractionRenderer = (props) => {
 
     console.log('[InteractionRenderer] inputData:', inputData);
     console.log('[InteractionRenderer] forms:', forms?.length);
+
+    setSubmitting(true);
 
     try {
       // 获取表单结构
@@ -110,6 +116,9 @@ window.createInteractionRenderer = (props) => {
     } catch (error) {
       console.error('[InteractionRenderer] 提交失败:', error);
       alert('提交失败：' + error.message);
+    } finally {
+      setSubmitting(false);
+      setSubmittingState && setSubmittingState(false);
     }
   };
 
@@ -953,6 +962,7 @@ window.createInteractionRenderer = (props) => {
     handleChildBlockSubmit,
     handleFlowButtonSubmit,
     handleFlowOptionButtonClick,
-    handleFlowSelectionSubmit
+    handleFlowSelectionSubmit,
+    submitting  // 导出提交状态
   };
 };

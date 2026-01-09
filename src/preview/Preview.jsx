@@ -14,6 +14,7 @@
 function Preview() {
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState(null);
+  const [submitting, setSubmitting] = React.useState(false);
   const [currentPage, setCurrentPage] = React.useState(null);
   const [pages, setPages] = React.useState([]);
   const [blocks, setBlocks] = React.useState([]);
@@ -850,7 +851,8 @@ function Preview() {
     setFlowDialogData,
     flowSelectionData,
     setFlowSelectionData,
-    loadAllFormData
+    loadAllFormData,
+    setSubmitting  // 传递提交状态
   });
 
   // 计算分段函数
@@ -2753,6 +2755,9 @@ function Preview() {
       {/* 流程参数收集组件 */}
       {window.FlowDialogRenderer && <FlowDialogRenderer projectId={projectId} />}
       {window.FlowSelectionRenderer && <FlowSelectionRenderer projectId={projectId} />}
+
+      {/* 加载遮罩 */}
+      <LoadingOverlay isOpen={submitting} message="正在提交数据..." />
     </div>
   );
 }
