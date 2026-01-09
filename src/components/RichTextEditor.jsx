@@ -12,9 +12,14 @@ document.head.appendChild(wangEditorStyle);
 // 等待 wangEditor CDN 加载完成
 const wangEditorPromise = new Promise((resolve) => {
   const checkWangEditor = () => {
+    // wangEditor 5.x 的导出方式
     if (window.wangEditor && window.wangEditorForReact) {
       resolve();
     } else {
+      console.log('[RichTextEditor] 等待 wangEditor 加载...', {
+        wangEditor: !!window.wangEditor,
+        wangEditorForReact: !!window.wangEditorForReact
+      });
       setTimeout(checkWangEditor, 100);
     }
   };
@@ -31,6 +36,11 @@ async function RichTextEditor({ isOpen, initialContent, onSave, onCancel }) {
 
   // 检查 wangEditor 是否加载完成
   useEffect(() => {
+    console.log('[RichTextEditor] 检查 wangEditor:', {
+      wangEditor: !!window.wangEditor,
+      wangEditorForReact: !!window.wangEditorForReact,
+      isOpen
+    });
     if (window.wangEditor && window.wangEditorForReact) {
       setIsLoaded(true);
     }
@@ -84,7 +94,19 @@ async function RichTextEditor({ isOpen, initialContent, onSave, onCancel }) {
   }
 
   // 获取 Editor 和 Toolbar 组件
-  const { Editor, Toolbar } = window.wangEditorForReact;
+  console.log('[RichTextEditor] 准备渲染编辑器，wangEditorForReact:', window.wangEditorForReact);
+  const { Editor, Toolbar } = window.wangEditorForReact || {};
+  if (!Editor || !Toolbar) {
+    console.error('[RichTextEditor] Editor 或 Toolbar 组件未找到');
+    return (
+      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div className="bg-white rounded-lg shadow-xl p-8 text-center">
+          <div className="text-red-500">编辑器组件加载失败</div>
+          <div className="text-xs text-gray-500 mt-2">请检查网络连接并刷新页面</div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">

@@ -1164,18 +1164,18 @@ function PageDesigner({ projectId, roleId, page, onClose, onSave }) {
     // 获取选中的字段（包括主键）
     const primaryKeyId = form.structure?.primaryKey;
     const selectedFieldIds = [primaryKeyId, ...(parentBlock.selectedFields || [])].filter(Boolean);
-    
+
     if (selectedFieldIds.length === 0) {
       alert('没有可用的字段');
       return;
     }
-    
+
     // 删除该父区块下已有的子区块
     let newBlocks = blocks.filter(b => b.parentId !== parentBlockId);
-    
-    // 计算子区块的起始位置（相对于父区块）
-    const startX = 10;
-    let currentY = 10;
+
+    // 计算子区块的起始位置（绝对坐标，因为使用的是绝对定位）
+    const startX = parentBlock.x + 10;
+    let currentY = parentBlock.y + 10;
     const rowHeight = 35;
     const promptWidth = 80;
     const inputWidth = parentBlock.width - promptWidth - 30;
@@ -1218,10 +1218,10 @@ function PageDesigner({ projectId, roleId, page, onClose, onSave }) {
         level: (parentBlock.level || 1) + 1,
         subType: 'prompt',
         fieldId: fieldId,
-        x: parentBlock.x + startX,
-        y: parentBlock.y + currentY,
-        relativeX: startX,
-        relativeY: currentY,
+        x: startX,
+        y: currentY,
+        relativeX: 10,
+        relativeY: currentY - parentBlock.y,
         width: promptWidth,
         height: inputHeight,
         content: field.name + (isPrimaryKey ? '*' : ''),
@@ -1247,10 +1247,10 @@ function PageDesigner({ projectId, roleId, page, onClose, onSave }) {
         subType: 'input',
         fieldId: fieldId,
         isPrimaryKey: isPrimaryKey,
-        x: parentBlock.x + startX + promptWidth + 10,
-        y: parentBlock.y + currentY,
-        relativeX: startX + promptWidth + 10,
-        relativeY: currentY,
+        x: startX + promptWidth + 10,
+        y: currentY,
+        relativeX: 10 + promptWidth + 10,
+        relativeY: currentY - parentBlock.y,
         width: inputWidth,
         height: inputHeight,
         content: '',
@@ -1282,10 +1282,10 @@ function PageDesigner({ projectId, roleId, page, onClose, onSave }) {
         level: (parentBlock.level || 1) + 1,
         subType: 'prompt',
         fieldId: attributeFields.map(af => af.fieldId).join(','),
-        x: parentBlock.x + startX,
-        y: parentBlock.y + currentY,
-        relativeX: startX,
-        relativeY: currentY,
+        x: startX,
+        y: currentY,
+        relativeX: 10,
+        relativeY: currentY - parentBlock.y,
         width: promptWidth,
         height: inputHeight,
         content: '属性选择',
@@ -1310,10 +1310,10 @@ function PageDesigner({ projectId, roleId, page, onClose, onSave }) {
         level: (parentBlock.level || 1) + 1,
         subType: 'cascader',
         fieldIds: attributeFields.map(af => af.fieldId),
-        x: parentBlock.x + startX + promptWidth + 10,
-        y: parentBlock.y + currentY,
-        relativeX: startX + promptWidth + 10,
-        relativeY: currentY,
+        x: startX + promptWidth + 10,
+        y: currentY,
+        relativeX: 10 + promptWidth + 10,
+        relativeY: currentY - parentBlock.y,
         width: inputWidth,
         height: inputHeight,
         style: {
@@ -1341,10 +1341,10 @@ function PageDesigner({ projectId, roleId, page, onClose, onSave }) {
       parentId: parentBlockId,
       level: (parentBlock.level || 1) + 1,
       subType: 'submit',
-      x: parentBlock.x + startX + promptWidth + 10,
-      y: parentBlock.y + currentY,
-      relativeX: startX + promptWidth + 10,
-      relativeY: currentY,
+      x: startX + promptWidth + 10,
+      y: currentY,
+      relativeX: 10 + promptWidth + 10,
+      relativeY: currentY - parentBlock.y,
       width: inputWidth,
       height: 32,
       content: '确认提交',

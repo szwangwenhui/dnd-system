@@ -208,7 +208,7 @@ export const createInteractionRenderer = (props) => {
 
         {/* 字段输入 */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-          {selectedFieldIds.map(fieldId => {
+          {allFieldIds.map(fieldId => {
             const field = fields.find(f => f.id === fieldId);
             const fieldType = field?.type || '文本';
 
