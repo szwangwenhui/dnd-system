@@ -64,21 +64,19 @@ async function loadComponentScript(src, componentGlobalName) {
       console.log('[LazyLoader] 执行编译后的代码...');
       let component;
       try {
-        // 创建一个临时作用域来捕获组件定义
-        const tempScope = {};
-        const wrapperCode = `
-          (function() {
-            ${compiledCode}
-            if (typeof ${componentGlobalName} !== 'undefined') {
-              return ${componentGlobalName};
-            }
-            return null;
-          })()
-        `;
-        component = eval(wrapperCode);
+        // 直接在全局作用域执行编译后的代码
+        console.log('[LazyLoader] 直接执行编译代码到全局作用域...');
+        const compiledFunction = new Function(compiledCode);
+        compiledFunction();
+
+        // 从 window 对象中获取组件
+        component = window[componentGlobalName];
         console.log('[LazyLoader] 代码执行完成');
+        console.log('[LazyLoader] 从 window 获取组件:', componentGlobalName, '是否存在:', !!component);
+        console.log('[LazyLoader] 组件类型:', typeof component);
       } catch (execError) {
         console.error('[LazyLoader] 代码执行错误:', execError);
+        console.error('[LazyLoader] 错误堆栈:', execError.stack);
         throw execError;
       }
 
@@ -86,11 +84,8 @@ async function loadComponentScript(src, componentGlobalName) {
         throw new Error('组件未找到: ' + componentGlobalName);
       }
 
-      // 导出到全局 window 对象
-      window[componentGlobalName] = component;
-      console.log('[LazyLoader] 组件已导出到 window:', componentGlobalName);
-
       console.log('[LazyLoader] 组件可用:', componentGlobalName);
+      console.log('[LazyLoader] 组件是否为函数:', typeof component === 'function');
       lazyComponentsCache[src] = true;
       return component;
     } catch (error) {

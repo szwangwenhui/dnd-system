@@ -16,19 +16,35 @@ function DataLayerBuilder({ projectId, roleId, onBack }) {
 
   // 懒加载依赖组件
   React.useEffect(() => {
+    console.log('[DataLayerBuilder] useEffect 触发:', {
+      activeTab,
+      FormDefinition: !!FormDefinition,
+      DataFlowDefinition: !!DataFlowDefinition,
+      PageDefinition: !!PageDefinition
+    });
+
     // 根据当前 tab 加载对应组件
     if (activeTab === 'forms' && !FormDefinition) {
+      console.log('[DataLayerBuilder] 开始加载 FormDefinition...');
       loadComponentScript('./src/components/FormDefinition.jsx', 'FormDefinition')
-        .then(setFormDefinition)
-        .catch(err => console.error('加载 FormDefinition 失败:', err));
+        .then(component => {
+          console.log('[DataLayerBuilder] FormDefinition 加载成功, 组件类型:', typeof component);
+          console.log('[DataLayerBuilder] FormDefinition 是否为函数:', typeof component === 'function');
+          setFormDefinition(component);
+        })
+        .catch(err => {
+          console.error('[DataLayerBuilder] 加载 FormDefinition 失败:', err);
+        });
     } else if (activeTab === 'dataflows' && !DataFlowDefinition) {
+      console.log('[DataLayerBuilder] 开始加载 DataFlowDefinition...');
       loadComponentScript('./src/components/DataFlowDefinition.jsx', 'DataFlowDefinition')
         .then(setDataFlowDefinition)
-        .catch(err => console.error('加载 DataFlowDefinition 失败:', err));
+        .catch(err => console.error('[DataLayerBuilder] 加载 DataFlowDefinition 失败:', err));
     } else if (activeTab === 'pages' && !PageDefinition) {
+      console.log('[DataLayerBuilder] 开始加载 PageDefinition...');
       loadComponentScript('./src/components/PageDefinition.jsx', 'PageDefinition')
         .then(setPageDefinition)
-        .catch(err => console.error('加载 PageDefinition 失败:', err));
+        .catch(err => console.error('[DataLayerBuilder] 加载 PageDefinition 失败:', err));
     }
   }, [activeTab, FormDefinition, DataFlowDefinition, PageDefinition]);
 
@@ -177,12 +193,25 @@ function DataLayerBuilder({ projectId, roleId, onBack }) {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {activeTab === 'fields' && <FieldDefinition projectId={projectId} />}
         {activeTab === 'forms' && (
-          FormDefinition ? <FormDefinition projectId={projectId} /> : (
-            <div className="text-center py-12">
-              <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mb-4"></div>
-              <p className="text-gray-600">正在加载表单定义组件...</p>
-            </div>
-          )
+          (() => {
+            console.log('[DataLayerBuilder] 渲染 forms tab:', {
+              activeTab,
+              FormDefinition: !!FormDefinition,
+              projectId
+            });
+            if (FormDefinition) {
+              console.log('[DataLayerBuilder] 准备渲染 FormDefinition 组件');
+              return <FormDefinition projectId={projectId} />;
+            } else {
+              console.log('[DataLayerBuilder] FormDefinition 未加载，显示加载中...');
+              return (
+                <div className="text-center py-12">
+                  <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mb-4"></div>
+                  <p className="text-gray-600">正在加载表单定义组件...</p>
+                </div>
+              );
+            }
+          })()
         )}
         {activeTab === 'dataflows' && (
           DataFlowDefinition ? <DataFlowDefinition projectId={projectId} onDesignFlow={handleDesignFlow} /> : (
