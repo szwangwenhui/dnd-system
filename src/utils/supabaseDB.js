@@ -88,20 +88,24 @@
 
     // 根据ID获取项目（带缓存）
     async getProjectById(id) {
+      const startTime = Date.now();
+
       // 检查缓存
       const now = Date.now();
       if (cache.project && cache.project.id === id && (now - cache.projectCacheTime) < cache.CACHE_TTL) {
-        console.log('[SupabaseDB] 从缓存获取项目:', id);
+        console.log('[SupabaseDB] getProjectById - 从缓存获取项目:', id, ', 耗时:', Date.now() - startTime, 'ms');
         return cache.project;
       }
 
       // 从数据库获取
-      console.log('[SupabaseDB] 从数据库获取项目:', id);
+      console.log('[SupabaseDB] getProjectById - 从数据库获取项目:', id);
+      const dbStartTime = Date.now();
       const { data, error } = await getClient()
         .from('projects')
         .select('*')
         .eq('id', id)
         .single();
+      console.log('[SupabaseDB] getProjectById - 数据库查询完成, 耗时:', Date.now() - dbStartTime, 'ms');
 
       if (error && error.code !== 'PGRST116') throw error;
 
@@ -113,6 +117,7 @@
         cache.projectCacheTime = now;
       }
 
+      console.log('[SupabaseDB] getProjectById 完成, 总耗时:', Date.now() - startTime, 'ms');
       return project;
     },
 
@@ -221,6 +226,9 @@
 
     // 更新项目
     async updateProject(project) {
+      console.log('[SupabaseDB] updateProject 开始, projectId:', project.id);
+      const startTime = Date.now();
+
       const updates = {
         name: project.name,
         description: project.description,
@@ -235,12 +243,15 @@
         block_templates: project.blockTemplates || []
       };
 
+      console.log('[SupabaseDB] updateProject - 准备数据库更新...');
+      const dbStartTime = Date.now();
       const { data, error } = await getClient()
         .from('projects')
         .update(updates)
         .eq('id', project.id)
         .select()
         .single();
+      console.log('[SupabaseDB] updateProject - 数据库更新完成, 耗时:', Date.now() - dbStartTime, 'ms');
 
       if (error) throw error;
 
@@ -251,6 +262,7 @@
         cache.projectCacheTime = Date.now();
       }
 
+      console.log('[SupabaseDB] updateProject 完成, 总耗时:', Date.now() - startTime, 'ms');
       return updatedProject;
     },
 
@@ -344,14 +356,22 @@
     },
 
     async updateFieldRelatedForms(projectId, fieldId, relatedForms) {
+      console.log('[SupabaseDB] updateFieldRelatedForms 开始, fieldId:', fieldId);
+      const startTime = Date.now();
+
       const project = await this.getProjectById(projectId);
+      console.log('[SupabaseDB] updateFieldRelatedForms - getProjectById 耗时:', Date.now() - startTime, 'ms');
+
       if (!project) throw new Error('项目不存在');
 
       const idx = (project.fields || []).findIndex(f => f.id === fieldId);
       if (idx === -1) throw new Error('字段不存在');
 
       project.fields[idx].relatedForms = relatedForms;
+
+      console.log('[SupabaseDB] updateFieldRelatedForms - 准备调用 updateProject, 耗时:', Date.now() - startTime, 'ms');
       await this.updateProject(project);
+      console.log('[SupabaseDB] updateFieldRelatedForms 完成, 总耗时:', Date.now() - startTime, 'ms');
       return project.fields[idx];
     },
 
@@ -444,7 +464,12 @@
     },
 
     async addForm(projectId, form) {
+      console.log('[SupabaseDB] addForm 开始, projectId:', projectId);
+      const startTime = Date.now();
+
       const project = await this.getProjectById(projectId);
+      console.log('[SupabaseDB] addForm - getProjectById 耗时:', Date.now() - startTime, 'ms');
+
       if (!project) throw new Error('项目不存在');
 
       const forms = project.forms || [];
@@ -455,7 +480,9 @@
       };
       forms.push(newForm);
 
+      console.log('[SupabaseDB] addForm - 准备调用 updateProject, 耗时:', Date.now() - startTime, 'ms');
       await this.updateProject({ ...project, forms });
+      console.log('[SupabaseDB] addForm 完成, 总耗时:', Date.now() - startTime, 'ms');
       return newForm;
     },
 

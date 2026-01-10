@@ -50,22 +50,31 @@ function RelatedBaseForm({ projectId, onClose, onSuccess, onLoadingChange }) {
     let isMounted = true;
 
     const loadData = async () => {
+      const startTime = Date.now();
+      console.log('[RelatedBaseForm] ========== 开始加载数据 ==========');
+      console.log('[RelatedBaseForm] 时间戳:', new Date().toLocaleTimeString());
+
       try {
-        console.log('[RelatedBaseForm] 开始加载数据...');
+        console.log('[RelatedBaseForm] 阶段1: 开始调用 getProjectById...');
+        const getProjectStartTime = Date.now();
         // 只调用一次getProjectById，从返回的项目对象中获取所有数据
         const project = await window.dndDB.getProjectById(projectId);
-        console.log('[RelatedBaseForm] 项目数据:', project);
+        console.log('[RelatedBaseForm] 阶段1: getProjectById 完成, 耗时', Date.now() - getProjectStartTime, 'ms');
+        console.log('[RelatedBaseForm] 阶段1: 总耗时', Date.now() - startTime, 'ms');
 
         if (!isMounted) return;
 
         if (project) {
+          console.log('[RelatedBaseForm] 阶段2: 开始处理项目数据...');
+          const processStartTime = Date.now();
+
           // 从项目对象中直接获取字段和表单，避免重复查询
           const fieldList = project.fields || [];
-          console.log('[RelatedBaseForm] 字段数量:', fieldList.length);
+          console.log('[RelatedBaseForm] 阶段2a: 字段数量:', fieldList.length);
           setFields(fieldList);
 
           const formList = project.forms || [];
-          console.log('[RelatedBaseForm] 表单数量:', formList.length);
+          console.log('[RelatedBaseForm] 阶段2b: 表单数量:', formList.length);
           setAllForms(formList); // 保存所有表单
           const independentList = formList.filter(f =>
             f.type === '对象表单' && (
@@ -74,7 +83,7 @@ function RelatedBaseForm({ projectId, onClose, onSuccess, onLoadingChange }) {
               f.subType === '详情独立基础表'
             )
           );
-          console.log('[RelatedBaseForm] 独立基础表数量:', independentList.length);
+          console.log('[RelatedBaseForm] 阶段2c: 独立基础表数量:', independentList.length);
           setIndependentForms(independentList);
 
           // 加载所有角色的页面（用于标题关联基础表选择详情页）
@@ -86,13 +95,17 @@ function RelatedBaseForm({ projectId, onClose, onSuccess, onLoadingChange }) {
                 allPages = allPages.concat(role.pages);
               }
             }
-            console.log('[RelatedBaseForm] 页面数量:', allPages.length);
+            console.log('[RelatedBaseForm] 阶段2d: 页面数量:', allPages.length);
             setPages(allPages);
           }
-          console.log('[RelatedBaseForm] 数据加载完成');
+
+          console.log('[RelatedBaseForm] 阶段2: 处理项目数据完成, 耗时', Date.now() - processStartTime, 'ms');
+          console.log('[RelatedBaseForm] 总耗时', Date.now() - startTime, 'ms');
+          console.log('[RelatedBaseForm] ========== 数据加载完成 ==========');
         }
       } catch (error) {
-        console.error('[RelatedBaseForm] 加载数据失败:', error);
+        console.error('[RelatedBaseForm] 加载数据失败, 耗时', Date.now() - startTime, 'ms');
+        console.error('[RelatedBaseForm] 错误详情:', error);
         if (isMounted) alert('加载数据失败：' + error);
       }
     };
@@ -441,12 +454,14 @@ function RelatedBaseForm({ projectId, onClose, onSuccess, onLoadingChange }) {
 
     // 通知父组件开始加载
     if (onLoadingChange) onLoadingChange(true, '正在创建表单...');
-    console.log('[RelatedBaseForm] 开始创建表单');
+    const startTime = Date.now();
+    console.log('[RelatedBaseForm] ========== 开始创建表单 ==========');
+    console.log('[RelatedBaseForm] 时间戳:', new Date().toLocaleTimeString());
 
     try {
       // 延迟确保UI渲染
       await new Promise(resolve => setTimeout(resolve, 50));
-      console.log('[RelatedBaseForm] 延迟50ms后, 开始处理');
+      console.log('[RelatedBaseForm] 阶段1: 延迟50ms完成, 耗时', Date.now() - startTime, 'ms');
 
       // 确定主键
       let primaryKeyFieldId;
@@ -455,6 +470,7 @@ function RelatedBaseForm({ projectId, onClose, onSuccess, onLoadingChange }) {
       } else {
         primaryKeyFieldId = ownPrimaryKeyId;
       }
+      console.log('[RelatedBaseForm] 阶段2: 确定主键完成, 耗时', Date.now() - startTime, 'ms');
 
       // 构建关联字段结构
       const relatedFieldsStructure = relatedFields.map((rf, index) => ({
@@ -463,6 +479,7 @@ function RelatedBaseForm({ projectId, onClose, onSuccess, onLoadingChange }) {
         isUsedAsPrimaryKey: primaryKeySource === 'related' && index === primaryKeyRelatedIndex,
         reminderFieldId: (primaryKeySource === 'related' && index === primaryKeyRelatedIndex) ? reminderFieldId : ''
       }));
+      console.log('[RelatedBaseForm] 阶段3: 构建关联字段结构完成, 耗时', Date.now() - startTime, 'ms');
 
       // 构建字段列表
       const fieldsStructure = [];
@@ -505,6 +522,7 @@ function RelatedBaseForm({ projectId, onClose, onSuccess, onLoadingChange }) {
           level: af.level
         });
       });
+      console.log('[RelatedBaseForm] 阶段4: 构建字段列表完成, 耗时', Date.now() - startTime, 'ms');
 
       // 构建表单结构
       const formStructure = {
@@ -514,8 +532,10 @@ function RelatedBaseForm({ projectId, onClose, onSuccess, onLoadingChange }) {
         relatedFields: relatedFieldsStructure,
         fields: fieldsStructure
       };
+      console.log('[RelatedBaseForm] 阶段5: 构建表单结构完成, 耗时', Date.now() - startTime, 'ms');
 
-      console.log('[RelatedBaseForm] 开始调用 addForm');
+      console.log('[RelatedBaseForm] 阶段6: 开始调用 addForm...');
+      const addFormStartTime = Date.now();
       // 创建表单
       const newForm = await window.dndDB.addForm(projectId, {
         name: formName,
@@ -526,7 +546,8 @@ function RelatedBaseForm({ projectId, onClose, onSuccess, onLoadingChange }) {
         managedFormId: formSubType === '标题关联基础表' ? managedFormId : null, // 仅标题关联基础表需要关联表单
         structure: formStructure
       });
-      console.log('[RelatedBaseForm] addForm 完成');
+      console.log('[RelatedBaseForm] 阶段6: addForm 完成, 耗时', Date.now() - addFormStartTime, 'ms');
+      console.log('[RelatedBaseForm] 阶段6: addForm 总耗时', Date.now() - startTime, 'ms');
 
       // 更新字段的 relatedForms
       const allFieldIds = new Set();
@@ -537,21 +558,33 @@ function RelatedBaseForm({ projectId, onClose, onSuccess, onLoadingChange }) {
       selectedFields.forEach(f => allFieldIds.add(f.fieldId));
       selectedAttributeFields.forEach(af => allFieldIds.add(af.fieldId));
 
-      console.log('[RelatedBaseForm] 开始更新字段关联, 共', allFieldIds.size, '个字段');
+      console.log('[RelatedBaseForm] 阶段7: 开始更新字段关联, 共', allFieldIds.size, '个字段');
+      const updateFieldsStartTime = Date.now();
+      let fieldUpdateCount = 0;
       for (const fieldId of allFieldIds) {
         await window.dndDB.updateFieldRelatedForms(projectId, fieldId, newForm.id, 'add');
+        fieldUpdateCount++;
+        if (fieldUpdateCount % 5 === 0) {
+          console.log('[RelatedBaseForm] 已更新', fieldUpdateCount, '/', allFieldIds.size, '个字段, 耗时', Date.now() - updateFieldsStartTime, 'ms');
+        }
       }
-      console.log('[RelatedBaseForm] 字段关联更新完成');
+      console.log('[RelatedBaseForm] 阶段7: 字段关联更新完成, 耗时', Date.now() - updateFieldsStartTime, 'ms');
+      console.log('[RelatedBaseForm] 阶段7: 总耗时', Date.now() - startTime, 'ms');
+
+      const totalTime = Date.now() - startTime;
+      console.log('[RelatedBaseForm] ========== 创建表单完成 ==========');
+      console.log('[RelatedBaseForm] 总耗时:', totalTime, 'ms (', (totalTime / 1000).toFixed(2), '秒)');
 
       alert('关联基础表创建成功！');
       onSuccess();
       onClose();
     } catch (error) {
+      console.error('[RelatedBaseForm] 创建失败, 耗时', Date.now() - startTime, 'ms');
+      console.error('[RelatedBaseForm] 错误详情:', error);
       alert('创建失败：' + error.message);
     } finally {
       // 通知父组件结束加载
       if (onLoadingChange) onLoadingChange(false);
-      console.log('[RelatedBaseForm] 创建完成');
     }
   };
 
