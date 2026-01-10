@@ -67,12 +67,15 @@ function RelatedBaseForm({ projectId, onClose, onSuccess, onLoadingChange }) {
       setIndependentForms(independentList);
 
       // 加载所有角色的页面（用于标题关联基础表选择详情页）
+      // 只调用一次getProjectById，从项目对象中获取所有角色和页面
       const project = await window.dndDB.getProjectById(projectId);
       if (project && project.roles) {
         let allPages = [];
+        // 直接从项目对象中获取页面，避免重复查询数据库
         for (const role of project.roles) {
-          const rolePages = await window.dndDB.getPagesByRoleId(projectId, role.id);
-          allPages = allPages.concat(rolePages);
+          if (role.pages) {
+            allPages = allPages.concat(role.pages);
+          }
         }
         setPages(allPages);
       }
