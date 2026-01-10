@@ -2,7 +2,98 @@
  * DND 公测版主应用入口
  * 增加登录判断和用户信息显示
  * 增加导航按钮（主页、返回）
+ * 增加懒加载优化
  */
+
+// 懒加载组件缓存
+const lazyComponentsCache = {};
+const loadingScripts = {};
+
+// 动态加载组件脚本
+function loadComponentScript(src, componentGlobalName) {
+  return new Promise((resolve, reject) => {
+    // 如果已经在加载中，返回同一个 Promise
+    if (loadingScripts[src]) {
+      return loadingScripts[src];
+    }
+
+    // 如果已经加载过，直接返回
+    if (window[componentGlobalName]) {
+      resolve(window[componentGlobalName]);
+      return;
+    }
+
+    // 创建 script 标签
+    const script = document.createElement('script');
+    script.type = 'text/babel';
+    script.src = src;
+
+    // 加载完成
+    script.onload = () => {
+      // 等待 Babel 编译完成
+      const checkInterval = setInterval(() => {
+        if (window[componentGlobalName]) {
+          clearInterval(checkInterval);
+          delete loadingScripts[src];
+          lazyComponentsCache[src] = true;
+          resolve(window[componentGlobalName]);
+        }
+      }, 100);
+
+      // 超时保护
+      setTimeout(() => {
+        clearInterval(checkInterval);
+        delete loadingScripts[src];
+        reject(new Error('组件加载超时'));
+      }, 10000);
+    };
+
+    script.onerror = () => {
+      delete loadingScripts[src];
+      reject(new Error('组件脚本加载失败'));
+    };
+
+    document.body.appendChild(script);
+    loadingScripts[src] = script;
+  });
+}
+
+// 懒加载组件的 Hook
+function useLazyComponent(src, componentGlobalName) {
+  const [Component, setComponent] = React.useState(null);
+  const [loading, setLoading] = React.useState(false);
+  const [error, setError] = React.useState(null);
+
+  React.useEffect(() => {
+    // 如果已经加载过，直接返回
+    if (window[componentGlobalName]) {
+      setComponent(() => window[componentGlobalName]);
+      return;
+    }
+
+    // 检查缓存
+    if (lazyComponentsCache[src]) {
+      setComponent(() => window[componentGlobalName]);
+      return;
+    }
+
+    // 开始加载
+    setLoading(true);
+    setError(null);
+
+    loadComponentScript(src, componentGlobalName)
+      .then(() => {
+        setComponent(() => window[componentGlobalName]);
+        setLoading(false);
+      })
+      .catch((err) => {
+        setError(err);
+        setLoading(false);
+      });
+  }, [src, componentGlobalName]);
+
+  return { Component, loading, error };
+}
 
 function App() {
   const [user, setUser] = React.useState(null);
@@ -422,8 +513,10 @@ function App() {
         )}
 
         {currentView === 'pages' && selectedProject && selectedRole && (
-          // 页面规划页面
-          <PageDefinition 
+          // 页面规划页面（懒加载）
+          <LazyComponentWrapper
+            src="./src/components/PageDefinition.jsx"
+            componentGlobalName="PageDefinition"
             projectId={selectedProject.id}
             roleId={selectedRole.id}
             onBack={goBack}
@@ -431,8 +524,10 @@ function App() {
         )}
 
         {currentView === 'dataLayer' && selectedProject && selectedRole && (
-          // 数据层构建页面
-          <DataLayerBuilder 
+          // 数据层构建页面（懒加载）
+          <LazyComponentWrapper
+            src="./src/components/DataLayerBuilder.jsx"
+            componentGlobalName="DataLayerBuilder"
             projectId={selectedProject.id}
             roleId={selectedRole.id}
             onBack={goBack}
@@ -513,13 +608,38 @@ function App() {
   );
 }
 
+// 懒加载包装组件
+function LazyComponentWrapper({ src, componentGlobalName, fallback, ...props }) {
+  const { Component, loading, error } = useLazyComponent(src, componentGlobalName);
+
+  if (error) {
+    return <div style={{ padding: '20px', color: 'red' }}>组件加载失败: {error.message}</div>;
+  }
+
+  if (loading || !Component) {
+    return fallback || (
+      <div style={{
+        padding: '40px',
+        textAlign: 'center',
+        color: '#6b7280',
+        fontSize: '14px'
+      }}>
+        <div style={{ fontSize: '32px', marginBottom: '16px' }}>⏳</div>
+        <div>正在加载组件...</div>
+      </div>
+    );
+  }
+
+  return <Component {...props} />;
+}
+
 // 渲染应用
 const initApp = () => {
   if (!document.getElementById('root')) {
     setTimeout(initApp, 100);
     return;
   }
-  
+
   const root = ReactDOM.createRoot(document.getElementById('root'));
   root.render(<App />);
   console.log('[DND2] App 已渲染');
