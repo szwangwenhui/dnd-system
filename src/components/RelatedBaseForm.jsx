@@ -800,7 +800,7 @@ function RelatedBaseForm({ projectId, onClose, onSuccess, onLoadingChange }) {
                       return null;
                     }
 
-                    const availableFields = getFormAvailableFields(selectedFormId);
+                    const availableFields = getFormAvailableFields(selectedRelatedFormId);
 
                     return (
                       <div>
