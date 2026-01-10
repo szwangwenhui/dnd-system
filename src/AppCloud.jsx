@@ -56,21 +56,43 @@ async function loadComponentScript(src, componentGlobalName) {
       }).code;
       console.log('[LazyLoader] 编译后代码长度:', compiledCode.length, '字符');
 
-      // 执行编译后的代码
+      // 打印编译后代码的最后500个字符（调试用）
+      const tailCode = compiledCode.slice(-500);
+      console.log('[LazyLoader] 编译后代码末尾 (500字符):', tailCode);
+
+      // 执行编译后的代码，并捕获函数定义
       console.log('[LazyLoader] 执行编译后的代码...');
-      const compiledFunction = new Function(compiledCode);
-      compiledFunction();
-      console.log('[LazyLoader] 代码执行完成');
-
-      console.log('[LazyLoader] window[componentGlobalName] 是否存在:', !!window[componentGlobalName]);
-
-      if (!window[componentGlobalName]) {
-        throw new Error('组件未导出: ' + componentGlobalName);
+      let component;
+      try {
+        // 创建一个临时作用域来捕获组件定义
+        const tempScope = {};
+        const wrapperCode = `
+          (function() {
+            ${compiledCode}
+            if (typeof ${componentGlobalName} !== 'undefined') {
+              return ${componentGlobalName};
+            }
+            return null;
+          })()
+        `;
+        component = eval(wrapperCode);
+        console.log('[LazyLoader] 代码执行完成');
+      } catch (execError) {
+        console.error('[LazyLoader] 代码执行错误:', execError);
+        throw execError;
       }
+
+      if (!component) {
+        throw new Error('组件未找到: ' + componentGlobalName);
+      }
+
+      // 导出到全局 window 对象
+      window[componentGlobalName] = component;
+      console.log('[LazyLoader] 组件已导出到 window:', componentGlobalName);
 
       console.log('[LazyLoader] 组件可用:', componentGlobalName);
       lazyComponentsCache[src] = true;
-      return window[componentGlobalName];
+      return component;
     } catch (error) {
       console.error('[LazyLoader] 加载失败:', error);
       throw error;

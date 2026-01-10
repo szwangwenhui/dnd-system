@@ -1,5 +1,4 @@
-// 表单定义组件（新版 - 支持表单分类）
-function FormDefinition({ projectId }) {
+// 表单定义组件（新�?- 支持表单分类�?function FormDefinition({ projectId }) {
   const [forms, setForms] = React.useState([]);
   const [fields, setFields] = React.useState([]);
   const [showTypeModal, setShowTypeModal] = React.useState(false);
@@ -8,45 +7,40 @@ function FormDefinition({ projectId }) {
   const [selectedSubType, setSelectedSubType] = React.useState('');
   const [showFormBuilder, setShowFormBuilder] = React.useState(false);
   const [showBaseFormModal, setShowBaseFormModal] = React.useState(false);
-  const [globalLoading, setGlobalLoading] = React.useState(false); // 全局加载状态
-  const [globalLoadingText, setGlobalLoadingText] = React.useState(''); // 全局加载文本
+  const [globalLoading, setGlobalLoading] = React.useState(false); // 全局加载状�?  const [globalLoadingText, setGlobalLoadingText] = React.useState(''); // 全局加载文本
 
-  // 数据录入相关状态
-  const [showDataEntryModal, setShowDataEntryModal] = React.useState(false);
+  // 数据录入相关状�?  const [showDataEntryModal, setShowDataEntryModal] = React.useState(false);
   const [dataEntryForm, setDataEntryForm] = React.useState(null);
 
-  // 查看表单相关状态
-  const [showViewerModal, setShowViewerModal] = React.useState(false);
+  // 查看表单相关状�?  const [showViewerModal, setShowViewerModal] = React.useState(false);
   const [viewerForm, setViewerForm] = React.useState(null);
 
-  // 子表和再造表管理器状态（入口1：从定义表单进入）
-  const [showSubTableManager, setShowSubTableManager] = React.useState(false);
+  // 子表和再造表管理器状态（入口1：从定义表单进入�?  const [showSubTableManager, setShowSubTableManager] = React.useState(false);
   const [showRebuildTableManager, setShowRebuildTableManager] = React.useState(false);
 
-  // 加载表单列表和字段列表
-  React.useEffect(() => {
+  // 加载表单列表和字段列�?  React.useEffect(() => {
     loadFormsAndFields();
   }, [projectId]);
 
   const loadFormsAndFields = async () => {
-    console.log('=== loadFormsAndFields 开始 ===');
+    console.log('=== loadFormsAndFields 开�?===');
     try {
       console.log('加载表单列表...');
       const formList = await window.dndDB.getFormsByProjectId(projectId);
-      console.log('表单列表加载完成，数量:', formList?.length);
+      console.log('表单列表加载完成，数�?', formList?.length);
 
       console.log('设置表单列表');
       setForms(formList);
 
       console.log('加载字段列表...');
       const fieldList = await window.dndDB.getFieldsByProjectId(projectId);
-      console.log('字段列表加载完成，数量:', fieldList?.length);
+      console.log('字段列表加载完成，数�?', fieldList?.length);
       setFields(fieldList);
 
       console.log('=== loadFormsAndFields 完成 ===');
     } catch (error) {
       console.error('loadFormsAndFields 失败:', error);
-      alert('加载数据失败：' + error);
+      alert('加载数据失败�? + error);
     }
   };
 
@@ -58,22 +52,18 @@ function FormDefinition({ projectId }) {
     setShowTypeModal(true);
   };
 
-  // 选择表单类型（对象表 / 属性表）
-  const handleTypeSelect = (type) => {
+  // 选择表单类型（对象表 / 属性表�?  const handleTypeSelect = (type) => {
     setSelectedType(type);
     setShowTypeModal(false);
     
     if (type === '属性表') {
-      // 属性表直接进入构建（使用旧的逻辑）
-      setShowFormBuilder(true);
-    } else if (type === '对象表') {
-      // 对象表需要选择子类型
-      setShowSubTypeModal(true);
+      // 属性表直接进入构建（使用旧的逻辑�?      setShowFormBuilder(true);
+    } else if (type === '对象�?) {
+      // 对象表需要选择子类�?      setShowSubTypeModal(true);
     }
   };
 
-  // 选择对象表子类型（基础表 / 衍生表 / 合表 / 子表 / 再造表）
-  const handleSubTypeSelect = (subType) => {
+  // 选择对象表子类型（基础�?/ 衍生�?/ 合表 / 子表 / 再造表�?  const handleSubTypeSelect = (subType) => {
     setSelectedSubType(subType);
     setShowSubTypeModal(false);
 
@@ -84,13 +74,11 @@ function FormDefinition({ projectId }) {
       // 入口1：打开再造表管理器（需要选择操作目标表）
       setShowRebuildTableManager(true);
     } else {
-      // 基础表、衍生表、合表进入构建流程
-      setShowFormBuilder(true);
+      // 基础表、衍生表、合表进入构建流�?      setShowFormBuilder(true);
     }
   };
 
-  // 关闭表单构建器
-  const closeFormBuilder = () => {
+  // 关闭表单构建�?  const closeFormBuilder = () => {
     setShowFormBuilder(false);
     setSelectedType('');
     setSelectedSubType('');
@@ -99,38 +87,36 @@ function FormDefinition({ projectId }) {
 
   // 删除表单
   const handleDelete = async (form) => {
-    if (!confirm(`确定要删除表单"${form.name}"吗？此操作不可恢复！`)) {
+    if (!confirm(`确定要删除表�?${form.name}"吗？此操作不可恢复！`)) {
       return;
     }
 
     try {
       await window.dndDB.deleteForm(projectId, form.id);
-      alert('表单删除成功！');
+      alert('表单删除成功�?);
       loadFormsAndFields();
     } catch (error) {
-      alert('删除失败：' + error);
+      alert('删除失败�? + error);
     }
   };
 
-  // 判断是否为基础表（可以添加数据）
-  const isBaseForm = (form) => {
+  // 判断是否为基础表（可以添加数据�?  const isBaseForm = (form) => {
     const subType = form.subType || '';
     // 兼容旧数据（独立基础表、关联基础表）和新数据
-    return subType === '独立基础表' ||
-           subType === '关联基础表' ||
-           subType === '普通独立基础表' ||
-           subType === '详情独立基础表' ||
-           subType === '普通关联基础表' ||
-           subType === '标题关联基础表';
+    return subType === '独立基础�? ||
+           subType === '关联基础�? ||
+           subType === '普通独立基础�? ||
+           subType === '详情独立基础�? ||
+           subType === '普通关联基础�? ||
+           subType === '标题关联基础�?;
   };
 
   // 判断是否为属性表
   const isAttributeForm = (form) => {
-    return form.type === '属性表单';
+    return form.type === '属性表�?;
   };
 
-  // 判断是否可以添加数据（基础表或属性表）
-  const canAddData = (form) => {
+  // 判断是否可以添加数据（基础表或属性表�?  const canAddData = (form) => {
     return isBaseForm(form) || isAttributeForm(form);
   };
 
@@ -144,8 +130,7 @@ function FormDefinition({ projectId }) {
   const closeDataEntryModal = () => {
     setShowDataEntryModal(false);
     setDataEntryForm(null);
-    loadFormsAndFields(); // 刷新列表以显示数据数量
-  };
+    loadFormsAndFields(); // 刷新列表以显示数据数�?  };
 
   // 打开查看模态框
   const openViewerModal = (form) => {
@@ -161,7 +146,7 @@ function FormDefinition({ projectId }) {
 
   return (
     <div className="space-y-6">
-      {/* 顶部操作栏 */}
+      {/* 顶部操作�?*/}
       <div className="flex justify-between items-center">
         <div>
           <h2 className="text-2xl font-bold text-gray-900">表单库（项目级共享）</h2>
@@ -173,8 +158,7 @@ function FormDefinition({ projectId }) {
           onClick={openCreateModal}
           className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
         >
-          + 添加新表单
-        </button>
+          + 添加新表�?        </button>
       </div>
 
       {/* 表单列表 */}
@@ -195,11 +179,9 @@ function FormDefinition({ projectId }) {
                 表单性质
               </th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                子类型
-              </th>
+                子类�?              </th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                数据量
-              </th>
+                数据�?              </th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 操作
               </th>
@@ -209,8 +191,7 @@ function FormDefinition({ projectId }) {
             {forms.length === 0 ? (
               <tr>
                 <td colSpan="7" className="px-6 py-12 text-center text-gray-500">
-                  暂无表单，点击右上角"添加新表单"开始创建
-                </td>
+                  暂无表单，点击右上角"添加新表�?开始创�?                </td>
               </tr>
             ) : (
               forms.map(form => (
@@ -235,14 +216,14 @@ function FormDefinition({ projectId }) {
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
                     <span className={`px-2 py-1 text-xs font-semibold rounded-full ${
-                      form.subType === '独立基础表' ? 'bg-green-100 text-green-800' :
-                      form.subType === '普通独立基础表' ? 'bg-green-100 text-green-800' :
-                      form.subType === '详情独立基础表' ? 'bg-teal-100 text-teal-800' :
-                      form.subType === '关联基础表' ? 'bg-yellow-100 text-yellow-800' :
-                      form.subType === '普通关联基础表' ? 'bg-yellow-100 text-yellow-800' :
-                      form.subType === '标题关联基础表' ? 'bg-orange-100 text-orange-800' :
+                      form.subType === '独立基础�? ? 'bg-green-100 text-green-800' :
+                      form.subType === '普通独立基础�? ? 'bg-green-100 text-green-800' :
+                      form.subType === '详情独立基础�? ? 'bg-teal-100 text-teal-800' :
+                      form.subType === '关联基础�? ? 'bg-yellow-100 text-yellow-800' :
+                      form.subType === '普通关联基础�? ? 'bg-yellow-100 text-yellow-800' :
+                      form.subType === '标题关联基础�? ? 'bg-orange-100 text-orange-800' :
                       form.subType === '合表' ? 'bg-pink-100 text-pink-800' :
-                      form.subType === '衍生表' ? 'bg-red-100 text-red-800' :
+                      form.subType === '衍生�? ? 'bg-red-100 text-red-800' :
                       form.subType === '子表' ? 'bg-purple-100 text-purple-800' :
                       form.subType === '再造表' ? 'bg-indigo-100 text-indigo-800' :
                       'bg-gray-100 text-gray-800'
@@ -253,8 +234,7 @@ function FormDefinition({ projectId }) {
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
                     {canAddData(form) ? (
                       <span className="text-gray-900 font-medium">
-                        {form.data?.length || 0} 条
-                      </span>
+                        {form.data?.length || 0} �?                      </span>
                     ) : (
                       <span className="text-gray-400">-</span>
                     )}
@@ -292,7 +272,7 @@ function FormDefinition({ projectId }) {
         </table>
       </div>
 
-      {/* 第一步：选择表单类型（对象表 / 属性表） */}
+      {/* 第一步：选择表单类型（对象表 / 属性表�?*/}
       {showTypeModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg shadow-xl w-full max-w-md mx-4">
@@ -302,10 +282,10 @@ function FormDefinition({ projectId }) {
             
             <div className="px-6 py-6 space-y-3">
               <button
-                onClick={() => handleTypeSelect('对象表')}
+                onClick={() => handleTypeSelect('对象�?)}
                 className="w-full px-6 py-4 text-left border-2 border-gray-200 rounded-lg hover:border-blue-500 hover:bg-blue-50 transition-all"
               >
-                <div className="font-medium text-gray-900">对象表</div>
+                <div className="font-medium text-gray-900">对象�?/div>
                 <div className="text-sm text-gray-500 mt-1">
                   用于存储实体数据（如：学生信息、订单记录）
                 </div>
@@ -334,30 +314,30 @@ function FormDefinition({ projectId }) {
         </div>
       )}
 
-      {/* 第二步：选择对象表子类型（基础表 / 衍生表 / 合表 / 子表 / 再造表） */}
+      {/* 第二步：选择对象表子类型（基础�?/ 衍生�?/ 合表 / 子表 / 再造表�?*/}
       {showSubTypeModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg shadow-xl w-full max-w-md mx-4">
             <div className="px-6 py-4 border-b border-gray-200">
-              <h3 className="text-lg font-semibold text-gray-900">选择对象表类型</h3>
+              <h3 className="text-lg font-semibold text-gray-900">选择对象表类�?/h3>
             </div>
             
             <div className="px-6 py-6 space-y-3">
               <button
-                onClick={() => handleSubTypeSelect('基础表')}
+                onClick={() => handleSubTypeSelect('基础�?)}
                 className="w-full px-6 py-4 text-left border-2 border-gray-200 rounded-lg hover:border-green-500 hover:bg-green-50 transition-all"
               >
-                <div className="font-medium text-gray-900">基础表</div>
+                <div className="font-medium text-gray-900">基础�?/div>
                 <div className="text-sm text-gray-500 mt-1">
-                  数据来自外部输入，物理存储（独立基础表 / 关联基础表）
+                  数据来自外部输入，物理存储（独立基础�?/ 关联基础表）
                 </div>
               </button>
               
               <button
-                onClick={() => handleSubTypeSelect('衍生表')}
+                onClick={() => handleSubTypeSelect('衍生�?)}
                 className="w-full px-6 py-4 text-left border-2 border-gray-200 rounded-lg hover:border-pink-500 hover:bg-pink-50 transition-all"
               >
-                <div className="font-medium text-gray-900">衍生表</div>
+                <div className="font-medium text-gray-900">衍生�?/div>
                 <div className="text-sm text-gray-500 mt-1">
                   通过表达式计算生成，虚拟表（不物理存储）
                 </div>
@@ -385,8 +365,7 @@ function FormDefinition({ projectId }) {
               >
                 <div className="font-medium text-gray-900">子表</div>
                 <div className="text-sm text-gray-500 mt-1">
-                  截取原表的一部分数据（横向/纵向/混合截取）
-                </div>
+                  截取原表的一部分数据（横�?纵向/混合截取�?                </div>
               </button>
               
               <button
@@ -395,8 +374,7 @@ function FormDefinition({ projectId }) {
               >
                 <div className="font-medium text-gray-900">再造表</div>
                 <div className="text-sm text-gray-500 mt-1">
-                  按字段分组后聚合运算，生成新表
-                </div>
+                  按字段分组后聚合运算，生成新�?                </div>
               </button>
             </div>
 
@@ -432,11 +410,11 @@ function FormDefinition({ projectId }) {
             />
           )}
 
-          {selectedType === '对象表' && selectedSubType === '基础表' && !showBaseFormModal && (
+          {selectedType === '对象�? && selectedSubType === '基础�? && !showBaseFormModal && (
             <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
               <div className="bg-white rounded-lg shadow-xl w-full max-w-md mx-4">
                 <div className="px-6 py-4 border-b border-gray-200">
-                  <h3 className="text-lg font-semibold text-gray-900">选择基础表类型</h3>
+                  <h3 className="text-lg font-semibold text-gray-900">选择基础表类�?/h3>
                 </div>
                 
                 <div className="px-6 py-6 space-y-3">
@@ -444,7 +422,7 @@ function FormDefinition({ projectId }) {
                     onClick={() => setShowBaseFormModal('independent')}
                     className="w-full px-6 py-4 text-left border-2 border-gray-200 rounded-lg hover:border-green-500 hover:bg-green-50 transition-all"
                   >
-                    <div className="font-medium text-gray-900">独立基础表</div>
+                    <div className="font-medium text-gray-900">独立基础�?/div>
                     <div className="text-sm text-gray-500 mt-1">
                       全部字段来自外部输入，不包含关联字段（外键）
                     </div>
@@ -454,7 +432,7 @@ function FormDefinition({ projectId }) {
                     onClick={() => setShowBaseFormModal('related')}
                     className="w-full px-6 py-4 text-left border-2 border-gray-200 rounded-lg hover:border-yellow-500 hover:bg-yellow-50 transition-all"
                   >
-                    <div className="font-medium text-gray-900">关联基础表</div>
+                    <div className="font-medium text-gray-900">关联基础�?/div>
                     <div className="text-sm text-gray-500 mt-1">
                       包含关联字段（外键），来自其他独立基础表的主键
                     </div>
@@ -514,7 +492,7 @@ function FormDefinition({ projectId }) {
             />
           )}
 
-          {selectedType === '对象表' && selectedSubType === '衍生表' && (
+          {selectedType === '对象�? && selectedSubType === '衍生�? && (
             <DerivedFormBuilder
               projectId={projectId}
               onClose={closeFormBuilder}
@@ -522,7 +500,7 @@ function FormDefinition({ projectId }) {
             />
           )}
 
-          {selectedType === '对象表' && selectedSubType === '合表' && (
+          {selectedType === '对象�? && selectedSubType === '合表' && (
             <MergedFormBuilder
               projectId={projectId}
               onClose={closeFormBuilder}
@@ -565,24 +543,22 @@ function FormDefinition({ projectId }) {
         />
       )}
 
-      {/* 子表管理器（入口1：从定义表单进入） */}
+      {/* 子表管理器（入口1：从定义表单进入�?*/}
       {showSubTableManager && (
         <SubTableManager
           projectId={projectId}
-          form={null} // 入口1不需要指定表单
-          fields={fields}
+          form={null} // 入口1不需要指定表�?          fields={fields}
           forms={forms}
           onClose={() => setShowSubTableManager(false)}
           onSuccess={loadFormsAndFields}
         />
       )}
 
-      {/* 再造表管理器（入口1：从定义表单进入） */}
+      {/* 再造表管理器（入口1：从定义表单进入�?*/}
       {showRebuildTableManager && (
         <RebuildTableManager
           projectId={projectId}
-          form={null} // 入口1不需要指定表单
-          fields={fields}
+          form={null} // 入口1不需要指定表�?          fields={fields}
           forms={forms}
           onClose={() => setShowRebuildTableManager(false)}
           onSuccess={loadFormsAndFields}
@@ -602,3 +578,4 @@ function FormDefinition({ projectId }) {
     </div>
   );
 }
+window.FormDefinition = FormDefinition;
