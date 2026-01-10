@@ -122,14 +122,17 @@ function RelatedBaseForm({ projectId, onClose, onSuccess, onLoadingChange }) {
       .filter(Boolean);
   };
 
-  // 从关联表单添加字段（标题关联基础表专用）
-  const handleAddRelatedFieldFromManagedForm = (fieldId) => {
-    if (!managedFormId) {
+  // 从关联表单添加字段（支持标题关联基础表和普通关联基础表）
+  const handleAddRelatedFieldFromManagedForm = (fieldId, formIdOverride = null) => {
+    // 确定使用的表单ID（标题关联基础表用managedFormId，普通关联基础表用selectedRelatedFormId）
+    const formId = formIdOverride || managedFormId || selectedRelatedFormId;
+
+    if (!formId) {
       alert('请先选择关联表单');
       return;
     }
 
-    const managedForm = independentForms.find(f => f.id === managedFormId);
+    const managedForm = independentForms.find(f => f.id === formId);
     if (!managedForm) {
       alert('关联表单不存在');
       return;
@@ -146,7 +149,7 @@ function RelatedBaseForm({ projectId, onClose, onSuccess, onLoadingChange }) {
       {
         fieldId: fieldId,
         fieldName: fieldInfo.name,
-        formId: managedFormId,
+        formId: formId,
         formName: managedForm.name,
         isPrimaryKey: false
       }
@@ -175,7 +178,21 @@ function RelatedBaseForm({ projectId, onClose, onSuccess, onLoadingChange }) {
     if (formSubType === '标题关联基础表' && managedFormId) {
       handleAutoAddPrimaryKey();
     }
-  }, [managedFormId]);
+    // 普通关联基础表：选择表单后自动添加主键
+    if (formSubType === '普通关联基础表' && selectedRelatedFormId) {
+      const pkInfo = getFormPrimaryKeyInfo(selectedRelatedFormId);
+      if (!pkInfo) return;
+
+      // 检查是否已添加
+      const alreadyAdded = relatedFields.some(
+        rf => rf.fieldId === pkInfo.fieldId && rf.formId === selectedRelatedFormId
+      );
+
+      if (!alreadyAdded) {
+        setRelatedFields([pkInfo]);
+      }
+    }
+  }, [managedFormId, selectedRelatedFormId]);
 
   // 添加关联字段
   const handleAddRelatedField = () => {
@@ -831,7 +848,7 @@ function RelatedBaseForm({ projectId, onClose, onSuccess, onLoadingChange }) {
                               <div key={field.id} className="flex items-center justify-between p-3 border border-gray-200 rounded-lg hover:bg-gray-50">
                                 <span className="text-sm font-medium text-gray-900">{field.name}</span>
                                 <button
-                                  onClick={() => handleAddRelatedFieldFromManagedForm(field.id)}
+                                  onClick={() => handleAddRelatedFieldFromManagedForm(field.id, selectedRelatedFormId)}
                                   className="px-3 py-1 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700"
                                 >
                                   添加
