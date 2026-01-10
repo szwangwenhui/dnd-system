@@ -375,6 +375,32 @@
       return project.fields[idx];
     },
 
+    // 批量更新多个字段的 relatedForms (性能优化)
+    async batchUpdateFieldRelatedForms(projectId, fieldIdToRelatedFormMap) {
+      console.log('[SupabaseDB] batchUpdateFieldRelatedForms 开始, 字段数:', Object.keys(fieldIdToRelatedFormMap).length);
+      const startTime = Date.now();
+
+      const project = await this.getProjectById(projectId);
+      console.log('[SupabaseDB] batchUpdateFieldRelatedForms - getProjectById 耗时:', Date.now() - startTime, 'ms');
+
+      if (!project) throw new Error('项目不存在');
+
+      // 批量更新字段
+      let updateCount = 0;
+      for (const [fieldId, relatedForm] of Object.entries(fieldIdToRelatedFormMap)) {
+        const idx = (project.fields || []).findIndex(f => f.id === fieldId);
+        if (idx !== -1) {
+          project.fields[idx].relatedForms = relatedForm;
+          updateCount++;
+        }
+      }
+
+      console.log('[SupabaseDB] batchUpdateFieldRelatedForms - 已更新', updateCount, '个字段, 准备调用 updateProject, 耗时:', Date.now() - startTime, 'ms');
+      await this.updateProject(project);
+      console.log('[SupabaseDB] batchUpdateFieldRelatedForms 完成, 总耗时:', Date.now() - startTime, 'ms');
+      return project.fields;
+    },
+
     // ==================== 业务分类管理 ====================
 
     // 获取项目的所有业务分类

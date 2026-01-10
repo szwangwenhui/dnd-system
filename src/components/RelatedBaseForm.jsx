@@ -549,25 +549,24 @@ function RelatedBaseForm({ projectId, onClose, onSuccess, onLoadingChange }) {
       console.log('[RelatedBaseForm] 阶段6: addForm 完成, 耗时', Date.now() - addFormStartTime, 'ms');
       console.log('[RelatedBaseForm] 阶段6: addForm 总耗时', Date.now() - startTime, 'ms');
 
-      // 更新字段的 relatedForms
-      const allFieldIds = new Set();
+      // 更新字段的 relatedForms (批量更新优化)
+      const fieldIdToRelatedFormMap = {};
       if (primaryKeySource === 'own') {
-        allFieldIds.add(ownPrimaryKeyId);
+        fieldIdToRelatedFormMap[ownPrimaryKeyId] = newForm.id;
       }
-      relatedFields.forEach(rf => allFieldIds.add(rf.fieldId));
-      selectedFields.forEach(f => allFieldIds.add(f.fieldId));
-      selectedAttributeFields.forEach(af => allFieldIds.add(af.fieldId));
+      relatedFields.forEach(rf => {
+        fieldIdToRelatedFormMap[rf.fieldId] = newForm.id;
+      });
+      selectedFields.forEach(f => {
+        fieldIdToRelatedFormMap[f.fieldId] = newForm.id;
+      });
+      selectedAttributeFields.forEach(af => {
+        fieldIdToRelatedFormMap[af.fieldId] = newForm.id;
+      });
 
-      console.log('[RelatedBaseForm] 阶段7: 开始更新字段关联, 共', allFieldIds.size, '个字段');
+      console.log('[RelatedBaseForm] 阶段7: 开始批量更新字段关联, 共', Object.keys(fieldIdToRelatedFormMap).length, '个字段');
       const updateFieldsStartTime = Date.now();
-      let fieldUpdateCount = 0;
-      for (const fieldId of allFieldIds) {
-        await window.dndDB.updateFieldRelatedForms(projectId, fieldId, newForm.id, 'add');
-        fieldUpdateCount++;
-        if (fieldUpdateCount % 5 === 0) {
-          console.log('[RelatedBaseForm] 已更新', fieldUpdateCount, '/', allFieldIds.size, '个字段, 耗时', Date.now() - updateFieldsStartTime, 'ms');
-        }
-      }
+      await window.dndDB.batchUpdateFieldRelatedForms(projectId, fieldIdToRelatedFormMap);
       console.log('[RelatedBaseForm] 阶段7: 字段关联更新完成, 耗时', Date.now() - updateFieldsStartTime, 'ms');
       console.log('[RelatedBaseForm] 阶段7: 总耗时', Date.now() - startTime, 'ms');
 
