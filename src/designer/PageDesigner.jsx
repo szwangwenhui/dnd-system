@@ -1321,8 +1321,22 @@ function PageDesigner({ projectId, roleId, page, onClose, onSave }) {
       currentY += rowHeight;
     });
     
-    // 2. 为属性字段生成级联下拉区块
+    // 2. 为属性字段生成选择区块（根据 fieldDisplayMode 决定样式）
+    const fieldDisplayMode = parentBlock.fieldDisplayMode || 'dropdown';
+
     if (attributeFields.length > 0) {
+      // 获取属性字段的所有取值
+      const attributeFieldValues = [];
+      attributeFields.forEach(({ fieldId, field }) => {
+        const fieldValues = field.values?.map(v => v.value) || [];
+        attributeFieldValues.push({
+          fieldId,
+          fieldIdName: field.id,
+          fieldName: field.name,
+          values: fieldValues
+        });
+      });
+
       // 提示区块
       const cascaderPromptBlock = {
         id: generateChildId(),
@@ -1345,35 +1359,58 @@ function PageDesigner({ projectId, roleId, page, onClose, onSave }) {
           textAlign: 'right',
           padding: 4,
           borderWidth: 0,
-          zIndex: (parentBlock.style?.zIndex ?? 0) + 10  // 子区块层级高于父区块
+          zIndex: (parentBlock.style?.zIndex ?? 0) + 10
         },
         createdAt: new Date().toISOString()
       };
       generatedBlocks.push(cascaderPromptBlock);
 
-      // 级联下拉区块
+      // 计算容器区块的高度（根据显示模式）
+      let containerHeight = inputHeight;
+      let containerWidth = inputWidth;
+
+      if (fieldDisplayMode === 'button' || fieldDisplayMode === 'checkbox') {
+        // 按钮式或勾选框：计算需要的容器大小
+        const buttonWidth = 80;
+        const buttonHeight = 28;
+        const gap = 8;
+        const buttonsPerRow = Math.floor(containerWidth / (buttonWidth + gap));
+
+        let totalButtons = 0;
+        attributeFieldValues.forEach(({ values }) => {
+          totalButtons += values.length;
+        });
+
+        const rows = Math.ceil(totalButtons / buttonsPerRow);
+        containerHeight = rows * (buttonHeight + gap) + gap;
+      }
+
+      // 属性字段容器区块
       const cascaderBlock = {
         id: generateChildId(),
         type: '显示',
         parentId: parentBlockId,
         level: (parentBlock.level || 1) + 1,
-        subType: 'cascader',
+        subType: 'attribute-container',
         fieldIds: attributeFields.map(af => af.fieldId),
+        fieldDisplayMode: fieldDisplayMode,
+        fieldSelectionMode: parentBlock.fieldSelectionMode || 'single',
+        attributeFieldValues: attributeFieldValues,
         x: startX + promptWidth + 10,
         y: currentY,
         relativeX: 10 + promptWidth + 10,
         relativeY: currentY - parentBlock.y,
-        width: inputWidth,
-        height: inputHeight,
+        width: containerWidth,
+        height: containerHeight,
         style: {
-          backgroundColor: '#ffffff',
+          backgroundColor: '#f9fafb',
           borderColor: '#d1d5db',
           borderWidth: 1,
           borderStyle: 'solid',
           borderRadius: 4,
-          padding: 4,
+          padding: 8,
           fontSize: 12,
-          zIndex: (parentBlock.style?.zIndex ?? 0) + 10  // 子区块层级高于父区块
+          zIndex: (parentBlock.style?.zIndex ?? 0) + 10
         },
         createdAt: new Date().toISOString()
       };

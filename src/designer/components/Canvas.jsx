@@ -1085,18 +1085,110 @@ function DesignerCanvas({
         );
       }
       
-      if (subType === 'cascader') {
-        // 级联下拉区块
+      if (subType === 'cascader' || subType === 'attribute-container') {
+        // 属性字段容器区块（下拉菜单、按钮式、勾选框）
+        const fieldDisplayMode = block.fieldDisplayMode || 'dropdown';
+
+        if (fieldDisplayMode === 'dropdown') {
+          // 下拉菜单样式
+          return (
+            <div style={{
+              ...contentStyle,
+              display: 'flex',
+              alignItems: 'center',
+              padding: style.padding || 4,
+              fontSize: style.fontSize || 12,
+              color: '#9ca3af',
+            }}>
+              <span>请选择属性 ▼</span>
+            </div>
+          );
+        }
+
+        // 渲染按钮或勾选框
+        const attributeFieldValues = block.attributeFieldValues || [];
+        const buttonWidth = 80;
+        const buttonHeight = 28;
+        const gap = 8;
+
         return (
           <div style={{
             ...contentStyle,
+            padding: style.padding || 8,
+            position: 'relative',
             display: 'flex',
-            alignItems: 'center',
-            padding: style.padding || 4,
-            fontSize: style.fontSize || 12,
-            color: '#9ca3af',
+            flexWrap: 'wrap',
+            gap: `${gap}px`,
+            alignItems: 'flex-start',
           }}>
-            <span>请选择属性 ▼</span>
+            {attributeFieldValues.map(({ fieldName, values }, fieldIdx) => (
+              <div key={fieldIdx} style={{ width: '100%' }}>
+                <div style={{
+                  fontSize: '11px',
+                  color: '#6b7280',
+                  marginBottom: '4px',
+                  fontWeight: '500'
+                }}>{fieldName}</div>
+                {values.map((value, valueIdx) => {
+                  const isMultiple = block.fieldSelectionMode === 'multiple';
+
+                  if (fieldDisplayMode === 'button') {
+                    // 按钮式
+                    return (
+                      <div
+                        key={`${fieldIdx}-${valueIdx}`}
+                        style={{
+                          display: 'inline-block',
+                          minWidth: buttonWidth,
+                          maxWidth: '120px',
+                          height: buttonHeight,
+                          lineHeight: `${buttonHeight}px`,
+                          padding: '0 12px',
+                          backgroundColor: '#ffffff',
+                          border: '1px solid #d1d5db',
+                          borderRadius: '4px',
+                          fontSize: '12px',
+                          color: '#374151',
+                          textAlign: 'center',
+                          cursor: 'move',
+                          marginRight: gap,
+                          marginBottom: gap,
+                          userSelect: 'none',
+                        }}
+                      >
+                        {value}
+                      </div>
+                    );
+                  } else if (fieldDisplayMode === 'checkbox') {
+                    // 勾选框
+                    return (
+                      <label
+                        key={`${fieldIdx}-${valueIdx}`}
+                        style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          cursor: 'pointer',
+                          marginRight: '16px',
+                          marginBottom: '8px',
+                          userSelect: 'none',
+                        }}
+                      >
+                        <input
+                          type={isMultiple ? 'checkbox' : 'radio'}
+                          disabled
+                          style={{
+                            marginRight: '6px',
+                            cursor: 'move',
+                          }}
+                        />
+                        <span style={{ fontSize: '12px', color: '#374151' }}>{value}</span>
+                      </label>
+                    );
+                  }
+                  return null;
+                })}
+              </div>
+            ))}
           </div>
         );
       }

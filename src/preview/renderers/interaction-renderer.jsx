@@ -686,31 +686,169 @@ window.createInteractionRenderer = (props) => {
       );
     }
 
-    if (subType === 'cascader') {
-      // 级联下拉区块 - 简化版，后续可扩展
+    if (subType === 'cascader' || subType === 'attribute-container') {
+      // 属性字段容器区块（下拉菜单、按钮式、勾选框）
+      const fieldDisplayMode = block.fieldDisplayMode || 'dropdown';
+      const fieldSelectionMode = block.fieldSelectionMode || 'single';
+      const attributeFieldValues = block.attributeFieldValues || [];
+
+      // 获取当前字段已选择的值
+      const currentFieldValues = childBlockInputData?.[block.id] || [];
+
+      // 处理选择变化
+      const handleValueChange = (fieldIdName, value) => {
+        setChildBlockInputData(prev => ({
+          ...prev,
+          [block.id]: {
+            ...prev[block.id],
+            [fieldIdName]: value
+          }
+        }));
+      };
+
+      // 处理多选
+      const handleMultiSelectChange = (fieldIdName, value) => {
+        const currentValues = currentFieldValues[fieldIdName] || [];
+        const newValues = currentValues.includes(value)
+          ? currentValues.filter(v => v !== value)
+          : [...currentValues, value];
+        handleValueChange(fieldIdName, newValues);
+      };
+
+      if (fieldDisplayMode === 'dropdown') {
+        // 下拉菜单样式
+        return (
+          <div key={block.id} style={{
+            ...blockStyle,
+            display: 'flex',
+            alignItems: 'center',
+          }}>
+            {PopupCloseButton && <PopupCloseButton />}
+            <select
+              style={{
+                width: '100%',
+                height: '100%',
+                border: 'none',
+                backgroundColor: 'transparent',
+                padding: contentStyle.paddingTop || style.padding || 4,
+                fontSize: fontSize,
+                fontFamily: fontFamily,
+                color: color,
+                outline: 'none',
+              }}
+              onChange={(e) => {
+                const field = fields?.find(f => f.id === attributeFieldValues[0]?.fieldIdName);
+                if (field) {
+                  handleValueChange(attributeFieldValues[0]?.fieldIdName, e.target.value);
+                }
+              }}
+            >
+              <option value="">请选择属性</option>
+              {attributeFieldValues.map(({ fieldIdName, values }) =>
+                values.map((value, idx) => (
+                  <option key={`${fieldIdName}-${idx}`} value={value}>{value}</option>
+                ))
+              )}
+            </select>
+          </div>
+        );
+      }
+
+      // 按钮式或勾选框
       return (
         <div key={block.id} style={{
           ...blockStyle,
+          padding: style.padding || 8,
           display: 'flex',
-          alignItems: 'center',
+          flexWrap: 'wrap',
+          gap: '8px',
+          alignItems: 'flex-start',
         }}>
           {PopupCloseButton && <PopupCloseButton />}
-          <select
-            style={{
-              width: '100%',
-              height: '100%',
-              border: 'none',
-              backgroundColor: 'transparent',
-              padding: contentStyle.paddingTop || style.padding || 4,
-              fontSize: fontSize,
-              fontFamily: fontFamily,
-              color: color,
-              outline: 'none',
-            }}
-          >
-            <option value="">请选择属性</option>
-            {/* 属性选项需要从属性表加载 */}
-          </select>
+          {attributeFieldValues.map(({ fieldIdName, fieldName, values }, fieldIdx) => (
+            <div key={fieldIdx} style={{ width: '100%' }}>
+              <div style={{
+                fontSize: '11px',
+                color: '#6b7280',
+                marginBottom: '4px',
+                fontWeight: '500'
+              }}>{fieldName}</div>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+                {values.map((value, valueIdx) => {
+                  const isMultiple = fieldSelectionMode === 'multiple';
+                  const isSelected = isMultiple
+                    ? (currentFieldValues[fieldIdName] || []).includes(value)
+                    : currentFieldValues[fieldIdName] === value;
+
+                  if (fieldDisplayMode === 'button') {
+                    // 按钮式
+                    return (
+                      <div
+                        key={`${fieldIdx}-${valueIdx}`}
+                        onClick={() => {
+                          if (isMultiple) {
+                            handleMultiSelectChange(fieldIdName, value);
+                          } else {
+                            handleValueChange(fieldIdName, value);
+                          }
+                        }}
+                        style={{
+                          display: 'inline-block',
+                          minWidth: '80px',
+                          maxWidth: '120px',
+                          height: '28px',
+                          lineHeight: '28px',
+                          padding: '0 12px',
+                          backgroundColor: isSelected ? '#3b82f6' : '#ffffff',
+                          border: '1px solid #d1d5db',
+                          borderRadius: '4px',
+                          fontSize: '12px',
+                          color: isSelected ? '#ffffff' : '#374151',
+                          textAlign: 'center',
+                          cursor: 'pointer',
+                          userSelect: 'none',
+                          transition: 'all 0.2s',
+                        }}
+                      >
+                        {value}
+                      </div>
+                    );
+                  } else if (fieldDisplayMode === 'checkbox') {
+                    // 勾选框
+                    return (
+                      <label
+                        key={`${fieldIdx}-${valueIdx}`}
+                        style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          cursor: 'pointer',
+                          userSelect: 'none',
+                        }}
+                      >
+                        <input
+                          type={isMultiple ? 'checkbox' : 'radio'}
+                          checked={isSelected}
+                          onChange={() => {
+                            if (isMultiple) {
+                              handleMultiSelectChange(fieldIdName, value);
+                            } else {
+                              handleValueChange(fieldIdName, value);
+                            }
+                          }}
+                          style={{
+                            marginRight: '6px',
+                            cursor: 'pointer',
+                          }}
+                        />
+                        <span style={{ fontSize: '12px', color: '#374151' }}>{value}</span>
+                      </label>
+                    );
+                  }
+                  return null;
+                })}
+              </div>
+            </div>
+          ))}
         </div>
       );
     }

@@ -503,7 +503,38 @@ function BlockList({
                 </label>
               </div>
             </div>
-            
+
+            {/* 4.1 字段采选方式 - 仅当选择了"启动流程"时显示 */}
+            {block.purposeFlow && (
+              <div className="mt-2">
+                <div className="text-gray-500 text-xs mb-1">字段采选方式：</div>
+                <div className="flex space-x-3">
+                  <label className="flex items-center space-x-1 cursor-pointer" onClick={(e) => e.stopPropagation()}>
+                    <input
+                      type="radio"
+                      name={`fieldSelectionMode-${block.id}`}
+                      value="single"
+                      checked={block.fieldSelectionMode === 'single'}
+                      onChange={(e) => onUpdateBlock(block.id, { fieldSelectionMode: 'single' })}
+                      className="w-3 h-3"
+                    />
+                    <span className="text-xs">单选</span>
+                  </label>
+                  <label className="flex items-center space-x-1 cursor-pointer" onClick={(e) => e.stopPropagation()}>
+                    <input
+                      type="radio"
+                      name={`fieldSelectionMode-${block.id}`}
+                      value="multiple"
+                      checked={block.fieldSelectionMode === 'multiple'}
+                      onChange={(e) => onUpdateBlock(block.id, { fieldSelectionMode: 'multiple' })}
+                      className="w-3 h-3"
+                    />
+                    <span className="text-xs">多选</span>
+                  </label>
+                </div>
+              </div>
+            )}
+
             {/* 5. 关联流程选择 - 仅当选择了"启动流程"时显示 */}
             {block.purposeFlow && (
               <div className="mt-2">
@@ -513,7 +544,7 @@ function BlockList({
                   onChange={(e) => {
                     const flowId = e.target.value || null;
                     const flow = (dataFlows || []).find(f => f.id === flowId);
-                    onUpdateBlock(block.id, { 
+                    onUpdateBlock(block.id, {
                       linkedFlowId: flowId,
                       linkedFlowName: flow?.name || ''
                     });
@@ -528,6 +559,48 @@ function BlockList({
                     </option>
                   ))}
                 </select>
+              </div>
+            )}
+
+            {/* 5.1 字段显示方式 - 仅当选择了"自行设计样式"时显示 */}
+            {block.styleMode === 'custom' && (
+              <div className="mt-2">
+                <div className="text-gray-500 text-xs mb-1">字段显示方式：</div>
+                <div className="space-y-1">
+                  <label className="flex items-center space-x-1 cursor-pointer" onClick={(e) => e.stopPropagation()}>
+                    <input
+                      type="radio"
+                      name={`fieldDisplayMode-${block.id}`}
+                      value="dropdown"
+                      checked={(block.fieldDisplayMode || 'dropdown') === 'dropdown'}
+                      onChange={(e) => onUpdateBlock(block.id, { fieldDisplayMode: 'dropdown' })}
+                      className="w-3 h-3"
+                    />
+                    <span className="text-xs">下拉菜单</span>
+                  </label>
+                  <label className="flex items-center space-x-1 cursor-pointer" onClick={(e) => e.stopPropagation()}>
+                    <input
+                      type="radio"
+                      name={`fieldDisplayMode-${block.id}`}
+                      value="button"
+                      checked={block.fieldDisplayMode === 'button'}
+                      onChange={(e) => onUpdateBlock(block.id, { fieldDisplayMode: 'button' })}
+                      className="w-3 h-3"
+                    />
+                    <span className="text-xs">按钮式</span>
+                  </label>
+                  <label className="flex items-center space-x-1 cursor-pointer" onClick={(e) => e.stopPropagation()}>
+                    <input
+                      type="radio"
+                      name={`fieldDisplayMode-${block.id}`}
+                      value="checkbox"
+                      checked={block.fieldDisplayMode === 'checkbox'}
+                      onChange={(e) => onUpdateBlock(block.id, { fieldDisplayMode: 'checkbox' })}
+                      className="w-3 h-3"
+                    />
+                    <span className="text-xs">勾选框</span>
+                  </label>
+                </div>
               </div>
             )}
             
@@ -558,6 +631,16 @@ function BlockList({
                     {block.purposeSave !== false && block.purposeFlow && ' + '}
                     {block.purposeFlow && '启动流程'}
                   </div>
+                  {block.styleMode === 'custom' && (
+                    <div>显示方式：{
+                      block.fieldDisplayMode === 'button' ? '按钮式' :
+                      block.fieldDisplayMode === 'checkbox' ? '勾选框' :
+                      '下拉菜单'
+                    }</div>
+                  )}
+                  {block.purposeFlow && (
+                    <div>采选方式：{block.fieldSelectionMode === 'multiple' ? '多选' : '单选'}</div>
+                  )}
                 </div>
               </div>
             )}
