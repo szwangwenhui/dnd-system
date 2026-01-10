@@ -51,15 +51,21 @@ function RelatedBaseForm({ projectId, onClose, onSuccess, onLoadingChange }) {
 
     const loadData = async () => {
       try {
+        console.log('[RelatedBaseForm] 开始加载数据...');
         // 只调用一次getProjectById，从返回的项目对象中获取所有数据
         const project = await window.dndDB.getProjectById(projectId);
+        console.log('[RelatedBaseForm] 项目数据:', project);
+
         if (!isMounted) return;
 
         if (project) {
           // 从项目对象中直接获取字段和表单，避免重复查询
-          setFields(project.fields || []);
+          const fieldList = project.fields || [];
+          console.log('[RelatedBaseForm] 字段数量:', fieldList.length);
+          setFields(fieldList);
 
           const formList = project.forms || [];
+          console.log('[RelatedBaseForm] 表单数量:', formList.length);
           setAllForms(formList); // 保存所有表单
           const independentList = formList.filter(f =>
             f.type === '对象表单' && (
@@ -68,6 +74,7 @@ function RelatedBaseForm({ projectId, onClose, onSuccess, onLoadingChange }) {
               f.subType === '详情独立基础表'
             )
           );
+          console.log('[RelatedBaseForm] 独立基础表数量:', independentList.length);
           setIndependentForms(independentList);
 
           // 加载所有角色的页面（用于标题关联基础表选择详情页）
@@ -79,10 +86,13 @@ function RelatedBaseForm({ projectId, onClose, onSuccess, onLoadingChange }) {
                 allPages = allPages.concat(role.pages);
               }
             }
+            console.log('[RelatedBaseForm] 页面数量:', allPages.length);
             setPages(allPages);
           }
+          console.log('[RelatedBaseForm] 数据加载完成');
         }
       } catch (error) {
+        console.error('[RelatedBaseForm] 加载数据失败:', error);
         if (isMounted) alert('加载数据失败：' + error);
       }
     };
