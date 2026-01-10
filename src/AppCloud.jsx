@@ -10,103 +10,77 @@ const lazyComponentsCache = {};
 const loadingScripts = {};
 
 // 动态加载组件脚本
-function loadComponentScript(src, componentGlobalName) {
-  return new Promise((resolve, reject) => {
-    console.log('[LazyLoader] loadComponentScript 调用:', { src, componentGlobalName });
-    console.log('[LazyLoader] 当前页面 URL:', window.location.href);
+async function loadComponentScript(src, componentGlobalName) {
+  console.log('[LazyLoader] loadComponentScript 调用:', { src, componentGlobalName });
+  console.log('[LazyLoader] 当前页面 URL:', window.location.href);
 
-    // 如果已经在加载中，返回同一个 Promise
-    if (loadingScripts[src]) {
-      console.log('[LazyLoader] 脚本正在加载中:', src);
-      return loadingScripts[src];
-    }
+  // 如果已经加载过，直接返回
+  if (window[componentGlobalName]) {
+    console.log('[LazyLoader] 组件已加载:', componentGlobalName);
+    return window[componentGlobalName];
+  }
 
-    // 如果已经加载过，直接返回
-    if (window[componentGlobalName]) {
-      console.log('[LazyLoader] 脚本已加载:', componentGlobalName);
-      resolve(window[componentGlobalName]);
-      return;
-    }
+  // 如果已经在加载中，返回同一个 Promise
+  if (loadingScripts[src]) {
+    console.log('[LazyLoader] 脚本正在加载中:', src);
+    return loadingScripts[src];
+  }
 
-    // 转换相对路径为绝对路径
-    let fullSrc = src;
-    if (src.startsWith('./')) {
-      // 简单处理：直接在 origin 后面拼接路径
-      // 例如: ./src/components/DataLayerBuilder.jsx -> /src/components/DataLayerBuilder.jsx
-      const relativePath = src.substring(2); // 移除 './'
-      fullSrc = window.location.origin + '/' + relativePath;
-    }
+  // 转换相对路径为绝对路径
+  let fullSrc = src;
+  if (src.startsWith('./')) {
+    const relativePath = src.substring(2); // 移除 './'
+    fullSrc = window.location.origin + '/' + relativePath;
+  }
 
-    console.log('[LazyLoader] 转换后路径:', fullSrc);
+  console.log('[LazyLoader] 转换后路径:', fullSrc);
 
-    // 创建 script 标签
-    const script = document.createElement('script');
-    script.type = 'text/babel';
-    script.src = fullSrc;
+  // 创建加载 Promise
+  const loadPromise = (async () => {
+    try {
+      console.log('[LazyLoader] 开始 fetch 文件...');
+      const response = await fetch(fullSrc);
+      console.log('[LazyLoader] fetch response status:', response.status, response.statusText);
 
-    console.log('[LazyLoader] 创建 script 标签:', script.src);
-
-    // 加载完成
-    script.onload = async () => {
-      console.log('[LazyLoader] script onload, 脚本加载成功');
-      console.log('[LazyLoader] 期望的全局变量名:', componentGlobalName);
-      console.log('[LazyLoader] 当前全局对象是否存在:', !!window[componentGlobalName]);
-
-      // 读取脚本内容并手动编译
-      console.log('[LazyLoader] 读取脚本内容并手动编译...');
-      try {
-        const response = await fetch(fullSrc);
-        const sourceCode = await response.text();
-        console.log('[LazyLoader] 源代码长度:', sourceCode.length);
-
-        // 使用 Babel 编译
-        const compiledCode = window.Babel.transform(sourceCode, {
-          presets: ['react']
-        }).code;
-
-        console.log('[LazyLoader] 编译后代码长度:', compiledCode.length);
-
-        // 执行编译后的代码
-        console.log('[LazyLoader] 执行编译后的代码...');
-        const compiledFunction = new Function(compiledCode);
-        compiledFunction();
-
-        console.log('[LazyLoader] 代码执行完成');
-        console.log('[LazyLoader] window[componentGlobalName] 是否存在:', !!window[componentGlobalName]);
-
-        if (window[componentGlobalName]) {
-          delete loadingScripts[src];
-          lazyComponentsCache[src] = true;
-          console.log('[LazyLoader] 组件可用:', componentGlobalName);
-          resolve(window[componentGlobalName]);
-        } else {
-          delete loadingScripts[src];
-          console.error('[LazyLoader] 组件未找到:', componentGlobalName);
-          reject(new Error('组件未找到: ' + componentGlobalName));
-        }
-      } catch (error) {
-        delete loadingScripts[src];
-        console.error('[LazyLoader] 编译或执行失败:', error);
-        reject(new Error('组件加载失败: ' + error.message));
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
       }
-    };
 
-    script.onerror = (e) => {
+      const sourceCode = await response.text();
+      console.log('[LazyLoader] 源代码长度:', sourceCode.length, '字符');
+
+      // 使用 Babel 编译
+      console.log('[LazyLoader] 开始 Babel 编译...');
+      const compiledCode = window.Babel.transform(sourceCode, {
+        presets: ['react']
+      }).code;
+      console.log('[LazyLoader] 编译后代码长度:', compiledCode.length, '字符');
+
+      // 执行编译后的代码
+      console.log('[LazyLoader] 执行编译后的代码...');
+      const compiledFunction = new Function(compiledCode);
+      compiledFunction();
+      console.log('[LazyLoader] 代码执行完成');
+
+      console.log('[LazyLoader] window[componentGlobalName] 是否存在:', !!window[componentGlobalName]);
+
+      if (!window[componentGlobalName]) {
+        throw new Error('组件未导出: ' + componentGlobalName);
+      }
+
+      console.log('[LazyLoader] 组件可用:', componentGlobalName);
+      lazyComponentsCache[src] = true;
+      return window[componentGlobalName];
+    } catch (error) {
+      console.error('[LazyLoader] 加载失败:', error);
+      throw error;
+    } finally {
       delete loadingScripts[src];
-      console.error('[LazyLoader] script onerror:', src, e);
-      console.error('[LazyLoader] 错误事件对象:', {
-        type: e.type,
-        target: e.target?.src,
-        bubbles: e.bubbles
-      });
-      reject(new Error('组件脚本加载失败: ' + script.src));
-    };
+    }
+  })();
 
-    console.log('[LazyLoader] 准备添加 script 标签到 DOM');
-    document.body.appendChild(script);
-    loadingScripts[src] = script;
-    console.log('[LazyLoader] script 标签已添加, 等待加载...');
-  });
+  loadingScripts[src] = loadPromise;
+  return loadPromise;
 }
 
 // 懒加载组件的 Hook
