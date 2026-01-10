@@ -47,42 +47,52 @@ function RelatedBaseForm({ projectId, onClose, onSuccess, onLoadingChange }) {
 
   // 加载数据
   React.useEffect(() => {
-    loadData();
-  }, [projectId]);
+    let isMounted = true;
 
-  const loadData = async () => {
-    try {
-      const fieldList = await window.dndDB.getFieldsByProjectId(projectId);
-      setFields(fieldList);
+    const loadData = async () => {
+      try {
+        // 只调用一次getProjectById，从返回的项目对象中获取所有数据
+        const project = await window.dndDB.getProjectById(projectId);
+        if (!isMounted) return;
 
-      const formList = await window.dndDB.getFormsByProjectId(projectId);
-      setAllForms(formList); // 保存所有表单
-      const independentList = formList.filter(f =>
-        f.type === '对象表单' && (
-          f.subType === '独立基础表' ||
-          f.subType === '普通独立基础表' ||
-          f.subType === '详情独立基础表'
-        )
-      );
-      setIndependentForms(independentList);
+        if (project) {
+          // 从项目对象中直接获取字段和表单，避免重复查询
+          setFields(project.fields || []);
 
-      // 加载所有角色的页面（用于标题关联基础表选择详情页）
-      // 只调用一次getProjectById，从项目对象中获取所有角色和页面
-      const project = await window.dndDB.getProjectById(projectId);
-      if (project && project.roles) {
-        let allPages = [];
-        // 直接从项目对象中获取页面，避免重复查询数据库
-        for (const role of project.roles) {
-          if (role.pages) {
-            allPages = allPages.concat(role.pages);
+          const formList = project.forms || [];
+          setAllForms(formList); // 保存所有表单
+          const independentList = formList.filter(f =>
+            f.type === '对象表单' && (
+              f.subType === '独立基础表' ||
+              f.subType === '普通独立基础表' ||
+              f.subType === '详情独立基础表'
+            )
+          );
+          setIndependentForms(independentList);
+
+          // 加载所有角色的页面（用于标题关联基础表选择详情页）
+          if (project.roles) {
+            let allPages = [];
+            // 直接从项目对象中获取页面，避免重复查询数据库
+            for (const role of project.roles) {
+              if (role.pages) {
+                allPages = allPages.concat(role.pages);
+              }
+            }
+            setPages(allPages);
           }
         }
-        setPages(allPages);
+      } catch (error) {
+        if (isMounted) alert('加载数据失败：' + error);
       }
-    } catch (error) {
-      alert('加载数据失败：' + error);
-    }
-  };
+    };
+
+    loadData();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [projectId]);
 
   // 获取独立基础表的主键信息
   const getFormPrimaryKeyInfo = (formId) => {
