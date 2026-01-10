@@ -47,46 +47,65 @@ function loadComponentScript(src, componentGlobalName) {
     console.log('[LazyLoader] 创建 script 标签:', script.src);
 
     // 加载完成
-    script.onload = () => {
-      console.log('[LazyLoader] script onload, 等待 Babel 编译...');
+    script.onload = async () => {
+      console.log('[LazyLoader] script onload, 脚本加载成功');
+      console.log('[LazyLoader] 期望的全局变量名:', componentGlobalName);
+      console.log('[LazyLoader] 当前全局对象是否存在:', !!window[componentGlobalName]);
 
-      // 等待 Babel 编译完成
-      let checkCount = 0;
-      const checkInterval = setInterval(() => {
-        checkCount++;
+      // 读取脚本内容并手动编译
+      console.log('[LazyLoader] 读取脚本内容并手动编译...');
+      try {
+        const response = await fetch(fullSrc);
+        const sourceCode = await response.text();
+        console.log('[LazyLoader] 源代码长度:', sourceCode.length);
+
+        // 使用 Babel 编译
+        const compiledCode = window.Babel.transform(sourceCode, {
+          presets: ['react']
+        }).code;
+
+        console.log('[LazyLoader] 编译后代码长度:', compiledCode.length);
+
+        // 执行编译后的代码
+        console.log('[LazyLoader] 执行编译后的代码...');
+        const compiledFunction = new Function(compiledCode);
+        compiledFunction();
+
+        console.log('[LazyLoader] 代码执行完成');
+        console.log('[LazyLoader] window[componentGlobalName] 是否存在:', !!window[componentGlobalName]);
+
         if (window[componentGlobalName]) {
-          clearInterval(checkInterval);
           delete loadingScripts[src];
           lazyComponentsCache[src] = true;
-          console.log('[LazyLoader] Babel 编译完成, 组件可用:', componentGlobalName);
+          console.log('[LazyLoader] 组件可用:', componentGlobalName);
           resolve(window[componentGlobalName]);
-        } else if (checkCount > 100) {
-          // 10秒后超时
-          clearInterval(checkInterval);
+        } else {
           delete loadingScripts[src];
-          console.error('[LazyLoader] Babel 编译超时:', componentGlobalName);
-          reject(new Error('组件加载超时'));
+          console.error('[LazyLoader] 组件未找到:', componentGlobalName);
+          reject(new Error('组件未找到: ' + componentGlobalName));
         }
-      }, 100);
-
-      // 超时保护
-      setTimeout(() => {
-        clearInterval(checkInterval);
-        if (loadingScripts[src]) {
-          delete loadingScripts[src];
-          reject(new Error('组件加载超时'));
-        }
-      }, 15000);
+      } catch (error) {
+        delete loadingScripts[src];
+        console.error('[LazyLoader] 编译或执行失败:', error);
+        reject(new Error('组件加载失败: ' + error.message));
+      }
     };
 
     script.onerror = (e) => {
       delete loadingScripts[src];
       console.error('[LazyLoader] script onerror:', src, e);
+      console.error('[LazyLoader] 错误事件对象:', {
+        type: e.type,
+        target: e.target?.src,
+        bubbles: e.bubbles
+      });
       reject(new Error('组件脚本加载失败: ' + script.src));
     };
 
+    console.log('[LazyLoader] 准备添加 script 标签到 DOM');
     document.body.appendChild(script);
     loadingScripts[src] = script;
+    console.log('[LazyLoader] script 标签已添加, 等待加载...');
   });
 }
 
