@@ -13,6 +13,7 @@ const loadingScripts = {};
 function loadComponentScript(src, componentGlobalName) {
   return new Promise((resolve, reject) => {
     console.log('[LazyLoader] loadComponentScript 调用:', { src, componentGlobalName });
+    console.log('[LazyLoader] 当前页面 URL:', window.location.href);
 
     // 如果已经在加载中，返回同一个 Promise
     if (loadingScripts[src]) {
@@ -28,8 +29,17 @@ function loadComponentScript(src, componentGlobalName) {
     }
 
     // 转换相对路径为绝对路径
-    const baseUrl = window.location.origin + window.location.pathname.replace(/\/[^/]*$/, '/');
-    const fullSrc = src.startsWith('./') ? baseUrl + src.substring(2) : src;
+    let fullSrc = src;
+    if (src.startsWith('./')) {
+      // 获取当前页面的基础路径
+      const pathParts = window.location.pathname.split('/');
+      // 移除最后一部分（index.html 或空字符串）
+      pathParts.pop();
+      const basePath = pathParts.join('/') || '';
+      fullSrc = window.location.origin + (basePath ? '/' + basePath : '') + src.substring(2);
+    }
+
+    console.log('[LazyLoader] 转换后路径:', fullSrc);
 
     // 创建 script 标签
     const script = document.createElement('script');
