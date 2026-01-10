@@ -13,8 +13,29 @@
   <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
   <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
 
-  <!-- Babel Standalone (用于在浏览器中编译JSX) -->
+  <!-- Babel Standalone (用于在浏览器中编译JSX) - 多源备份 -->
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <script>
+    // 如果 babel 加载失败，尝试备用 CDN
+    if (typeof Babel === 'undefined') {
+      console.log('主 CDN 失败，尝试备用 CDN...');
+      const backupScript = document.createElement('script');
+      backupScript.src = 'https://cdn.jsdelivr.net/npm/@babel/standalone/babel.min.js';
+      backupScript.onerror = function() {
+        console.error('所有 Babel CDN 加载失败，无法继续');
+        document.getElementById('root').innerHTML = `
+          <div style="padding: 40px; text-align: center; font-family: sans-serif;">
+            <h2 style="color: #e53e3e;">加载失败</h2>
+            <p>无法加载核心组件，请刷新页面重试</p>
+            <button onclick="location.reload()" style="padding: 10px 20px; margin-top: 20px; background: #3182ce; color: white; border: none; border-radius: 5px; cursor: pointer;">
+              刷新页面
+            </button>
+          </div>
+        `;
+      };
+      document.head.appendChild(backupScript);
+    }
+  </script>
   
   <!-- Supabase SDK -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -44,7 +65,59 @@
     ::-webkit-scrollbar-thumb:hover {
       background: #a1a1a1;
     }
+
+    /* 加载错误提示样式 */
+    .load-error {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      text-align: center;
+      padding: 20px;
+    }
+    .load-error h2 {
+      font-size: 32px;
+      margin-bottom: 16px;
+    }
+    .load-error p {
+      font-size: 18px;
+      margin-bottom: 24px;
+      opacity: 0.9;
+    }
+    .load-error button {
+      padding: 12px 32px;
+      font-size: 16px;
+      background: white;
+      color: #667eea;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: 600;
+      transition: transform 0.2s;
+    }
+    .load-error button:hover {
+      transform: scale(1.05);
+    }
   </style>
+  <script>
+    // 全局错误捕获
+    window.addEventListener('error', function(e) {
+      console.error('[全局错误]', e.message, e.filename, e.lineno);
+      if (e.filename && e.filename.includes('babel')) {
+        console.warn('Babel 加载失败，已自动尝试备用 CDN');
+      }
+    });
+
+    // 添加加载超时检测
+    setTimeout(function() {
+      if (typeof Babel === 'undefined') {
+        console.warn('Babel 加载超时，可能需要刷新页面');
+      }
+    }, 10000); // 10秒后检测
+  </script>
 </head>
 <body>
   <div id="root"></div>
