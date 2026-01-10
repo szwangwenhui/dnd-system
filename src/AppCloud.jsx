@@ -31,12 +31,10 @@ function loadComponentScript(src, componentGlobalName) {
     // 转换相对路径为绝对路径
     let fullSrc = src;
     if (src.startsWith('./')) {
-      // 获取当前页面的基础路径
-      const pathParts = window.location.pathname.split('/');
-      // 移除最后一部分（index.html 或空字符串）
-      pathParts.pop();
-      const basePath = pathParts.join('/') || '';
-      fullSrc = window.location.origin + (basePath ? '/' + basePath : '') + src.substring(2);
+      // 简单处理：直接在 origin 后面拼接路径
+      // 例如: ./src/components/DataLayerBuilder.jsx -> /src/components/DataLayerBuilder.jsx
+      const relativePath = src.substring(2); // 移除 './'
+      fullSrc = window.location.origin + '/' + relativePath;
     }
 
     console.log('[LazyLoader] 转换后路径:', fullSrc);
