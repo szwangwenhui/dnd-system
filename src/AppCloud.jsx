@@ -12,13 +12,17 @@ const loadingScripts = {};
 // 动态加载组件脚本
 function loadComponentScript(src, componentGlobalName) {
   return new Promise((resolve, reject) => {
+    console.log('[LazyLoader] loadComponentScript 调用:', { src, componentGlobalName });
+
     // 如果已经在加载中，返回同一个 Promise
     if (loadingScripts[src]) {
+      console.log('[LazyLoader] 脚本正在加载中:', src);
       return loadingScripts[src];
     }
 
     // 如果已经加载过，直接返回
     if (window[componentGlobalName]) {
+      console.log('[LazyLoader] 脚本已加载:', componentGlobalName);
       resolve(window[componentGlobalName]);
       return;
     }
@@ -28,28 +32,44 @@ function loadComponentScript(src, componentGlobalName) {
     script.type = 'text/babel';
     script.src = src;
 
+    console.log('[LazyLoader] 创建 script 标签:', script.src);
+
     // 加载完成
     script.onload = () => {
+      console.log('[LazyLoader] script onload, 等待 Babel 编译...');
+
       // 等待 Babel 编译完成
+      let checkCount = 0;
       const checkInterval = setInterval(() => {
+        checkCount++;
         if (window[componentGlobalName]) {
           clearInterval(checkInterval);
           delete loadingScripts[src];
           lazyComponentsCache[src] = true;
+          console.log('[LazyLoader] Babel 编译完成, 组件可用:', componentGlobalName);
           resolve(window[componentGlobalName]);
+        } else if (checkCount > 100) {
+          // 10秒后超时
+          clearInterval(checkInterval);
+          delete loadingScripts[src];
+          console.error('[LazyLoader] Babel 编译超时:', componentGlobalName);
+          reject(new Error('组件加载超时'));
         }
       }, 100);
 
       // 超时保护
       setTimeout(() => {
         clearInterval(checkInterval);
-        delete loadingScripts[src];
-        reject(new Error('组件加载超时'));
-      }, 10000);
+        if (loadingScripts[src]) {
+          delete loadingScripts[src];
+          reject(new Error('组件加载超时'));
+        }
+      }, 15000);
     };
 
     script.onerror = () => {
       delete loadingScripts[src];
+      console.error('[LazyLoader] script onerror:', src);
       reject(new Error('组件脚本加载失败'));
     };
 
@@ -65,28 +85,35 @@ function useLazyComponent(src, componentGlobalName) {
   const [error, setError] = React.useState(null);
 
   React.useEffect(() => {
+    console.log('[LazyLoader] 开始懒加载:', { src, componentGlobalName });
+
     // 如果已经加载过，直接返回
     if (window[componentGlobalName]) {
+      console.log('[LazyLoader] 组件已存在:', componentGlobalName);
       setComponent(() => window[componentGlobalName]);
       return;
     }
 
     // 检查缓存
     if (lazyComponentsCache[src]) {
+      console.log('[LazyLoader] 组件已缓存:', src);
       setComponent(() => window[componentGlobalName]);
       return;
     }
 
     // 开始加载
+    console.log('[LazyLoader] 开始加载脚本...');
     setLoading(true);
     setError(null);
 
     loadComponentScript(src, componentGlobalName)
       .then(() => {
+        console.log('[LazyLoader] 脚本加载成功:', componentGlobalName);
         setComponent(() => window[componentGlobalName]);
         setLoading(false);
       })
       .catch((err) => {
+        console.error('[LazyLoader] 脚本加载失败:', err);
         setError(err);
         setLoading(false);
       });
