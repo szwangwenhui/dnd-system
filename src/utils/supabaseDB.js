@@ -77,13 +77,36 @@
 
     // 获取所有项目（当前用户的）
     async getAllProjects() {
+      const startTime = Date.now();
+      // 只查询项目的基本字段，不查询关联数据（roles、fields、forms等）
+      // 这些关联数据会在选择项目后通过 getProjectById 按需加载
       const { data, error } = await getClient()
         .from('projects')
-        .select('*')
+        .select('id, name, description, status, created_at, updated_at, user_id')
         .order('updated_at', { ascending: false });
 
+      console.log('[SupabaseDB] getAllProjects - 数据库查询完成, 耗时:', Date.now() - startTime, 'ms');
+
       if (error) throw error;
-      return (data || []).map(this._formatProject);
+      console.log('[SupabaseDB] getAllProjects - 返回项目数:', data?.length || 0);
+
+      // 返回轻量级的项目对象，不包含嵌套数据
+      return (data || []).map(dbProject => ({
+        id: dbProject.id,
+        name: dbProject.name,
+        description: dbProject.description,
+        status: dbProject.status,
+        roles: [],
+        fields: [],
+        forms: [],
+        dataFlows: [],
+        statistics: [],
+        businessCategories: [],
+        pageTemplates: [],
+        blockTemplates: [],
+        createdAt: dbProject.created_at,
+        updatedAt: dbProject.updated_at
+      }));
     },
 
     // 根据ID获取项目（带缓存）
@@ -100,16 +123,22 @@
       // 从数据库获取
       console.log('[SupabaseDB] getProjectById - 从数据库获取项目:', id);
       const dbStartTime = Date.now();
+
+      // 查询项目及关联数据（只在选择项目时执行）
       const { data, error } = await getClient()
         .from('projects')
         .select('*')
         .eq('id', id)
         .single();
+
       console.log('[SupabaseDB] getProjectById - 数据库查询完成, 耗时:', Date.now() - dbStartTime, 'ms');
 
       if (error && error.code !== 'PGRST116') throw error;
 
       const project = data ? this._formatProject(data) : null;
+
+      console.log('[SupabaseDB] getProjectById - 项目数据大小:',
+        JSON.stringify(project).length, 'bytes (约', (JSON.stringify(project).length / 1024).toFixed(2), 'KB)');
 
       // 更新缓存
       if (project) {
