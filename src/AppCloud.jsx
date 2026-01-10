@@ -27,10 +27,14 @@ function loadComponentScript(src, componentGlobalName) {
       return;
     }
 
+    // 转换相对路径为绝对路径
+    const baseUrl = window.location.origin + window.location.pathname.replace(/\/[^/]*$/, '/');
+    const fullSrc = src.startsWith('./') ? baseUrl + src.substring(2) : src;
+
     // 创建 script 标签
     const script = document.createElement('script');
     script.type = 'text/babel';
-    script.src = src;
+    script.src = fullSrc;
 
     console.log('[LazyLoader] 创建 script 标签:', script.src);
 
@@ -67,10 +71,10 @@ function loadComponentScript(src, componentGlobalName) {
       }, 15000);
     };
 
-    script.onerror = () => {
+    script.onerror = (e) => {
       delete loadingScripts[src];
-      console.error('[LazyLoader] script onerror:', src);
-      reject(new Error('组件脚本加载失败'));
+      console.error('[LazyLoader] script onerror:', src, e);
+      reject(new Error('组件脚本加载失败: ' + script.src));
     };
 
     document.body.appendChild(script);
