@@ -4,10 +4,33 @@ function DataLayerBuilder({ projectId, roleId, onBack }) {
   const [role, setRole] = React.useState(null);
   const [activeTab, setActiveTab] = React.useState('fields'); // fields, forms, dataflows, pages
 
+  // 懒加载依赖组件
+  const [FormDefinition, setFormDefinition] = React.useState(null);
+  const [DataFlowDefinition, setDataFlowDefinition] = React.useState(null);
+  const [PageDefinition, setPageDefinition] = React.useState(null);
+
   // 加载项目和角色信息
   React.useEffect(() => {
     loadData();
   }, [projectId, roleId]);
+
+  // 懒加载依赖组件
+  React.useEffect(() => {
+    // 根据当前 tab 加载对应组件
+    if (activeTab === 'forms' && !FormDefinition) {
+      loadComponentScript('./src/components/FormDefinition.jsx', 'FormDefinition')
+        .then(setFormDefinition)
+        .catch(err => console.error('加载 FormDefinition 失败:', err));
+    } else if (activeTab === 'dataflows' && !DataFlowDefinition) {
+      loadComponentScript('./src/components/DataFlowDefinition.jsx', 'DataFlowDefinition')
+        .then(setDataFlowDefinition)
+        .catch(err => console.error('加载 DataFlowDefinition 失败:', err));
+    } else if (activeTab === 'pages' && !PageDefinition) {
+      loadComponentScript('./src/components/PageDefinition.jsx', 'PageDefinition')
+        .then(setPageDefinition)
+        .catch(err => console.error('加载 PageDefinition 失败:', err));
+    }
+  }, [activeTab, FormDefinition, DataFlowDefinition, PageDefinition]);
 
   const loadData = async () => {
     try {
@@ -153,15 +176,36 @@ function DataLayerBuilder({ projectId, roleId, onBack }) {
       {/* 主内容区 */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {activeTab === 'fields' && <FieldDefinition projectId={projectId} />}
-        {activeTab === 'forms' && <FormDefinition projectId={projectId} />}
-        {activeTab === 'dataflows' && <DataFlowDefinition projectId={projectId} onDesignFlow={handleDesignFlow} />}
+        {activeTab === 'forms' && (
+          FormDefinition ? <FormDefinition projectId={projectId} /> : (
+            <div className="text-center py-12">
+              <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mb-4"></div>
+              <p className="text-gray-600">正在加载表单定义组件...</p>
+            </div>
+          )
+        )}
+        {activeTab === 'dataflows' && (
+          DataFlowDefinition ? <DataFlowDefinition projectId={projectId} onDesignFlow={handleDesignFlow} /> : (
+            <div className="text-center py-12">
+              <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mb-4"></div>
+              <p className="text-gray-600">正在加载数据流程组件...</p>
+            </div>
+          )
+        )}
         {activeTab === 'statistics' && (
           <div className="text-center py-12">
             <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mb-4"></div>
             <p className="text-gray-600">正在跳转到统计分析页面...</p>
           </div>
         )}
-        {activeTab === "pages" && <PageDefinition key={roleId} projectId={projectId} roleId={roleId} />}
+        {activeTab === "pages" && (
+          PageDefinition ? <PageDefinition key={roleId} projectId={projectId} roleId={roleId} /> : (
+            <div className="text-center py-12">
+              <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mb-4"></div>
+              <p className="text-gray-600">正在加载页面定义组件...</p>
+            </div>
+          )
+        )}
       </div>
     </div>
   );
