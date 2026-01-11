@@ -1,10 +1,19 @@
+// 确保命名空间存在（在函数定义之前）
+window.DNDComponents = window.DNDComponents || {};
+
 // 数据层构建组件
+console.log('[DataLayerBuilder] ====== 函数定义开始 ======');
 function DataLayerBuilder(props) {
   // 添加详细日志，确认收到的 props
+  console.log('[DataLayerBuilder] ====== 组件被调用 ======');
+  console.log('[DataLayerBuilder] 组件函数引用:', DataLayerBuilder);
+  console.log('[DataLayerBuilder] 组件函数名称:', DataLayerBuilder.name);
+  console.log('[DataLayerBuilder] 组件函数长度（参数个数）:', DataLayerBuilder.length);
   console.log('[DataLayerBuilder] 组件被调用，接收到的原始 props:', props);
   console.log('[DataLayerBuilder] props 类型:', typeof props);
   console.log('[DataLayerBuilder] props 是否为 null:', props === null);
   console.log('[DataLayerBuilder] props 是否为 undefined:', props === undefined);
+  console.log('[DataLayerBuilder] 函数内部 this:', this);
 
   // 参数默认值处理（如果 props 为 null 则使用空对象）
   const { projectId, roleId, onBack } = props || {};
@@ -289,6 +298,8 @@ function DataLayerBuilder(props) {
   );
 }
 
-// 确保命名空间存在
-window.DNDComponents = window.DNDComponents || {};
+// 将组件赋值到命名空间（必须在函数定义之后）
 window.DNDComponents.DataLayerBuilder = DataLayerBuilder;
+console.log('[DataLayerBuilder] ====== 组件已注册到命名空间 ======');
+console.log('[DataLayerBuilder] 命名空间中的组件:', window.DNDComponents.DataLayerBuilder);
+console.log('[DataLayerBuilder] 组件类型:', typeof window.DNDComponents.DataLayerBuilder);

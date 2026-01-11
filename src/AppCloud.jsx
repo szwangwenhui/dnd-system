@@ -65,12 +65,10 @@ async function loadComponentScript(src, componentGlobalName) {
       }).code;
       console.log('[LazyLoader] 编译后代码长度:', compiledCode.length, '字符');
 
-      // 打印编译后代码的前 1000 字符
-      console.log('[LazyLoader] 编译后代码前 1000 字符:', compiledCode.substring(0, 1000));
-
-      // 打印编译后代码的最后500个字符（调试用）
-      const tailCode = compiledCode.slice(-500);
-      console.log('[LazyLoader] 编译后代码末尾 (500字符):', tailCode);
+      // 打印完整的编译后代码（用于调试）
+      console.log('[LazyLoader] ========== 完整编译后代码开始 ==========');
+      console.log(compiledCode);
+      console.log('[LazyLoader] ========== 完整编译后代码结束 ==========');
 
       // 执行编译后的代码，并捕获函数定义
       console.log('[LazyLoader] 执行编译后的代码...');
@@ -211,12 +209,15 @@ function LazyComponentWrapper({ src, componentGlobalName, fallback, ...props }) 
   console.log('[LazyComponentWrapper] Component 类型:', typeof Component);
   console.log('[LazyComponentWrapper] Component.prototype:', Component.prototype);
   console.log('[LazyComponentWrapper] Component.name:', Component.name);
+  console.log('[LazyComponentWrapper] Component === window.DNDComponents.DataLayerBuilder:', Component === window.DNDComponents?.DataLayerBuilder);
+  console.log('[LazyComponentWrapper] window.DNDComponents.DataLayerBuilder:', window.DNDComponents?.DataLayerBuilder);
 
   // 即将展开并传递 props
   console.log('[LazyComponentWrapper] ===== 即将调用 <Component {...props} /> =====');
+  console.log('[LazyComponentWrapper] 准备调用组件，参数:', { Component: Component.name, props: JSON.stringify(props) });
   const result = <Component {...props} />;
   console.log('[LazyComponentWrapper] ===== JSX 创建完成 =====');
-  
+
   return result;
 }
 
