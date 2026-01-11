@@ -64,6 +64,8 @@ function useLazyComponent(src, componentGlobalName) {
   }, [src, componentGlobalName]);
 
   console.log('[useLazyComponent] 返回:', { Component: !!Component, loading, error });
+  console.log('[useLazyComponent] Component 实际值:', Component);
+  console.log('[useLazyComponent] Component === window.DNDComponents.DataLayerBuilder:', Component === window.DNDComponents?.DataLayerBuilder);
   return { Component, loading, error };
 }
 
@@ -75,8 +77,14 @@ function LazyComponentWrapper({ src, componentGlobalName, fallback, ...props }) 
   console.log('[LazyComponentWrapper] fallback:', fallback);
   console.log('[LazyComponentWrapper] props (rest参数):', props);
   console.log('[LazyComponentWrapper] props 类型:', typeof props);
-  
+  console.log('[LazyComponentWrapper] ===== 即将调用 useLazyComponent =====');
+
   const { Component, loading, error } = useLazyComponent(src, componentGlobalName);
+
+  console.log('[LazyComponentWrapper] ===== useLazyComponent 返回完成 =====');
+  console.log('[LazyComponentWrapper] Component:', Component);
+  console.log('[LazyComponentWrapper] loading:', loading);
+  console.log('[LazyComponentWrapper] error:', error);
 
   console.log('[LazyComponentWrapper] 开始渲染, 收到的参数:', { src, componentGlobalName, fallback, props });
   console.log('[LazyComponentWrapper] useLazyComponent 返回:', { Component: !!Component, loading, error });
@@ -129,13 +137,22 @@ function LazyComponentWrapper({ src, componentGlobalName, fallback, ...props }) 
 
   if (typeof window.LazyLoadedComponentWrapper !== 'function') {
     console.error('[LazyComponentWrapper] window.LazyLoadedComponentWrapper 未定义！');
-    return <div style={{ color: 'red' }}>错误：LazyLoadedComponentWrapper 未定义</div>;
+    return React.createElement('div', { style: { color: 'red' } }, '错误：LazyLoadedComponentWrapper 未定义');
   }
 
   // 使用包装组件渲染（包装组件不在 Babel 编译范围内）
   console.log('[LazyComponentWrapper] 调用包装组件');
-  const result = <window.LazyLoadedComponentWrapper componentGlobalName={componentGlobalName} {...props} />;
+  console.log('[LazyComponentWrapper] window.LazyLoadedComponentWrapper:', window.LazyLoadedComponentWrapper);
+  const result = React.createElement(
+    window.LazyLoadedComponentWrapper,
+    {
+      componentGlobalName: componentGlobalName,
+      ...props
+    }
+  );
   console.log('[LazyComponentWrapper] ===== 组件渲染完成 =====');
+  console.log('[LazyComponentWrapper] result:', result);
+  console.log('[LazyComponentWrapper] result 类型:', typeof result);
 
   return result;
 }

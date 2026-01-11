@@ -119,6 +119,7 @@ window.renderLazyComponent = function(Component, props) {
 // 包装组件：用于渲染懒加载的组件
 window.LazyLoadedComponentWrapper = function({ componentGlobalName, ...props }) {
   console.log('[LazyLoadedComponentWrapper] ===== 函数开始执行 =====');
+  console.log('[LazyLoadedComponentWrapper] 函数被调用！');
   console.log('[LazyLoadedComponentWrapper] componentGlobalName:', componentGlobalName);
   console.log('[LazyLoadedComponentWrapper] props:', props);
   console.log('[LazyLoadedComponentWrapper] props 类型:', typeof props);
