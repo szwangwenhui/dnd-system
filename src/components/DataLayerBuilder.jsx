@@ -3,8 +3,18 @@
 window.DNDComponents = window.DNDComponents || {};
 
 function DataLayerBuilder(props) {
+  // 添加详细日志，确认收到的 props
+  console.log('[DataLayerBuilder] 组件被调用，接收到的原始 props:', props);
+  console.log('[DataLayerBuilder] props 类型:', typeof props);
+  console.log('[DataLayerBuilder] props 是否为 null:', props === null);
+  console.log('[DataLayerBuilder] props 是否为 undefined:', props === undefined);
+  
   // 参数默认值处理（如果 props 为 null 则使用空对象）
   const { projectId, roleId, onBack } = props || {};
+  
+  console.log('[DataLayerBuilder] 解构后的参数:', { projectId, roleId, onBack });
+  console.log('[DataLayerBuilder] projectId:', projectId, '类型:', typeof projectId);
+  console.log('[DataLayerBuilder] roleId:', roleId, '类型:', typeof roleId);
 
   const [project, setProject] = React.useState(null);
   const [role, setRole] = React.useState(null);
@@ -68,6 +78,18 @@ function DataLayerBuilder(props) {
   }, [activeTab]);
 
   const loadData = async () => {
+    // 添加参数检查
+    if (!projectId) {
+      console.error('[DataLayerBuilder] projectId 为空:', { projectId, roleId, props });
+      setError('projectId 参数缺失');
+      return;
+    }
+    if (!roleId) {
+      console.error('[DataLayerBuilder] roleId 为空:', { projectId, roleId, props });
+      setError('roleId 参数缺失');
+      return;
+    }
+
     try {
       const proj = await window.dndDB.getProjectById(projectId);
       if (!proj) {
