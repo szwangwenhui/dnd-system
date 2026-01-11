@@ -167,6 +167,13 @@ function useLazyComponent(src, componentGlobalName) {
 
 // 懒加载包装组件
 function LazyComponentWrapper({ src, componentGlobalName, fallback, ...props }) {
+  console.log('[LazyComponentWrapper] === 函数开始执行 ===');
+  console.log('[LazyComponentWrapper] src:', src);
+  console.log('[LazyComponentWrapper] componentGlobalName:', componentGlobalName);
+  console.log('[LazyComponentWrapper] fallback:', fallback);
+  console.log('[LazyComponentWrapper] props (rest参数):', props);
+  console.log('[LazyComponentWrapper] props 类型:', typeof props);
+  
   const { Component, loading, error } = useLazyComponent(src, componentGlobalName);
 
   console.log('[LazyComponentWrapper] 开始渲染, 收到的参数:', { src, componentGlobalName, fallback, props });
