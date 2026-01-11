@@ -163,6 +163,15 @@ function useLazyComponent(src, componentGlobalName) {
 function LazyComponentWrapper({ src, componentGlobalName, fallback, ...props }) {
   const { Component, loading, error } = useLazyComponent(src, componentGlobalName);
 
+  console.log('[LazyComponentWrapper] 渲染:', {
+    src,
+    componentGlobalName,
+    Component: !!Component,
+    loading,
+    error: error?.message,
+    props
+  });
+
   if (error) {
     return <div style={{ padding: '20px', color: 'red' }}>组件加载失败: {error.message}</div>;
   }
@@ -181,6 +190,7 @@ function LazyComponentWrapper({ src, componentGlobalName, fallback, ...props }) 
     );
   }
 
+  console.log('[LazyComponentWrapper] 准备渲染组件, props:', props);
   return <Component {...props} />;
 }
 
