@@ -35,6 +35,8 @@ function DataLayerBuilder({ projectId, roleId, onBack }) {
         .then(component => {
           console.log('[DataLayerBuilder] FormDefinition 加载成功, 组件类型:', typeof component);
           console.log('[DataLayerBuilder] FormDefinition 是否为函数:', typeof component === 'function');
+          console.log('[DataLayerBuilder] FormDefinition 本身:', component);
+          console.log('[DataLayerBuilder] window.DNDComponents.FormDefinition:', window.DNDComponents.FormDefinition);
           setFormDefinition(component);
         })
         .catch(err => {
@@ -60,7 +62,7 @@ function DataLayerBuilder({ projectId, roleId, onBack }) {
           setError('加载页面定义组件失败: ' + err.message);
         });
     }
-  }, [activeTab, FormDefinition, DataFlowDefinition, PageDefinition]);
+  }, [activeTab]);
 
   const loadData = async () => {
     try {

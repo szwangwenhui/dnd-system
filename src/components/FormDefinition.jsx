@@ -1,11 +1,10 @@
 ﻿// 表单定义组件（新版 - 支持表单分类）
+// 版本：v3 (修复 props 传递问题)
 // 确保命名空间存在
 window.DNDComponents = window.DNDComponents || {};
 
 function FormDefinition(props) {
   const { projectId } = props || {};
-  console.log("[FormDefinition] 组件被调用, props:", props);
-
   const [forms, setForms] = React.useState([]);
   const [fields, setFields] = React.useState([]);
   const [showTypeModal, setShowTypeModal] = React.useState(false);
@@ -15,6 +14,7 @@ function FormDefinition(props) {
   const [showFormBuilder, setShowFormBuilder] = React.useState(false);
   const [showBaseFormModal, setShowBaseFormModal] = React.useState(false);
   // 全局加载状态
+  const [globalLoading, setGlobalLoading] = React.useState(false);
   const [globalLoadingText, setGlobalLoadingText] = React.useState(''); // 全局加载文本
 
   // 数据录入相关状态
@@ -42,6 +42,15 @@ function FormDefinition(props) {
     SubTableManager: false,
     RebuildTableManager: false
   });
+
+  // 调试日志 - 必须在所有 Hooks 之后
+  console.log("[FormDefinition] 组件被调用, props:", props);
+  console.log("[FormDefinition] projectId:", projectId);
+
+  // 如果没有 projectId，显示错误但不中断组件渲染
+  if (!projectId) {
+    console.error("[FormDefinition] 错误：projectId 为空");
+  }
 
   // 加载表单列表和字段列表
   React.useEffect(() => {
