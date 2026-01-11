@@ -1,4 +1,7 @@
 // 项目管理组件
+// 确保命名空间存在
+window.DNDComponents = window.DNDComponents || {};
+
 function ProjectManagement({ onSelectProject, onTestExpr }) {  
   const [projects, setProjects] = React.useState([]);
   const [showModal, setShowModal] = React.useState(false);

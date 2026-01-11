@@ -1,4 +1,6 @@
 ﻿// 表单定义组件（新版 - 支持表单分类）
+// 确保命名空间存在
+window.DNDComponents = window.DNDComponents || {};
 
 function FormDefinition(props) {
   const { projectId } = props || {};

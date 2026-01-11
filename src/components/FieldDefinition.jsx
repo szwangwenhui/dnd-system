@@ -1,4 +1,7 @@
 // 字段定义组件
+// 确保命名空间存在
+window.DNDComponents = window.DNDComponents || {};
+
 function FieldDefinition({ projectId }) {
   const [fields, setFields] = React.useState([]);
   const [forms, setForms] = React.useState([]);

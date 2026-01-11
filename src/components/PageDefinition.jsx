@@ -1,4 +1,7 @@
 // 页面定义组件（简化版 - 第一阶段）
+// 确保命名空间存在
+window.DNDComponents = window.DNDComponents || {};
+
 function PageDefinition({ projectId, roleId }) {
   const [pages, setPages] = React.useState([]);
   const [showModal, setShowModal] = React.useState(false);

@@ -1,4 +1,7 @@
 // 数据层构建组件
+// 确保命名空间存在
+window.DNDComponents = window.DNDComponents || {};
+
 function DataLayerBuilder({ projectId, roleId, onBack }) {
   const [project, setProject] = React.useState(null);
   const [role, setRole] = React.useState(null);

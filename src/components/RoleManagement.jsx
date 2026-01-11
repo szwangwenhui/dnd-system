@@ -1,4 +1,7 @@
 // 角色管理组件
+// 确保命名空间存在
+window.DNDComponents = window.DNDComponents || {};
+
 function RoleManagement({ projectId, onBack, onDataLayerClick, onPageDesignClick }) {
   const [project, setProject] = React.useState(null);
   const [roles, setRoles] = React.useState([]);

@@ -1,4 +1,7 @@
 // 数据流程定义组件
+// 确保命名空间存在
+window.DNDComponents = window.DNDComponents || {};
+
 function DataFlowDefinition({ projectId, onDesignFlow }) {
   const [dataFlows, setDataFlows] = React.useState([]);
   const [showModal, setShowModal] = React.useState(false);

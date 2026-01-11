@@ -37,7 +37,9 @@ async function loadComponentScript(src, componentGlobalName) {
   }
 
   // 添加时间戳以破坏缓存（仅在开发环境）
-  const cacheBuster = process?.env?.NODE_ENV === 'development' ? `?t=${Date.now()}` : '';
+  // 浏览器环境没有 process 对象，使用 window 对象判断
+  const isDevelopment = typeof window !== 'undefined' && window.location?.hostname === 'localhost';
+  const cacheBuster = isDevelopment ? `?t=${Date.now()}` : '';
   fullSrc += cacheBuster;
 
   console.log('[LazyLoader] 转换后路径:', fullSrc);
