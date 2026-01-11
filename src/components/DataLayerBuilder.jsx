@@ -3,7 +3,7 @@
 window.DNDComponents = window.DNDComponents || {};
 
 function DataLayerBuilder(props) {
-  // 提取参数（在所有 Hooks 之前，但解构本身不是 Hook）
+  // 参数默认值处理（如果 props 为 null 则使用空对象）
   const { projectId, roleId, onBack } = props || {};
 
   const [project, setProject] = React.useState(null);
