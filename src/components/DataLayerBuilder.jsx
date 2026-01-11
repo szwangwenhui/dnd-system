@@ -2,7 +2,16 @@
 // 确保命名空间存在
 window.DNDComponents = window.DNDComponents || {};
 
-function DataLayerBuilder({ projectId, roleId, onBack }) {
+function DataLayerBuilder(props) {
+  // 如果 props 为 null，先返回一个错误提示（在所有 Hooks 之前是允许的）
+  if (!props) {
+    console.error('[DataLayerBuilder] props 为 null!');
+    return React.createElement('div', { className: 'p-8 text-center text-red-600' }, '错误：组件参数异常');
+  }
+
+  // 提取参数
+  const { projectId, roleId, onBack } = props;
+
   const [project, setProject] = React.useState(null);
   const [role, setRole] = React.useState(null);
   const [activeTab, setActiveTab] = React.useState('fields'); // fields, forms, dataflows, pages
