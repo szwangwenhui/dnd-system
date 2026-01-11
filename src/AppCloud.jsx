@@ -11,48 +11,53 @@ window.DNDComponents = window.DNDComponents || {};
 
 // 懒加载组件的 Hook
 function useLazyComponent(src, componentGlobalName) {
+  console.log('[useLazyComponent] 被调用:', { src, componentGlobalName });
+
   const [Component, setComponent] = React.useState(null);
   const [loading, setLoading] = React.useState(false);
   const [error, setError] = React.useState(null);
 
   React.useEffect(() => {
-    console.log('[LazyLoader] 开始懒加载:', { src, componentGlobalName });
+    console.log('[useLazyComponent] useEffect 执行:', { src, componentGlobalName });
 
-    // 如果已经加载过，直接返回
+    // 检查组件是否已在命名空间中
     if (window.DNDComponents[componentGlobalName]) {
-      console.log('[LazyLoader] 组件已存在:', componentGlobalName);
+      console.log('[useLazyComponent] 组件已存在:', componentGlobalName);
       setComponent(window.DNDComponents[componentGlobalName]);
       return;
     }
 
-    // 检查缓存
-    if (lazyComponentsCache[src]) {
-      console.log('[LazyLoader] 组件已缓存:', src);
-      const component = window.DNDComponents[componentGlobalName];
-      if (component) {
-        setComponent(component);
-        return;
-      }
-    }
-
     // 开始加载
-    console.log('[LazyLoader] 开始加载脚本...');
+    console.log('[useLazyComponent] 开始加载脚本...');
     setLoading(true);
     setError(null);
 
-    loadComponentScript(src, componentGlobalName)
+    console.log('[useLazyComponent] window.loadComponentScript 存在?', typeof window.loadComponentScript);
+    if (typeof window.loadComponentScript !== 'function') {
+      console.error('[useLazyComponent] window.loadComponentScript 未定义！');
+      setError(new Error('window.loadComponentScript 未定义'));
+      setLoading(false);
+      return;
+    }
+
+    window.loadComponentScript(src, componentGlobalName)
       .then((component) => {
-        console.log('[LazyLoader] 脚本加载成功:', componentGlobalName, '组件:', typeof component);
+        console.log('[useLazyComponent] 脚本加载成功:', componentGlobalName, '组件:', typeof component);
+        console.log('[useLazyComponent] 组件对象:', component);
+        console.log('[useLazyComponent] window.DNDComponents:', window.DNDComponents);
+        console.log('[useLazyComponent] window.DNDComponents[componentGlobalName]:', window.DNDComponents[componentGlobalName]);
         setComponent(component);
         setLoading(false);
       })
       .catch((err) => {
-        console.error('[LazyLoader] 脚本加载失败:', err);
+        console.error('[useLazyComponent] 脚本加载失败:', err);
+        console.error('[useLazyComponent] 错误堆栈:', err?.stack);
         setError(err);
         setLoading(false);
       });
   }, [src, componentGlobalName]);
 
+  console.log('[useLazyComponent] 返回:', { Component: !!Component, loading, error });
   return { Component, loading, error };
 }
 
