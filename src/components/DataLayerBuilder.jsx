@@ -227,14 +227,18 @@ function DataLayerBuilder({ projectId, roleId, onBack }) {
           </div>
         )}
         {activeTab === 'fields' && <FieldDefinition projectId={projectId} />}
-        {activeTab === 'forms' && FormDefinition && React.createElement(FormDefinition, { projectId })}
+        {activeTab === 'forms' && FormDefinition && (
+          <FormDefinition key="form-def" projectId={projectId} />
+        )}
         {activeTab === 'forms' && !FormDefinition && (
           <div className="text-center py-12">
             <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mb-4"></div>
             <p className="text-gray-600">正在加载表单定义组件...</p>
           </div>
         )}
-        {activeTab === 'dataflows' && DataFlowDefinition && React.createElement(DataFlowDefinition, { projectId, onDesignFlow: handleDesignFlow })}
+        {activeTab === 'dataflows' && DataFlowDefinition && (
+          <DataFlowDefinition key="flow-def" projectId={projectId} onDesignFlow={handleDesignFlow} />
+        )}
         {activeTab === 'dataflows' && !DataFlowDefinition && (
           <div className="text-center py-12">
             <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mb-4"></div>
@@ -247,7 +251,9 @@ function DataLayerBuilder({ projectId, roleId, onBack }) {
             <p className="text-gray-600">正在跳转到统计分析页面...</p>
           </div>
         )}
-        {activeTab === "pages" && PageDefinition && React.createElement(PageDefinition, { key: roleId, projectId, roleId })}
+        {activeTab === "pages" && PageDefinition && (
+          <PageDefinition key={`page-def-${roleId}`} projectId={projectId} roleId={roleId} />
+        )}
         {activeTab === "pages" && !PageDefinition && (
           <div className="text-center py-12">
             <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mb-4"></div>

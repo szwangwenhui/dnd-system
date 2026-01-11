@@ -124,14 +124,14 @@ function useLazyComponent(src, componentGlobalName) {
     // 如果已经加载过，直接返回
     if (window.DNDComponents[componentGlobalName]) {
       console.log('[LazyLoader] 组件已存在:', componentGlobalName);
-      setComponent(() => window.DNDComponents[componentGlobalName]);
+      setComponent(window.DNDComponents[componentGlobalName]);
       return;
     }
 
     // 检查缓存
     if (lazyComponentsCache[src]) {
       console.log('[LazyLoader] 组件已缓存:', src);
-      setComponent(() => window.DNDComponents[componentGlobalName]);
+      setComponent(window.DNDComponents[componentGlobalName]);
       return;
     }
 
@@ -141,9 +141,9 @@ function useLazyComponent(src, componentGlobalName) {
     setError(null);
 
     loadComponentScript(src, componentGlobalName)
-      .then(() => {
-        console.log('[LazyLoader] 脚本加载成功:', componentGlobalName);
-        setComponent(() => window.DNDComponents[componentGlobalName]);
+      .then((component) => {
+        console.log('[LazyLoader] 脚本加载成功:', componentGlobalName, '组件:', typeof component);
+        setComponent(component);
         setLoading(false);
       })
       .catch((err) => {
