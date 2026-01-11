@@ -109,25 +109,22 @@ function LazyComponentWrapper({ src, componentGlobalName, fallback, ...props }) 
   console.log('[LazyComponentWrapper] window.DNDComponents.DataLayerBuilder:', window.DNDComponents?.DataLayerBuilder);
 
   // 即将展开并传递 props
-  console.log('[LazyComponentWrapper] ===== 即将调用 <Component {...props} /> =====');
-  console.log('[LazyComponentWrapper] 准备调用组件，参数:', { Component: Component.name, props: JSON.stringify(props) });
+  console.log('[LazyComponentWrapper] ===== 即将调用包装组件 =====');
+  console.log('[LazyComponentWrapper] componentGlobalName:', componentGlobalName);
+  console.log('[LazyComponentWrapper] props:', props);
 
-  // 关键：打印即将展开的 props 的详细信息
-  console.log('[LazyComponentWrapper] 即将展开的 props:', props);
-  console.log('[LazyComponentWrapper] props 是什么:', {
-    值: props,
-    类型: typeof props,
-    是否为null: props === null,
-    是否为undefined: props === undefined,
-    键名: props ? Object.keys(props) : '无'
-  });
+  // 检查包装组件是否可用
+  console.log('[LazyComponentWrapper] window.LazyLoadedComponentWrapper 存在:', typeof window.LazyLoadedComponentWrapper);
 
-  // 创建一个临时对象来确认 props 的值
-  const propsCopy = props ? { ...props } : null;
-  console.log('[LazyComponentWrapper] props 副本:', propsCopy);
+  if (typeof window.LazyLoadedComponentWrapper !== 'function') {
+    console.error('[LazyComponentWrapper] window.LazyLoadedComponentWrapper 未定义！');
+    return <div style={{ color: 'red' }}>错误：LazyLoadedComponentWrapper 未定义</div>;
+  }
 
-  const result = <Component {...propsCopy} />;
-  console.log('[LazyComponentWrapper] ===== JSX 创建完成 =====');
+  // 使用包装组件渲染（包装组件不在 Babel 编译范围内）
+  console.log('[LazyComponentWrapper] 调用包装组件');
+  const result = <window.LazyLoadedComponentWrapper componentGlobalName={componentGlobalName} {...props} />;
+  console.log('[LazyComponentWrapper] ===== 组件渲染完成 =====');
 
   return result;
 }

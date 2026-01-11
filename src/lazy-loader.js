@@ -100,3 +100,41 @@ async function loadComponentScript(src, componentGlobalName) {
 
 // 导出 loadComponentScript 到全局，供其他组件使用
 window.loadComponentScript = loadComponentScript;
+
+// 辅助函数：渲染懒加载的组件（不被 Babel 编译）
+window.renderLazyComponent = function(Component, props) {
+  console.log('[renderLazyComponent] 开始渲染组件');
+  console.log('[renderLazyComponent] Component:', Component);
+  console.log('[renderLazyComponent] Component 类型:', typeof Component);
+  console.log('[renderLazyComponent] props:', props);
+  console.log('[renderLazyComponent] props 类型:', typeof props);
+
+  // 使用 React.createElement 而不是 JSX，避免 Babel 编译问题
+  const result = React.createElement(Component, props);
+  console.log('[renderLazyComponent] 渲染完成');
+
+  return result;
+};
+
+// 包装组件：用于渲染懒加载的组件
+window.LazyLoadedComponentWrapper = function({ componentGlobalName, ...props }) {
+  console.log('[LazyLoadedComponentWrapper] 开始渲染');
+  console.log('[LazyLoadedComponentWrapper] componentGlobalName:', componentGlobalName);
+  console.log('[LazyLoadedComponentWrapper] props:', props);
+
+  // 从命名空间获取组件
+  const Component = window.DNDComponents[componentGlobalName];
+  console.log('[LazyLoadedComponentWrapper] Component:', Component);
+
+  if (!Component) {
+    console.error('[LazyLoadedComponentWrapper] 组件未找到:', componentGlobalName);
+    return React.createElement('div', { style: { color: 'red' } }, '组件未找到: ' + componentGlobalName);
+  }
+
+  // 渲染组件
+  console.log('[LazyLoadedComponentWrapper] 调用 React.createElement');
+  const result = React.createElement(Component, props);
+  console.log('[LazyLoadedComponentWrapper] 渲染完成');
+
+  return result;
+};
