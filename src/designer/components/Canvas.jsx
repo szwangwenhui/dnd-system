@@ -1088,10 +1088,21 @@ function DesignerCanvas({
       if (subType === 'cascader' || subType === 'attribute-container') {
         // 属性字段容器区块（下拉菜单、按钮式、勾选框）
         const fieldDisplayMode = block.fieldDisplayMode || 'dropdown';
+        console.log('[Canvas-DEBUG] 渲染属性字段容器区块:', {
+          blockId: block.id,
+          subType,
+          fieldDisplayMode,
+          hasAttributeFieldValues: !!block.attributeFieldValues,
+          attributeFieldValues: block.attributeFieldValues
+        });
 
         if (fieldDisplayMode === 'dropdown') {
           // 下拉菜单样式 - 为每个属性字段渲染独立的select（支持级联）
           const attributeFieldValues = block.attributeFieldValues || [];
+          console.log('[Canvas-DEBUG] 渲染下拉菜单，attributeFieldValues数量:', attributeFieldValues.length);
+          if (attributeFieldValues.length === 0) {
+            console.warn('[Canvas-DEBUG] attributeFieldValues为空，无法渲染下拉菜单');
+          }
           return (
             <div style={{
               ...contentStyle,
@@ -1101,7 +1112,9 @@ function DesignerCanvas({
               padding: style.padding || 4,
               fontSize: style.fontSize || 12,
             }}>
-              {attributeFieldValues.map((af) => (
+              {attributeFieldValues.map((af) => {
+                console.log('[Canvas-DEBUG] 渲染字段下拉框:', { fieldIdName: af.fieldIdName, fieldName: af.fieldName, valuesCount: af.values?.length });
+                return (
                 <div key={af.fieldIdName} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                   <label style={{ fontSize: '11px', color: '#6b7280', minWidth: '80px', whiteSpace: 'nowrap' }}>
                     {af.fieldName}
@@ -1125,7 +1138,7 @@ function DesignerCanvas({
                     ))}
                   </select>
                 </div>
-              ))}
+              )})}
             </div>
           );
         }

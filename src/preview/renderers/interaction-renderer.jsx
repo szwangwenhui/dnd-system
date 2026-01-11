@@ -691,6 +691,15 @@ window.createInteractionRenderer = (props) => {
       const fieldDisplayMode = block.fieldDisplayMode || 'dropdown';
       const fieldSelectionMode = block.fieldSelectionMode || 'single';
       const attributeFieldValues = block.attributeFieldValues || [];
+      console.log('[PreviewRenderer-DEBUG] 渲染属性字段容器区块:', {
+        blockId: block.id,
+        subType,
+        fieldDisplayMode,
+        fieldSelectionMode,
+        hasAttributeFieldValues: !!block.attributeFieldValues,
+        attributeFieldValues: block.attributeFieldValues,
+        currentFieldValues
+      });
 
       // 获取当前字段已选择的值
       const currentFieldValues = childBlockInputData?.[block.id] || [];

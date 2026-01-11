@@ -1325,12 +1325,16 @@ function PageDesigner({ projectId, roleId, page, onClose, onSave }) {
     const fieldDisplayMode = parentBlock.fieldDisplayMode || 'dropdown';
 
     if (attributeFields.length > 0) {
+      console.log('[PageDesigner-DEBUG] 开始处理属性字段，数量:', attributeFields.length);
       // 获取属性字段的所有取值（从属性表的实际数据中获取）
       const attributeFieldValues = [];
       attributeFields.forEach(({ fieldId, field, formField }) => {
+        console.log('[PageDesigner-DEBUG] 处理属性字段:', { fieldId, fieldIdName: field.id, fieldName: field.name, formField });
         // 找到属性表
         const attributeFormId = formField?.attributeFormId;
+        console.log('[PageDesigner-DEBUG] 属性表ID:', attributeFormId);
         const attributeForm = forms.find(f => f.id === attributeFormId);
+        console.log('[PageDesigner-DEBUG] 属性表:', attributeForm);
         if (!attributeForm || !attributeForm.data || attributeForm.data.length === 0) {
           console.warn('[PageDesigner] 属性表不存在或没有数据:', attributeFormId);
           return;
@@ -1340,6 +1344,7 @@ function PageDesigner({ projectId, roleId, page, onClose, onSave }) {
         const level = formField?.level || 1;
         const levelFields = attributeForm.structure?.levelFields || [];
         const currentLevelField = levelFields.find(lf => lf.level === level);
+        console.log('[PageDesigner-DEBUG] 字段级别配置:', { level, levelFields, currentLevelField });
         if (!currentLevelField) {
           console.warn('[PageDesigner] 未找到级别字段配置:', level);
           return;
@@ -1349,6 +1354,7 @@ function PageDesigner({ projectId, roleId, page, onClose, onSave }) {
         const fieldValues = [...new Set(
           attributeForm.data.map(d => d[currentLevelField.fieldId]).filter(v => v !== undefined && v !== '')
         )].sort();
+        console.log('[PageDesigner-DEBUG] 提取的属性值:', { fieldIdName: field.id, values: fieldValues, count: fieldValues.length });
 
         attributeFieldValues.push({
           fieldId,
@@ -1359,6 +1365,7 @@ function PageDesigner({ projectId, roleId, page, onClose, onSave }) {
           values: fieldValues
         });
       });
+      console.log('[PageDesigner-DEBUG] 最终attributeFieldValues:', attributeFieldValues);
 
       // 提示区块
       const cascaderPromptBlock = {
