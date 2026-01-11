@@ -384,4 +384,4 @@ function DataFlowDefinition({ projectId, onDesignFlow }) {
   );
 }
 
-window.DataFlowDefinition = DataFlowDefinition;
+window.DNDComponents.DataFlowDefinition = DataFlowDefinition;

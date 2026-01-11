@@ -9,15 +9,18 @@
 const lazyComponentsCache = {};
 const loadingScripts = {};
 
+// 创建命名空间
+window.DNDComponents = window.DNDComponents || {};
+
 // 动态加载组件脚本
 async function loadComponentScript(src, componentGlobalName) {
   console.log('[LazyLoader] loadComponentScript 调用:', { src, componentGlobalName });
   console.log('[LazyLoader] 当前页面 URL:', window.location.href);
 
   // 如果已经加载过，直接返回
-  if (window[componentGlobalName]) {
+  if (window.DNDComponents[componentGlobalName]) {
     console.log('[LazyLoader] 组件已加载:', componentGlobalName);
-    return window[componentGlobalName];
+    return window.DNDComponents[componentGlobalName];
   }
 
   // 如果已经在加载中，返回同一个 Promise
@@ -32,6 +35,10 @@ async function loadComponentScript(src, componentGlobalName) {
     const relativePath = src.substring(2); // 移除 './'
     fullSrc = window.location.origin + '/' + relativePath;
   }
+
+  // 添加时间戳以破坏缓存（仅在开发环境）
+  const cacheBuster = process?.env?.NODE_ENV === 'development' ? `?t=${Date.now()}` : '';
+  fullSrc += cacheBuster;
 
   console.log('[LazyLoader] 转换后路径:', fullSrc);
 
@@ -69,10 +76,10 @@ async function loadComponentScript(src, componentGlobalName) {
         const compiledFunction = new Function(compiledCode);
         compiledFunction();
 
-        // 从 window 对象中获取组件
-        component = window[componentGlobalName];
+        // 从命名空间中获取组件
+        component = window.DNDComponents[componentGlobalName];
         console.log('[LazyLoader] 代码执行完成');
-        console.log('[LazyLoader] 从 window 获取组件:', componentGlobalName, '是否存在:', !!component);
+        console.log('[LazyLoader] 从命名空间获取组件:', componentGlobalName, '是否存在:', !!component);
         console.log('[LazyLoader] 组件类型:', typeof component);
       } catch (execError) {
         console.error('[LazyLoader] 代码执行错误:', execError);
@@ -100,6 +107,9 @@ async function loadComponentScript(src, componentGlobalName) {
   return loadPromise;
 }
 
+// 导出 loadComponentScript 到全局，供其他组件使用
+window.loadComponentScript = loadComponentScript;
+
 // 懒加载组件的 Hook
 function useLazyComponent(src, componentGlobalName) {
   const [Component, setComponent] = React.useState(null);
@@ -110,16 +120,16 @@ function useLazyComponent(src, componentGlobalName) {
     console.log('[LazyLoader] 开始懒加载:', { src, componentGlobalName });
 
     // 如果已经加载过，直接返回
-    if (window[componentGlobalName]) {
+    if (window.DNDComponents[componentGlobalName]) {
       console.log('[LazyLoader] 组件已存在:', componentGlobalName);
-      setComponent(() => window[componentGlobalName]);
+      setComponent(() => window.DNDComponents[componentGlobalName]);
       return;
     }
 
     // 检查缓存
     if (lazyComponentsCache[src]) {
       console.log('[LazyLoader] 组件已缓存:', src);
-      setComponent(() => window[componentGlobalName]);
+      setComponent(() => window.DNDComponents[componentGlobalName]);
       return;
     }
 
@@ -131,7 +141,7 @@ function useLazyComponent(src, componentGlobalName) {
     loadComponentScript(src, componentGlobalName)
       .then(() => {
         console.log('[LazyLoader] 脚本加载成功:', componentGlobalName);
-        setComponent(() => window[componentGlobalName]);
+        setComponent(() => window.DNDComponents[componentGlobalName]);
         setLoading(false);
       })
       .catch((err) => {

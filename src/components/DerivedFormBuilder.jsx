@@ -862,4 +862,4 @@ function DerivedFormBuilder({ projectId, onClose, onSuccess }) {
   );
 }
 
-window.DerivedFormBuilder = DerivedFormBuilder;
+window.DNDComponents.DerivedFormBuilder = DerivedFormBuilder;

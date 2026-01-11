@@ -540,4 +540,4 @@ function SubTableManager({ projectId, form, fields, forms, onClose, onSuccess })
   );
 }
 
-window.SubTableManager = SubTableManager;
+window.DNDComponents.SubTableManager = SubTableManager;

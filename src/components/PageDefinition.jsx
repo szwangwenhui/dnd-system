@@ -868,4 +868,4 @@ function PageDefinition({ projectId, roleId }) {
   );
 }
 
-window.PageDefinition = PageDefinition;
+window.DNDComponents.PageDefinition = PageDefinition;

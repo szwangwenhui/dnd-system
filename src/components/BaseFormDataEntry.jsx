@@ -1300,4 +1300,4 @@ function BaseFormDataEntry({ projectId, form, fields, forms, onClose, onSuccess 
   );
 }
 
-window.BaseFormDataEntry = BaseFormDataEntry;
+window.DNDComponents.BaseFormDataEntry = BaseFormDataEntry;

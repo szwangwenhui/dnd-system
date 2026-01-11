@@ -626,4 +626,4 @@ function AttributeFormDataEntry({ projectId, form, fields, onClose, onSuccess })
   );
 }
 
-window.AttributeFormDataEntry = AttributeFormDataEntry;
+window.DNDComponents.AttributeFormDataEntry = AttributeFormDataEntry;

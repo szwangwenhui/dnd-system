@@ -696,4 +696,4 @@ function FieldDefinition({ projectId }) {
   );
 }
 
-window.FieldDefinition = FieldDefinition;
+window.DNDComponents.FieldDefinition = FieldDefinition;

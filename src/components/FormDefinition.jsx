@@ -27,9 +27,25 @@ function FormDefinition(props) {
   const [showSubTableManager, setShowSubTableManager] = React.useState(false);
   const [showRebuildTableManager, setShowRebuildTableManager] = React.useState(false);
 
+  // 子组件加载状态
+  const [subComponents, setSubComponents] = React.useState({
+    AttributeFormBuilder: false,
+    IndependentBaseForm: false,
+    RelatedBaseForm: false,
+    DerivedFormBuilder: false,
+    MergedFormBuilder: false,
+    AttributeFormDataEntry: false,
+    BaseFormDataEntry: false,
+    FormViewer: false,
+    SubTableManager: false,
+    RebuildTableManager: false
+  });
+
   // 加载表单列表和字段列表
   React.useEffect(() => {
     loadFormsAndFields();
+    // 预加载子组件
+    preloadSubComponents();
   }, [projectId]);
 
   const loadFormsAndFields = async () => {
@@ -51,6 +67,34 @@ function FormDefinition(props) {
     } catch (error) {
       console.error('loadFormsAndFields 失败:', error);
       alert('加载数据失败: ' + error);
+    }
+  };
+
+  // 预加载子组件
+  const preloadSubComponents = async () => {
+    const componentMap = {
+      AttributeFormBuilder: './src/components/AttributeFormBuilder.jsx',
+      IndependentBaseForm: './src/components/IndependentBaseForm.jsx',
+      RelatedBaseForm: './src/components/RelatedBaseForm.jsx',
+      DerivedFormBuilder: './src/components/DerivedFormBuilder.jsx',
+      MergedFormBuilder: './src/components/MergedFormBuilder.jsx',
+      AttributeFormDataEntry: './src/components/AttributeFormDataEntry.jsx',
+      BaseFormDataEntry: './src/components/BaseFormDataEntry.jsx',
+      FormViewer: './src/components/FormViewer.jsx',
+      SubTableManager: './src/components/SubTableManager.jsx',
+      RebuildTableManager: './src/components/RebuildTableManager.jsx'
+    };
+
+    for (const [componentName, src] of Object.entries(componentMap)) {
+      if (!window.DNDComponents[componentName]) {
+        try {
+          await window.loadComponentScript(src, componentName);
+          setSubComponents(prev => ({ ...prev, [componentName]: true }));
+          console.log(`[FormDefinition] 预加载子组件: ${componentName} 成功`);
+        } catch (err) {
+          console.error(`[FormDefinition] 预加载子组件失败: ${componentName}`, err);
+        }
+      }
     }
   };
 
@@ -437,7 +481,7 @@ function FormDefinition(props) {
       {showFormBuilder && (
         <div>
           {selectedType === '属性表' && (
-            window.AttributeFormBuilder ? (
+            window.DNDComponents.AttributeFormBuilder ? (
               <AttributeFormBuilder
                 projectId={projectId}
                 onClose={closeFormBuilder}
@@ -502,7 +546,7 @@ function FormDefinition(props) {
 
           {/* 独立基础表构建器 */}
           {showBaseFormModal === 'independent' && (
-            window.IndependentBaseForm ? (
+            window.DNDComponents.IndependentBaseForm ? (
               <IndependentBaseForm
                 projectId={projectId}
                 onClose={() => {
@@ -524,7 +568,7 @@ function FormDefinition(props) {
 
           {/* 关联基础表构建器 */}
           {showBaseFormModal === 'related' && (
-            window.RelatedBaseForm ? (
+            window.DNDComponents.RelatedBaseForm ? (
               <RelatedBaseForm
                 projectId={projectId}
                 onClose={() => {
@@ -545,7 +589,7 @@ function FormDefinition(props) {
           )}
 
           {selectedType === '对象表' && selectedSubType === '衍生表' && (
-            window.DerivedFormBuilder ? (
+            window.DNDComponents.DerivedFormBuilder ? (
               <DerivedFormBuilder
                 projectId={projectId}
                 onClose={closeFormBuilder}
@@ -559,7 +603,7 @@ function FormDefinition(props) {
           )}
 
           {selectedType === '对象表' && selectedSubType === '合表' && (
-            window.MergedFormBuilder ? (
+            window.DNDComponents.MergedFormBuilder ? (
               <MergedFormBuilder
                 projectId={projectId}
                 onClose={closeFormBuilder}
@@ -577,7 +621,7 @@ function FormDefinition(props) {
       {/* 数据录入模态框 - 根据表单类型显示不同组件 */}
       {showDataEntryModal && dataEntryForm && (
         isAttributeForm(dataEntryForm) ? (
-          window.AttributeFormDataEntry ? (
+          window.DNDComponents.AttributeFormDataEntry ? (
             <AttributeFormDataEntry
               projectId={projectId}
               form={dataEntryForm}
@@ -591,7 +635,7 @@ function FormDefinition(props) {
             </div>
           )
         ) : (
-          window.BaseFormDataEntry ? (
+          window.DNDComponents.BaseFormDataEntry ? (
             <BaseFormDataEntry
               projectId={projectId}
               form={dataEntryForm}
@@ -610,7 +654,7 @@ function FormDefinition(props) {
 
       {/* 查看表单模态框 */}
       {showViewerModal && viewerForm && (
-        window.FormViewer ? (
+        window.DNDComponents.FormViewer ? (
           <FormViewer
             projectId={projectId}
             form={viewerForm}
@@ -627,7 +671,7 @@ function FormDefinition(props) {
 
       {/* 子表管理器（入口1：从定义表单进入） */}
       {showSubTableManager && (
-        window.SubTableManager ? (
+        window.DNDComponents.SubTableManager ? (
           <SubTableManager
             projectId={projectId}
             form={null} // 入口1不需要指定表单
@@ -645,7 +689,7 @@ function FormDefinition(props) {
 
       {/* 再造表管理器（入口1：从定义表单进入） */}
       {showRebuildTableManager && (
-        window.RebuildTableManager ? (
+        window.DNDComponents.RebuildTableManager ? (
           <RebuildTableManager
             projectId={projectId}
             form={null} // 入口1不需要指定表单
@@ -674,4 +718,4 @@ function FormDefinition(props) {
     </div>
   );
 }
-window.FormDefinition = FormDefinition;
+window.DNDComponents.FormDefinition = FormDefinition;

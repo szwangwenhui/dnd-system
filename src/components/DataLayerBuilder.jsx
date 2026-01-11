@@ -3,6 +3,7 @@ function DataLayerBuilder({ projectId, roleId, onBack }) {
   const [project, setProject] = React.useState(null);
   const [role, setRole] = React.useState(null);
   const [activeTab, setActiveTab] = React.useState('fields'); // fields, forms, dataflows, pages
+  const [error, setError] = React.useState(null); // 错误状态
 
   // 懒加载依赖组件
   const [FormDefinition, setFormDefinition] = React.useState(null);
@@ -26,7 +27,8 @@ function DataLayerBuilder({ projectId, roleId, onBack }) {
     // 根据当前 tab 加载对应组件
     if (activeTab === 'forms' && !FormDefinition) {
       console.log('[DataLayerBuilder] 开始加载 FormDefinition...');
-      loadComponentScript('./src/components/FormDefinition.jsx', 'FormDefinition')
+      setError(null);
+      window.loadComponentScript('./src/components/FormDefinition.jsx', 'FormDefinition')
         .then(component => {
           console.log('[DataLayerBuilder] FormDefinition 加载成功, 组件类型:', typeof component);
           console.log('[DataLayerBuilder] FormDefinition 是否为函数:', typeof component === 'function');
@@ -34,17 +36,26 @@ function DataLayerBuilder({ projectId, roleId, onBack }) {
         })
         .catch(err => {
           console.error('[DataLayerBuilder] 加载 FormDefinition 失败:', err);
+          setError('加载表单定义组件失败: ' + err.message);
         });
     } else if (activeTab === 'dataflows' && !DataFlowDefinition) {
       console.log('[DataLayerBuilder] 开始加载 DataFlowDefinition...');
-      loadComponentScript('./src/components/DataFlowDefinition.jsx', 'DataFlowDefinition')
+      setError(null);
+      window.loadComponentScript('./src/components/DataFlowDefinition.jsx', 'DataFlowDefinition')
         .then(setDataFlowDefinition)
-        .catch(err => console.error('[DataLayerBuilder] 加载 DataFlowDefinition 失败:', err));
+        .catch(err => {
+          console.error('[DataLayerBuilder] 加载 DataFlowDefinition 失败:', err);
+          setError('加载数据流程组件失败: ' + err.message);
+        });
     } else if (activeTab === 'pages' && !PageDefinition) {
       console.log('[DataLayerBuilder] 开始加载 PageDefinition...');
-      loadComponentScript('./src/components/PageDefinition.jsx', 'PageDefinition')
+      setError(null);
+      window.loadComponentScript('./src/components/PageDefinition.jsx', 'PageDefinition')
         .then(setPageDefinition)
-        .catch(err => console.error('[DataLayerBuilder] 加载 PageDefinition 失败:', err));
+        .catch(err => {
+          console.error('[DataLayerBuilder] 加载 PageDefinition 失败:', err);
+          setError('加载页面定义组件失败: ' + err.message);
+        });
     }
   }, [activeTab, FormDefinition, DataFlowDefinition, PageDefinition]);
 
@@ -191,54 +202,41 @@ function DataLayerBuilder({ projectId, roleId, onBack }) {
 
       {/* 主内容区 */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {activeTab === 'fields' && <FieldDefinition projectId={projectId} />}
-        {activeTab === 'forms' && (
-          (() => {
-            console.log('[DataLayerBuilder] 渲染 forms tab:', {
-              activeTab,
-              FormDefinition: !!FormDefinition,
-              projectId
-            });
-            if (FormDefinition) {
-              console.log('[DataLayerBuilder] 准备渲染 FormDefinition 组件');
-              console.log('[DataLayerBuilder] FormDefinition 类型:', typeof FormDefinition);
-              console.log('[DataLayerBuilder] 传递的 projectId:', projectId);
-              try {
-                return <FormDefinition projectId={projectId} />;
-              } catch (renderError) {
-                console.error('[DataLayerBuilder] 渲染 FormDefinition 时出错:', renderError);
-                console.error('[DataLayerBuilder] 错误堆栈:', renderError.stack);
-                return (
-                  <div className="p-8 text-center">
-                    <div className="text-red-600 text-xl mb-4">渲染错误</div>
-                    <div className="text-gray-600">{renderError.message}</div>
-                    <button
-                      onClick={() => setFormDefinition(null)}
-                      className="mt-4 px-4 py-2 bg-blue-600 text-white rounded"
-                    >
-                      重新加载
-                    </button>
-                  </div>
-                );
-              }
-            } else {
-              console.log('[DataLayerBuilder] FormDefinition 未加载，显示加载中...');
-              return (
-                <div className="text-center py-12">
-                  <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mb-4"></div>
-                  <p className="text-gray-600">正在加载表单定义组件...</p>
-                </div>
-              );
-            }
-          })()
-        )}
-        {activeTab === 'dataflows' && (
-          DataFlowDefinition ? <DataFlowDefinition projectId={projectId} onDesignFlow={handleDesignFlow} /> : (
-            <div className="text-center py-12">
-              <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mb-4"></div>
-              <p className="text-gray-600">正在加载数据流程组件...</p>
+        {error && (
+          <div className="bg-red-50 border border-red-200 rounded-lg p-6 mb-6">
+            <div className="flex">
+              <div className="flex-shrink-0">
+                <svg className="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
+                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                </svg>
+              </div>
+              <div className="ml-3">
+                <h3 className="text-sm font-medium text-red-800">加载错误</h3>
+                <div className="mt-2 text-sm text-red-700">{error}</div>
+                <button
+                  onClick={() => setError(null)}
+                  className="mt-2 text-sm text-red-600 hover:text-red-800 underline"
+                >
+                  关闭
+                </button>
+              </div>
             </div>
-          )
+          </div>
+        )}
+        {activeTab === 'fields' && <FieldDefinition projectId={projectId} />}
+        {activeTab === 'forms' && FormDefinition && React.createElement(FormDefinition, { projectId })}
+        {activeTab === 'forms' && !FormDefinition && (
+          <div className="text-center py-12">
+            <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mb-4"></div>
+            <p className="text-gray-600">正在加载表单定义组件...</p>
+          </div>
+        )}
+        {activeTab === 'dataflows' && DataFlowDefinition && React.createElement(DataFlowDefinition, { projectId, onDesignFlow: handleDesignFlow })}
+        {activeTab === 'dataflows' && !DataFlowDefinition && (
+          <div className="text-center py-12">
+            <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mb-4"></div>
+            <p className="text-gray-600">正在加载数据流程组件...</p>
+          </div>
         )}
         {activeTab === 'statistics' && (
           <div className="text-center py-12">
@@ -246,17 +244,16 @@ function DataLayerBuilder({ projectId, roleId, onBack }) {
             <p className="text-gray-600">正在跳转到统计分析页面...</p>
           </div>
         )}
-        {activeTab === "pages" && (
-          PageDefinition ? <PageDefinition key={roleId} projectId={projectId} roleId={roleId} /> : (
-            <div className="text-center py-12">
-              <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mb-4"></div>
-              <p className="text-gray-600">正在加载页面定义组件...</p>
-            </div>
-          )
+        {activeTab === "pages" && PageDefinition && React.createElement(PageDefinition, { key: roleId, projectId, roleId })}
+        {activeTab === "pages" && !PageDefinition && (
+          <div className="text-center py-12">
+            <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mb-4"></div>
+            <p className="text-gray-600">正在加载页面定义组件...</p>
+          </div>
         )}
       </div>
     </div>
   );
 }
 
-window.DataLayerBuilder = DataLayerBuilder;
+window.DNDComponents.DataLayerBuilder = DataLayerBuilder;

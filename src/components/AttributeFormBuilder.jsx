@@ -392,4 +392,4 @@ function AttributeFormBuilder({ projectId, onClose, onSuccess }) {
   );
 }
 
-window.AttributeFormBuilder = AttributeFormBuilder;
+window.DNDComponents.AttributeFormBuilder = AttributeFormBuilder;

@@ -1102,4 +1102,4 @@ function FormViewer({ projectId, form, fields, forms, onClose }) {
   );
 }
 
-window.FormViewer = FormViewer;
+window.DNDComponents.FormViewer = FormViewer;

@@ -487,4 +487,4 @@ function ProjectManagement({ onSelectProject, onTestExpr }) {
   );
 }
 
-window.ProjectManagement = ProjectManagement;
+window.DNDComponents.ProjectManagement = ProjectManagement;

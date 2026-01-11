@@ -1467,4 +1467,4 @@ function RelatedBaseForm({ projectId, onClose, onSuccess, onLoadingChange }) {
   );
 }
 
-window.RelatedBaseForm = RelatedBaseForm;
+window.DNDComponents.RelatedBaseForm = RelatedBaseForm;

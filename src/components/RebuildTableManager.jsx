@@ -307,4 +307,4 @@ function RebuildTableManager({ projectId, form, fields, forms, onClose, onSucces
   );
 }
 
-window.RebuildTableManager = RebuildTableManager;
+window.DNDComponents.RebuildTableManager = RebuildTableManager;

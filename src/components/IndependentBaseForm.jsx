@@ -833,4 +833,4 @@ function IndependentBaseForm({ projectId, onClose, onSuccess, onLoadingChange })
   );
 }
 
-window.IndependentBaseForm = IndependentBaseForm;
+window.DNDComponents.IndependentBaseForm = IndependentBaseForm;

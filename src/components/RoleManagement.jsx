@@ -351,4 +351,4 @@ function RoleManagement({ projectId, onBack, onDataLayerClick, onPageDesignClick
   );
 }
 
-window.RoleManagement = RoleManagement;
+window.DNDComponents.RoleManagement = RoleManagement;

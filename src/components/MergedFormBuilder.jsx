@@ -388,4 +388,4 @@ function MergedFormBuilder({ projectId, onClose, onSuccess }) {
   );
 }
 
-window.MergedFormBuilder = MergedFormBuilder;
+window.DNDComponents.MergedFormBuilder = MergedFormBuilder;
