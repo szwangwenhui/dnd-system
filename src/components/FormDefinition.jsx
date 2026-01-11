@@ -491,11 +491,14 @@ function FormDefinition(props) {
         <div>
           {selectedType === '属性表' && (
             window.DNDComponents.AttributeFormBuilder ? (
-              <AttributeFormBuilder
-                projectId={projectId}
-                onClose={closeFormBuilder}
-                onSuccess={loadFormsAndFields}
-              />
+              React.createElement(
+                window.DNDComponents.AttributeFormBuilder,
+                {
+                  projectId: projectId,
+                  onClose: closeFormBuilder,
+                  onSuccess: loadFormsAndFields
+                }
+              )
             ) : (
               <div className="p-8 text-center text-red-600">
                 属性表构建器组件未加载，请刷新页面重试
@@ -556,18 +559,21 @@ function FormDefinition(props) {
           {/* 独立基础表构建器 */}
           {showBaseFormModal === 'independent' && (
             window.DNDComponents.IndependentBaseForm ? (
-              <IndependentBaseForm
-                projectId={projectId}
-                onClose={() => {
-                  setShowBaseFormModal(false);
-                  closeFormBuilder();
-                }}
-                onSuccess={loadFormsAndFields}
-                onLoadingChange={(loading, text) => {
-                  setGlobalLoading(loading);
-                  setGlobalLoadingText(text || '正在创建表单...');
-                }}
-              />
+              React.createElement(
+                window.DNDComponents.IndependentBaseForm,
+                {
+                  projectId: projectId,
+                  onClose: () => {
+                    setShowBaseFormModal(false);
+                    closeFormBuilder();
+                  },
+                  onSuccess: loadFormsAndFields,
+                  onLoadingChange: (loading, text) => {
+                    setGlobalLoading(loading);
+                    setGlobalLoadingText(text || '正在创建表单...');
+                  }
+                }
+              )
             ) : (
               <div className="p-8 text-center text-red-600">
                 独立基础表构建器组件未加载，请刷新页面重试
@@ -578,18 +584,21 @@ function FormDefinition(props) {
           {/* 关联基础表构建器 */}
           {showBaseFormModal === 'related' && (
             window.DNDComponents.RelatedBaseForm ? (
-              <RelatedBaseForm
-                projectId={projectId}
-                onClose={() => {
-                  setShowBaseFormModal(false);
-                  closeFormBuilder();
-                }}
-                onSuccess={loadFormsAndFields}
-                onLoadingChange={(loading, text) => {
-                  setGlobalLoading(loading);
-                  setGlobalLoadingText(text || '正在创建表单...');
-                }}
-              />
+              React.createElement(
+                window.DNDComponents.RelatedBaseForm,
+                {
+                  projectId: projectId,
+                  onClose: () => {
+                    setShowBaseFormModal(false);
+                    closeFormBuilder();
+                  },
+                  onSuccess: loadFormsAndFields,
+                  onLoadingChange: (loading, text) => {
+                    setGlobalLoading(loading);
+                    setGlobalLoadingText(text || '正在创建表单...');
+                  }
+                }
+              )
             ) : (
               <div className="p-8 text-center text-red-600">
                 关联基础表构建器组件未加载，请刷新页面重试
@@ -599,11 +608,14 @@ function FormDefinition(props) {
 
           {selectedType === '对象表' && selectedSubType === '衍生表' && (
             window.DNDComponents.DerivedFormBuilder ? (
-              <DerivedFormBuilder
-                projectId={projectId}
-                onClose={closeFormBuilder}
-                onSuccess={loadFormsAndFields}
-              />
+              React.createElement(
+                window.DNDComponents.DerivedFormBuilder,
+                {
+                  projectId: projectId,
+                  onClose: closeFormBuilder,
+                  onSuccess: loadFormsAndFields
+                }
+              )
             ) : (
               <div className="p-8 text-center text-red-600">
                 衍生表构建器组件未加载，请刷新页面重试
@@ -613,11 +625,14 @@ function FormDefinition(props) {
 
           {selectedType === '对象表' && selectedSubType === '合表' && (
             window.DNDComponents.MergedFormBuilder ? (
-              <MergedFormBuilder
-                projectId={projectId}
-                onClose={closeFormBuilder}
-                onSuccess={loadFormsAndFields}
-              />
+              React.createElement(
+                window.DNDComponents.MergedFormBuilder,
+                {
+                  projectId: projectId,
+                  onClose: closeFormBuilder,
+                  onSuccess: loadFormsAndFields
+                }
+              )
             ) : (
               <div className="p-8 text-center text-red-600">
                 合表构建器组件未加载，请刷新页面重试
@@ -631,13 +646,16 @@ function FormDefinition(props) {
       {showDataEntryModal && dataEntryForm && (
         isAttributeForm(dataEntryForm) ? (
           window.DNDComponents.AttributeFormDataEntry ? (
-            <AttributeFormDataEntry
-              projectId={projectId}
-              form={dataEntryForm}
-              fields={fields}
-              onClose={closeDataEntryModal}
-              onSuccess={loadFormsAndFields}
-            />
+            React.createElement(
+              window.DNDComponents.AttributeFormDataEntry,
+              {
+                projectId: projectId,
+                form: dataEntryForm,
+                fields: fields,
+                onClose: closeDataEntryModal,
+                onSuccess: loadFormsAndFields
+              }
+            )
           ) : (
             <div className="p-8 text-center text-red-600">
               属性表数据录入组件未加载，请刷新页面重试
@@ -645,14 +663,17 @@ function FormDefinition(props) {
           )
         ) : (
           window.DNDComponents.BaseFormDataEntry ? (
-            <BaseFormDataEntry
-              projectId={projectId}
-              form={dataEntryForm}
-              fields={fields}
-              forms={forms}
-              onClose={closeDataEntryModal}
-              onSuccess={loadFormsAndFields}
-            />
+            React.createElement(
+              window.DNDComponents.BaseFormDataEntry,
+              {
+                projectId: projectId,
+                form: dataEntryForm,
+                fields: fields,
+                forms: forms,
+                onClose: closeDataEntryModal,
+                onSuccess: loadFormsAndFields
+              }
+            )
           ) : (
             <div className="p-8 text-center text-red-600">
               基础表数据录入组件未加载，请刷新页面重试
@@ -664,13 +685,16 @@ function FormDefinition(props) {
       {/* 查看表单模态框 */}
       {showViewerModal && viewerForm && (
         window.DNDComponents.FormViewer ? (
-          <FormViewer
-            projectId={projectId}
-            form={viewerForm}
-            fields={fields}
-            forms={forms}
-            onClose={closeViewerModal}
-          />
+          React.createElement(
+            window.DNDComponents.FormViewer,
+            {
+              projectId: projectId,
+              form: viewerForm,
+              fields: fields,
+              forms: forms,
+              onClose: closeViewerModal
+            }
+          )
         ) : (
           <div className="p-8 text-center text-red-600">
             表单查看器组件未加载，请刷新页面重试
@@ -681,14 +705,17 @@ function FormDefinition(props) {
       {/* 子表管理器（入口1：从定义表单进入） */}
       {showSubTableManager && (
         window.DNDComponents.SubTableManager ? (
-          <SubTableManager
-            projectId={projectId}
-            form={null} // 入口1不需要指定表单
-            fields={fields}
-            forms={forms}
-            onClose={() => setShowSubTableManager(false)}
-            onSuccess={loadFormsAndFields}
-          />
+          React.createElement(
+            window.DNDComponents.SubTableManager,
+            {
+              projectId: projectId,
+              form: null, // 入口1不需要指定表单
+              fields: fields,
+              forms: forms,
+              onClose: () => setShowSubTableManager(false),
+              onSuccess: loadFormsAndFields
+            }
+          )
         ) : (
           <div className="p-8 text-center text-red-600">
             子表管理器组件未加载，请刷新页面重试
@@ -699,14 +726,17 @@ function FormDefinition(props) {
       {/* 再造表管理器（入口1：从定义表单进入） */}
       {showRebuildTableManager && (
         window.DNDComponents.RebuildTableManager ? (
-          <RebuildTableManager
-            projectId={projectId}
-            form={null} // 入口1不需要指定表单
-            fields={fields}
-            forms={forms}
-            onClose={() => setShowRebuildTableManager(false)}
-            onSuccess={loadFormsAndFields}
-          />
+          React.createElement(
+            window.DNDComponents.RebuildTableManager,
+            {
+              projectId: projectId,
+              form: null, // 入口1不需要指定表单
+              fields: fields,
+              forms: forms,
+              onClose: () => setShowRebuildTableManager(false),
+              onSuccess: loadFormsAndFields
+            }
+          )
         ) : (
           <div className="p-8 text-center text-red-600">
             再造表管理器组件未加载，请刷新页面重试
