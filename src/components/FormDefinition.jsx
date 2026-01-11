@@ -3,7 +3,15 @@
 // 确保命名空间存在
 window.DNDComponents = window.DNDComponents || {};
 
-function FormDefinition({ projectId }) {
+function FormDefinition(props) {
+  // 安全地解构 props，防止 null 或 undefined
+  const { projectId } = props || {};
+
+  // 检查必需参数
+  if (!projectId) {
+    console.error('[FormDefinition] projectId 缺失:', props);
+    return React.createElement('div', { style: { padding: '20px', color: 'red' } }, '错误：projectId 参数缺失');
+  }
   const [forms, setForms] = React.useState([]);
   const [fields, setFields] = React.useState([]);
   const [showTypeModal, setShowTypeModal] = React.useState(false);
