@@ -14,11 +14,11 @@ function PageDefinition({ projectId, roleId }) {
     designProgress: 0,
     detailFormId: ''
   });
-  
+
   // 设计页面相关状态
   const [showDesigner, setShowDesigner] = React.useState(false);
   const [designingPage, setDesigningPage] = React.useState(null);
-  
+
   // 模板相关状态
   const [showTemplateSelector, setShowTemplateSelector] = React.useState(false);
   const [pendingDesignPage, setPendingDesignPage] = React.useState(null);
@@ -35,6 +35,37 @@ function PageDefinition({ projectId, roleId }) {
   // 加载状态
   const [loading, setLoading] = React.useState(false);
   const [loadingMessage, setLoadingMessage] = React.useState('');
+
+  // 预加载 PageTemplateSelector 组件
+  React.useEffect(() => {
+    console.log('[PageDefinition] 预加载 useEffect 开始执行');
+    console.log('[PageDefinition] window.DNDComponents.PageTemplateSelector:', window.DNDComponents.PageTemplateSelector);
+    console.log('[PageDefinition] window.loadComponentScript:', window.loadComponentScript);
+
+    const loadPageTemplateSelector = async () => {
+      console.log('[PageDefinition] loadPageTemplateSelector 函数被调用');
+      console.log('[PageDefinition] 检查 window.DNDComponents.PageTemplateSelector:', window.DNDComponents.PageTemplateSelector);
+
+      if (window.DNDComponents.PageTemplateSelector) {
+        console.log('[PageDefinition] PageTemplateSelector 已存在，跳过加载');
+        return;
+      }
+      console.log('[PageDefinition] 开始加载 PageTemplateSelector...');
+      try {
+        if (window.loadComponentScript) {
+          console.log('[PageDefinition] 调用 window.loadComponentScript...');
+          await window.loadComponentScript('./src/components/PageTemplateSelector.jsx', 'PageTemplateSelector');
+          console.log('[PageDefinition] PageTemplateSelector 加载完成');
+        } else {
+          console.error('[PageDefinition] window.loadComponentScript 不存在');
+        }
+      } catch (error) {
+        console.error('[PageDefinition] 加载 PageTemplateSelector 失败:', error);
+      }
+    };
+
+    loadPageTemplateSelector();
+  }, []);
 
   // 加载页面列表
   React.useEffect(() => {
@@ -826,28 +857,17 @@ function PageDefinition({ projectId, roleId }) {
       )}
 
       {/* 模板选择弹窗 */}
-      {showTemplateSelector && (() => {
-        console.log('[PageDefinition] showTemplateSelector = true, 准备渲染 PageTemplateSelector');
-        console.log('[PageDefinition] window.DNDComponents:', window.DNDComponents);
-        console.log('[PageDefinition] PageTemplateSelector:', window.DNDComponents?.PageTemplateSelector);
-        if (!window.DNDComponents?.PageTemplateSelector) {
-          console.error('[PageDefinition] PageTemplateSelector 未定义！');
-          return React.createElement('div', { style: { padding: '20px', color: 'red' } },
-            '错误：PageTemplateSelector 组件未加载'
-          );
-        }
-        return React.createElement(
-          window.DNDComponents.PageTemplateSelector,
-          {
-            projectId: projectId,
-            onSelect: handleTemplateSelect,
-            onCancel: () => {
-              setShowTemplateSelector(false);
-              setPendingDesignPage(null);
-            }
+      {showTemplateSelector && React.createElement(
+        window.DNDComponents.PageTemplateSelector,
+        {
+          projectId: projectId,
+          onSelect: handleTemplateSelect,
+          onCancel: () => {
+            setShowTemplateSelector(false);
+            setPendingDesignPage(null);
           }
-        );
-      })()}
+        }
+      )}
 
       {/* 设为模板弹窗 */}
       {showSaveAsTemplate && templateSourcePage && (
