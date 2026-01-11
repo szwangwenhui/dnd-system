@@ -826,15 +826,16 @@ function PageDefinition({ projectId, roleId }) {
       )}
 
       {/* 模板选择弹窗 */}
-      {showTemplateSelector && (
-        <PageTemplateSelector
-          projectId={projectId}
-          onSelect={handleTemplateSelect}
-          onCancel={() => {
+      {showTemplateSelector && React.createElement(
+        window.DNDComponents.PageTemplateSelector,
+        {
+          projectId: projectId,
+          onSelect: handleTemplateSelect,
+          onCancel: () => {
             setShowTemplateSelector(false);
             setPendingDesignPage(null);
-          }}
-        />
+          }
+        }
       )}
 
       {/* 设为模板弹窗 */}
