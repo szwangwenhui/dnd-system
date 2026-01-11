@@ -1864,8 +1864,10 @@ function DesignerCanvas({
           </div>
         ))}
 
-        {/* 区块渲染 */}
-        {!hideContentInAreas && blocks.map(block => renderBlock(block))}
+        {/* 区块渲染 - 包括顶层区块和子区块 */}
+        {!hideContentInAreas && blocks.filter(block => !block.parentId).map(block => renderBlock(block))}
+        {/* 渲染子区块（有parentId的区块） */}
+        {!hideContentInAreas && blocks.filter(block => block.parentId).map(block => renderBlock(block))}
       </div>
     </div>
   );
