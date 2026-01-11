@@ -695,14 +695,24 @@ window.createInteractionRenderer = (props) => {
       // 获取当前字段已选择的值
       const currentFieldValues = childBlockInputData?.[block.id] || [];
 
-      // 处理选择变化
+      // 处理选择变化（带级联：清除下级字段）
       const handleValueChange = (fieldIdName, value) => {
+        const currentFieldConfig = attributeFieldValues.find(af => af.fieldIdName === fieldIdName);
+        const currentLevel = currentFieldConfig?.level || 0;
+        const attributeFormId = currentFieldConfig?.attributeFormId;
+
+        const newValues = { ...currentFieldValues, [fieldIdName]: value };
+
+        // 清除下级字段的值
+        attributeFieldValues.forEach(af => {
+          if (af.attributeFormId === attributeFormId && af.level > currentLevel) {
+            newValues[af.fieldIdName] = '';
+          }
+        });
+
         setChildBlockInputData(prev => ({
           ...prev,
-          [block.id]: {
-            ...prev[block.id],
-            [fieldIdName]: value
-          }
+          [block.id]: newValues
         }));
       };
 
@@ -715,41 +725,79 @@ window.createInteractionRenderer = (props) => {
         handleValueChange(fieldIdName, newValues);
       };
 
+      // 获取字段的可选值（根据上级选择过滤，实现级联）
+      const getFilteredValues = (fieldConfig) => {
+        const { fieldIdName, level, attributeFormId, values } = fieldConfig;
+
+        // 如果没有上级字段，返回所有值
+        const higherFields = attributeFieldValues.filter(af =>
+          af.attributeFormId === attributeFormId && af.level < level
+        );
+
+        if (higherFields.length === 0) {
+          return values;
+        }
+
+        // 检查上级是否都已选择
+        const hasUnselectedHigher = higherFields.some(hf => !currentFieldValues[hf.fieldIdName]);
+        if (hasUnselectedHigher) {
+          return []; // 上级未选择，不能选择当前级别
+        }
+
+        // 返回所有值（预览模式下无法从实际数据过滤，简单返回所有值）
+        // TODO: 如果需要严格级联，可以从属性表数据中根据上级值过滤
+        return values;
+      };
+
       if (fieldDisplayMode === 'dropdown') {
-        // 下拉菜单样式
+        // 下拉菜单样式 - 为每个属性字段渲染独立的select
         return (
           <div key={block.id} style={{
             ...blockStyle,
             display: 'flex',
-            alignItems: 'center',
+            flexDirection: 'column',
+            gap: '4px',
           }}>
             {PopupCloseButton && <PopupCloseButton />}
-            <select
-              style={{
-                width: '100%',
-                height: '100%',
-                border: 'none',
-                backgroundColor: 'transparent',
-                padding: contentStyle.paddingTop || style.padding || 4,
-                fontSize: fontSize,
-                fontFamily: fontFamily,
-                color: color,
-                outline: 'none',
-              }}
-              onChange={(e) => {
-                const field = fields?.find(f => f.id === attributeFieldValues[0]?.fieldIdName);
-                if (field) {
-                  handleValueChange(attributeFieldValues[0]?.fieldIdName, e.target.value);
-                }
-              }}
-            >
-              <option value="">请选择属性</option>
-              {attributeFieldValues.map(({ fieldIdName, values }) =>
-                values.map((value, idx) => (
-                  <option key={`${fieldIdName}-${idx}`} value={value}>{value}</option>
-                ))
-              )}
-            </select>
+            {attributeFieldValues.map((af) => {
+              const filteredValues = getFilteredValues(af);
+              const hasUnselectedHigher = attributeFieldValues.filter(hf =>
+                hf.attributeFormId === af.attributeFormId && hf.level < af.level
+              ).some(hf => !currentFieldValues[hf.fieldIdName]);
+
+              return (
+                <div key={af.fieldIdName} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <label style={{ fontSize: '11px', color: '#6b7280', minWidth: '80px' }}>
+                    {af.fieldName}
+                  </label>
+                  <select
+                    style={{
+                      flex: 1,
+                      height: '28px',
+                      border: '1px solid #d1d5db',
+                      borderRadius: '4px',
+                      padding: '0 8px',
+                      fontSize: '12px',
+                      fontFamily: fontFamily,
+                      color: '#374151',
+                      outline: 'none',
+                      backgroundColor: hasUnselectedHigher ? '#f3f4f6' : '#ffffff',
+                      cursor: hasUnselectedHigher ? 'not-allowed' : 'pointer',
+                    }}
+                    value={currentFieldValues[af.fieldIdName] || ''}
+                    onChange={(e) => handleValueChange(af.fieldIdName, e.target.value)}
+                    disabled={hasUnselectedHigher}
+                  >
+                    <option value="">
+                      {hasUnselectedHigher ? '-- 请先选择上级 --' : `-- 请选择${af.fieldName} --`}
+                    </option>
+                    {filteredValues.map((value, idx) => (
+                      <option key={`${af.fieldIdName}-${idx}`} value={value}>{value}</option>
+                    ))}
+                  </select>
+                </div>
+              );
+            })}
           </div>
         );
       }

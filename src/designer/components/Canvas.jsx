@@ -1090,36 +1090,42 @@ function DesignerCanvas({
         const fieldDisplayMode = block.fieldDisplayMode || 'dropdown';
 
         if (fieldDisplayMode === 'dropdown') {
-          // 下拉菜单样式 - 添加实际的select元素以支持属性字段选择
+          // 下拉菜单样式 - 为每个属性字段渲染独立的select（支持级联）
           const attributeFieldValues = block.attributeFieldValues || [];
           return (
             <div style={{
               ...contentStyle,
               display: 'flex',
-              alignItems: 'center',
+              flexDirection: 'column',
+              gap: '4px',
               padding: style.padding || 4,
               fontSize: style.fontSize || 12,
-              color: '#9ca3af',
             }}>
-              <select
-                style={{
-                  width: '100%',
-                  height: '100%',
-                  border: 'none',
-                  backgroundColor: 'transparent',
-                  padding: style.padding || 4,
-                  fontSize: style.fontSize || 12,
-                  outline: 'none',
-                  color: '#374151',
-                }}
-              >
-                <option value="">请选择属性</option>
-                {attributeFieldValues.map(({ fieldIdName, values }) =>
-                  values.map((value, idx) => (
-                    <option key={`${fieldIdName}-${idx}`} value={value}>{value}</option>
-                  ))
-                )}
-              </select>
+              {attributeFieldValues.map((af) => (
+                <div key={af.fieldIdName} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <label style={{ fontSize: '11px', color: '#6b7280', minWidth: '80px', whiteSpace: 'nowrap' }}>
+                    {af.fieldName}
+                  </label>
+                  <select
+                    style={{
+                      flex: 1,
+                      height: '28px',
+                      border: '1px solid #d1d5db',
+                      borderRadius: '4px',
+                      padding: '0 8px',
+                      fontSize: style.fontSize || 12,
+                      outline: 'none',
+                      color: '#374151',
+                      cursor: 'pointer',
+                    }}
+                  >
+                    <option value="">-- 请选择{af.fieldName} --</option>
+                    {af.values.map((value, idx) => (
+                      <option key={`${af.fieldIdName}-${idx}`} value={value}>{value}</option>
+                    ))}
+                  </select>
+                </div>
+              ))}
             </div>
           );
         }

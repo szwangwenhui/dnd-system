@@ -1325,14 +1325,37 @@ function PageDesigner({ projectId, roleId, page, onClose, onSave }) {
     const fieldDisplayMode = parentBlock.fieldDisplayMode || 'dropdown';
 
     if (attributeFields.length > 0) {
-      // 获取属性字段的所有取值
+      // 获取属性字段的所有取值（从属性表的实际数据中获取）
       const attributeFieldValues = [];
-      attributeFields.forEach(({ fieldId, field }) => {
-        const fieldValues = field.values?.map(v => v.value) || [];
+      attributeFields.forEach(({ fieldId, field, formField }) => {
+        // 找到属性表
+        const attributeFormId = formField?.attributeFormId;
+        const attributeForm = forms.find(f => f.id === attributeFormId);
+        if (!attributeForm || !attributeForm.data || attributeForm.data.length === 0) {
+          console.warn('[PageDesigner] 属性表不存在或没有数据:', attributeFormId);
+          return;
+        }
+
+        // 获取当前字段的级别
+        const level = formField?.level || 1;
+        const levelFields = attributeForm.structure?.levelFields || [];
+        const currentLevelField = levelFields.find(lf => lf.level === level);
+        if (!currentLevelField) {
+          console.warn('[PageDesigner] 未找到级别字段配置:', level);
+          return;
+        }
+
+        // 从属性表数据中提取该级别的所有不重复值
+        const fieldValues = [...new Set(
+          attributeForm.data.map(d => d[currentLevelField.fieldId]).filter(v => v !== undefined && v !== '')
+        )].sort();
+
         attributeFieldValues.push({
           fieldId,
           fieldIdName: field.id,
           fieldName: field.name,
+          level: level,
+          attributeFormId: attributeFormId,
           values: fieldValues
         });
       });
