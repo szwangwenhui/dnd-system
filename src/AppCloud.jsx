@@ -64,12 +64,9 @@ async function loadComponentScript(src, componentGlobalName) {
         presets: ['react']
       }).code;
       console.log('[LazyLoader] 编译后代码长度:', compiledCode.length, '字符');
-      
-      // 打印编译后的 DataLayerBuilder 函数定义部分
-      const funcMatch = compiledCode.match(/function DataLayerBuilder\([^)]*\)[^{]*\{[^}]*React\.useState[^}]*\}/);
-      if (funcMatch) {
-        console.log('[LazyLoader] DataLayerBuilder 函数前 500 字符:', funcMatch[0].substring(0, 500));
-      }
+
+      // 打印编译后代码的前 1000 字符
+      console.log('[LazyLoader] 编译后代码前 1000 字符:', compiledCode.substring(0, 1000));
 
       // 打印编译后代码的最后500个字符（调试用）
       const tailCode = compiledCode.slice(-500);
