@@ -249,6 +249,8 @@ function PageTemplateSelector({
   );
 }
 
-window.PageTemplateSelector = PageTemplateSelector;
+// 确保命名空间存在
+window.DNDComponents = window.DNDComponents || {};
+window.DNDComponents.PageTemplateSelector = PageTemplateSelector;
 
 console.log('[DND2] PageTemplateSelector.jsx 加载完成');
