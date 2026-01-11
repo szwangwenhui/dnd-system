@@ -4,7 +4,7 @@ window.DNDComponents = window.DNDComponents || {};
 
 function DataLayerBuilder(props) {
   // 提取参数（在所有 Hooks 之前，但解构本身不是 Hook）
-  const { projectId, roleId, onBack } = props;
+  const { projectId, roleId, onBack } = props || {};
 
   const [project, setProject] = React.useState(null);
   const [role, setRole] = React.useState(null);
