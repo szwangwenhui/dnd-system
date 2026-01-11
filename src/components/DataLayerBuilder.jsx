@@ -1,17 +1,14 @@
 // 数据层构建组件
-// 确保命名空间存在
-window.DNDComponents = window.DNDComponents || {};
-
 function DataLayerBuilder(props) {
   // 添加详细日志，确认收到的 props
   console.log('[DataLayerBuilder] 组件被调用，接收到的原始 props:', props);
   console.log('[DataLayerBuilder] props 类型:', typeof props);
   console.log('[DataLayerBuilder] props 是否为 null:', props === null);
   console.log('[DataLayerBuilder] props 是否为 undefined:', props === undefined);
-  
+
   // 参数默认值处理（如果 props 为 null 则使用空对象）
   const { projectId, roleId, onBack } = props || {};
-  
+
   console.log('[DataLayerBuilder] 解构后的参数:', { projectId, roleId, onBack });
   console.log('[DataLayerBuilder] projectId:', projectId, '类型:', typeof projectId);
   console.log('[DataLayerBuilder] roleId:', roleId, '类型:', typeof roleId);
@@ -292,4 +289,6 @@ function DataLayerBuilder(props) {
   );
 }
 
+// 确保命名空间存在
+window.DNDComponents = window.DNDComponents || {};
 window.DNDComponents.DataLayerBuilder = DataLayerBuilder;
