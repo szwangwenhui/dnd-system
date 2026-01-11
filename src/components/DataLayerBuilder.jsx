@@ -201,7 +201,26 @@ function DataLayerBuilder({ projectId, roleId, onBack }) {
             });
             if (FormDefinition) {
               console.log('[DataLayerBuilder] 准备渲染 FormDefinition 组件');
-              return <FormDefinition projectId={projectId} />;
+              console.log('[DataLayerBuilder] FormDefinition 类型:', typeof FormDefinition);
+              console.log('[DataLayerBuilder] 传递的 projectId:', projectId);
+              try {
+                return <FormDefinition projectId={projectId} />;
+              } catch (renderError) {
+                console.error('[DataLayerBuilder] 渲染 FormDefinition 时出错:', renderError);
+                console.error('[DataLayerBuilder] 错误堆栈:', renderError.stack);
+                return (
+                  <div className="p-8 text-center">
+                    <div className="text-red-600 text-xl mb-4">渲染错误</div>
+                    <div className="text-gray-600">{renderError.message}</div>
+                    <button
+                      onClick={() => setFormDefinition(null)}
+                      className="mt-4 px-4 py-2 bg-blue-600 text-white rounded"
+                    >
+                      重新加载
+                    </button>
+                  </div>
+                );
+              }
             } else {
               console.log('[DataLayerBuilder] FormDefinition 未加载，显示加载中...');
               return (

@@ -1,11 +1,14 @@
 ﻿// 表单定义组件（新版 - 支持表单分类）
 
 function FormDefinition(props) {
-  if (!props) {
-    console.log("[FormDefinition] props is null!");
-    return React.createElement("div", null, "Error: props is null");
+  const { projectId } = props || {};
+  console.log("[FormDefinition] 组件被调用, props:", props);
+  if (!projectId) {
+    console.warn("[FormDefinition] 缺少 projectId 参数");
+    return React.createElement("div", { className: "p-8 text-center text-red-600" },
+      "错误：缺少项目ID参数"
+    );
   }
-  const { projectId } = props;
   console.log("[FormDefinition] projectId:", projectId);
 
   const [forms, setForms] = React.useState([]);
@@ -431,11 +434,17 @@ function FormDefinition(props) {
       {showFormBuilder && (
         <div>
           {selectedType === '属性表' && (
-            <AttributeFormBuilder
-              projectId={projectId}
-              onClose={closeFormBuilder}
-              onSuccess={loadFormsAndFields}
-            />
+            window.AttributeFormBuilder ? (
+              <AttributeFormBuilder
+                projectId={projectId}
+                onClose={closeFormBuilder}
+                onSuccess={loadFormsAndFields}
+              />
+            ) : (
+              <div className="p-8 text-center text-red-600">
+                属性表构建器组件未加载，请刷新页面重试
+              </div>
+            )
           )}
 
           {selectedType === '对象表' && selectedSubType === '基础表' && !showBaseFormModal && (
@@ -490,50 +499,74 @@ function FormDefinition(props) {
 
           {/* 独立基础表构建器 */}
           {showBaseFormModal === 'independent' && (
-            <IndependentBaseForm
-              projectId={projectId}
-              onClose={() => {
-                setShowBaseFormModal(false);
-                closeFormBuilder();
-              }}
-              onSuccess={loadFormsAndFields}
-              onLoadingChange={(loading, text) => {
-                setGlobalLoading(loading);
-                setGlobalLoadingText(text || '正在创建表单...');
-              }}
-            />
+            window.IndependentBaseForm ? (
+              <IndependentBaseForm
+                projectId={projectId}
+                onClose={() => {
+                  setShowBaseFormModal(false);
+                  closeFormBuilder();
+                }}
+                onSuccess={loadFormsAndFields}
+                onLoadingChange={(loading, text) => {
+                  setGlobalLoading(loading);
+                  setGlobalLoadingText(text || '正在创建表单...');
+                }}
+              />
+            ) : (
+              <div className="p-8 text-center text-red-600">
+                独立基础表构建器组件未加载，请刷新页面重试
+              </div>
+            )
           )}
 
           {/* 关联基础表构建器 */}
           {showBaseFormModal === 'related' && (
-            <RelatedBaseForm
-              projectId={projectId}
-              onClose={() => {
-                setShowBaseFormModal(false);
-                closeFormBuilder();
-              }}
-              onSuccess={loadFormsAndFields}
-              onLoadingChange={(loading, text) => {
-                setGlobalLoading(loading);
-                setGlobalLoadingText(text || '正在创建表单...');
-              }}
-            />
+            window.RelatedBaseForm ? (
+              <RelatedBaseForm
+                projectId={projectId}
+                onClose={() => {
+                  setShowBaseFormModal(false);
+                  closeFormBuilder();
+                }}
+                onSuccess={loadFormsAndFields}
+                onLoadingChange={(loading, text) => {
+                  setGlobalLoading(loading);
+                  setGlobalLoadingText(text || '正在创建表单...');
+                }}
+              />
+            ) : (
+              <div className="p-8 text-center text-red-600">
+                关联基础表构建器组件未加载，请刷新页面重试
+              </div>
+            )
           )}
 
           {selectedType === '对象表' && selectedSubType === '衍生表' && (
-            <DerivedFormBuilder
-              projectId={projectId}
-              onClose={closeFormBuilder}
-              onSuccess={loadFormsAndFields}
-            />
+            window.DerivedFormBuilder ? (
+              <DerivedFormBuilder
+                projectId={projectId}
+                onClose={closeFormBuilder}
+                onSuccess={loadFormsAndFields}
+              />
+            ) : (
+              <div className="p-8 text-center text-red-600">
+                衍生表构建器组件未加载，请刷新页面重试
+              </div>
+            )
           )}
 
           {selectedType === '对象表' && selectedSubType === '合表' && (
-            <MergedFormBuilder
-              projectId={projectId}
-              onClose={closeFormBuilder}
-              onSuccess={loadFormsAndFields}
-            />
+            window.MergedFormBuilder ? (
+              <MergedFormBuilder
+                projectId={projectId}
+                onClose={closeFormBuilder}
+                onSuccess={loadFormsAndFields}
+              />
+            ) : (
+              <div className="p-8 text-center text-red-600">
+                合表构建器组件未加载，请刷新页面重试
+              </div>
+            )
           )}
         </div>
       )}
@@ -541,58 +574,88 @@ function FormDefinition(props) {
       {/* 数据录入模态框 - 根据表单类型显示不同组件 */}
       {showDataEntryModal && dataEntryForm && (
         isAttributeForm(dataEntryForm) ? (
-          <AttributeFormDataEntry
-            projectId={projectId}
-            form={dataEntryForm}
-            fields={fields}
-            onClose={closeDataEntryModal}
-            onSuccess={loadFormsAndFields}
-          />
+          window.AttributeFormDataEntry ? (
+            <AttributeFormDataEntry
+              projectId={projectId}
+              form={dataEntryForm}
+              fields={fields}
+              onClose={closeDataEntryModal}
+              onSuccess={loadFormsAndFields}
+            />
+          ) : (
+            <div className="p-8 text-center text-red-600">
+              属性表数据录入组件未加载，请刷新页面重试
+            </div>
+          )
         ) : (
-          <BaseFormDataEntry
-            projectId={projectId}
-            form={dataEntryForm}
-            fields={fields}
-            forms={forms}
-            onClose={closeDataEntryModal}
-            onSuccess={loadFormsAndFields}
-          />
+          window.BaseFormDataEntry ? (
+            <BaseFormDataEntry
+              projectId={projectId}
+              form={dataEntryForm}
+              fields={fields}
+              forms={forms}
+              onClose={closeDataEntryModal}
+              onSuccess={loadFormsAndFields}
+            />
+          ) : (
+            <div className="p-8 text-center text-red-600">
+              基础表数据录入组件未加载，请刷新页面重试
+            </div>
+          )
         )
       )}
 
       {/* 查看表单模态框 */}
       {showViewerModal && viewerForm && (
-        <FormViewer
-          projectId={projectId}
-          form={viewerForm}
-          fields={fields}
-          forms={forms}
-          onClose={closeViewerModal}
-        />
+        window.FormViewer ? (
+          <FormViewer
+            projectId={projectId}
+            form={viewerForm}
+            fields={fields}
+            forms={forms}
+            onClose={closeViewerModal}
+          />
+        ) : (
+          <div className="p-8 text-center text-red-600">
+            表单查看器组件未加载，请刷新页面重试
+          </div>
+        )
       )}
 
       {/* 子表管理器（入口1：从定义表单进入） */}
       {showSubTableManager && (
-        <SubTableManager
-          projectId={projectId}
-          form={null} // 入口1不需要指定表单
-          fields={fields}
-          forms={forms}
-          onClose={() => setShowSubTableManager(false)}
-          onSuccess={loadFormsAndFields}
-        />
+        window.SubTableManager ? (
+          <SubTableManager
+            projectId={projectId}
+            form={null} // 入口1不需要指定表单
+            fields={fields}
+            forms={forms}
+            onClose={() => setShowSubTableManager(false)}
+            onSuccess={loadFormsAndFields}
+          />
+        ) : (
+          <div className="p-8 text-center text-red-600">
+            子表管理器组件未加载，请刷新页面重试
+          </div>
+        )
       )}
 
       {/* 再造表管理器（入口1：从定义表单进入） */}
       {showRebuildTableManager && (
-        <RebuildTableManager
-          projectId={projectId}
-          form={null} // 入口1不需要指定表单
-          fields={fields}
-          forms={forms}
-          onClose={() => setShowRebuildTableManager(false)}
-          onSuccess={loadFormsAndFields}
-        />
+        window.RebuildTableManager ? (
+          <RebuildTableManager
+            projectId={projectId}
+            form={null} // 入口1不需要指定表单
+            fields={fields}
+            forms={forms}
+            onClose={() => setShowRebuildTableManager(false)}
+            onSuccess={loadFormsAndFields}
+          />
+        ) : (
+          <div className="p-8 text-center text-red-600">
+            再造表管理器组件未加载，请刷新页面重试
+          </div>
+        )
       )}
 
       {/* 全局加载遮罩 */}
