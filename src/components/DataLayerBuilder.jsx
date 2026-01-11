@@ -3,13 +3,7 @@
 window.DNDComponents = window.DNDComponents || {};
 
 function DataLayerBuilder(props) {
-  // 如果 props 为 null，先返回一个错误提示（在所有 Hooks 之前是允许的）
-  if (!props) {
-    console.error('[DataLayerBuilder] props 为 null!');
-    return React.createElement('div', { className: 'p-8 text-center text-red-600' }, '错误：组件参数异常');
-  }
-
-  // 提取参数
+  // 提取参数（在所有 Hooks 之前，但解构本身不是 Hook）
   const { projectId, roleId, onBack } = props;
 
   const [project, setProject] = React.useState(null);

@@ -195,6 +195,10 @@ function LazyComponentWrapper({ src, componentGlobalName, fallback, ...props }) 
   }
 
   console.log('[LazyComponentWrapper] 准备渲染组件, props:', props);
+  console.log('[LazyComponentWrapper] Component:', Component);
+  console.log('[LazyComponentWrapper] Component 类型:', typeof Component);
+  console.log('[LazyComponentWrapper] Component.prototype:', Component.prototype);
+  console.log('[LazyComponentWrapper] Component.name:', Component.name);
   return <Component {...props} />;
 }
 
