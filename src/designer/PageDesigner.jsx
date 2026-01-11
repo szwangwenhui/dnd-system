@@ -1257,7 +1257,9 @@ function PageDesigner({ projectId, roleId, page, onClose, onSave }) {
         console.log('[PageDesigner-DEBUG] 字段详情:', {
           fieldId,
           field,
+          fieldSource: field.source,
           formField,
+          formFieldFromAttributeTable: formField?.fromAttributeTable,
           isAttribute: field.source === '属性表' || formField?.fromAttributeTable
         });
         if (field.source === '属性表' || formField?.fromAttributeTable) {

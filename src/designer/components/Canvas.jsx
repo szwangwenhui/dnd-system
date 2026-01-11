@@ -1002,7 +1002,11 @@ function DesignerCanvas({
                 fieldName: field?.name,
                 isPrimaryKey,
                 isAttributeField,
-                formField
+                fieldSource: field?.source,
+                formField,
+                formFieldKeys: formField ? Object.keys(formField) : [],
+                formFieldAttributeFormId: formField?.attributeFormId,
+                formFieldFromAttributeTable: formField?.fromAttributeTable
               });
 
               // 如果是属性字段，渲染下拉菜单
