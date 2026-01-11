@@ -826,17 +826,28 @@ function PageDefinition({ projectId, roleId }) {
       )}
 
       {/* 模板选择弹窗 */}
-      {showTemplateSelector && React.createElement(
-        window.DNDComponents.PageTemplateSelector,
-        {
-          projectId: projectId,
-          onSelect: handleTemplateSelect,
-          onCancel: () => {
-            setShowTemplateSelector(false);
-            setPendingDesignPage(null);
-          }
+      {showTemplateSelector && (() => {
+        console.log('[PageDefinition] showTemplateSelector = true, 准备渲染 PageTemplateSelector');
+        console.log('[PageDefinition] window.DNDComponents:', window.DNDComponents);
+        console.log('[PageDefinition] PageTemplateSelector:', window.DNDComponents?.PageTemplateSelector);
+        if (!window.DNDComponents?.PageTemplateSelector) {
+          console.error('[PageDefinition] PageTemplateSelector 未定义！');
+          return React.createElement('div', { style: { padding: '20px', color: 'red' } },
+            '错误：PageTemplateSelector 组件未加载'
+          );
         }
-      )}
+        return React.createElement(
+          window.DNDComponents.PageTemplateSelector,
+          {
+            projectId: projectId,
+            onSelect: handleTemplateSelect,
+            onCancel: () => {
+              setShowTemplateSelector(false);
+              setPendingDesignPage(null);
+            }
+          }
+        );
+      })()}
 
       {/* 设为模板弹窗 */}
       {showSaveAsTemplate && templateSourcePage && (
