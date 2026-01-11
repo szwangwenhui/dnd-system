@@ -131,8 +131,11 @@ function useLazyComponent(src, componentGlobalName) {
     // 检查缓存
     if (lazyComponentsCache[src]) {
       console.log('[LazyLoader] 组件已缓存:', src);
-      setComponent(window.DNDComponents[componentGlobalName]);
-      return;
+      const component = window.DNDComponents[componentGlobalName];
+      if (component) {
+        setComponent(component);
+        return;
+      }
     }
 
     // 开始加载
@@ -154,6 +157,31 @@ function useLazyComponent(src, componentGlobalName) {
   }, [src, componentGlobalName]);
 
   return { Component, loading, error };
+}
+
+// 懒加载包装组件
+function LazyComponentWrapper({ src, componentGlobalName, fallback, ...props }) {
+  const { Component, loading, error } = useLazyComponent(src, componentGlobalName);
+
+  if (error) {
+    return <div style={{ padding: '20px', color: 'red' }}>组件加载失败: {error.message}</div>;
+  }
+
+  if (loading || !Component) {
+    return fallback || (
+      <div style={{
+        padding: '40px',
+        textAlign: 'center',
+        color: '#6b7280',
+        fontSize: '14px'
+      }}>
+        <div style={{ fontSize: '32px', marginBottom: '16px' }}>⏳</div>
+        <div>正在加载组件...</div>
+      </div>
+    );
+  }
+
+  return <Component {...props} />;
 }
 
 function App() {
@@ -667,31 +695,6 @@ function App() {
       </footer>
     </div>
   );
-}
-
-// 懒加载包装组件
-function LazyComponentWrapper({ src, componentGlobalName, fallback, ...props }) {
-  const { Component, loading, error } = useLazyComponent(src, componentGlobalName);
-
-  if (error) {
-    return <div style={{ padding: '20px', color: 'red' }}>组件加载失败: {error.message}</div>;
-  }
-
-  if (loading || !Component) {
-    return fallback || (
-      <div style={{
-        padding: '40px',
-        textAlign: 'center',
-        color: '#6b7280',
-        fontSize: '14px'
-      }}>
-        <div style={{ fontSize: '32px', marginBottom: '16px' }}>⏳</div>
-        <div>正在加载组件...</div>
-      </div>
-    );
-  }
-
-  return <Component {...props} />;
 }
 
 // 渲染应用

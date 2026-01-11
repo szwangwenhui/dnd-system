@@ -2,7 +2,8 @@
 // 确保命名空间存在
 window.DNDComponents = window.DNDComponents || {};
 
-function DataLayerBuilder({ projectId, roleId, onBack }) {
+function DataLayerBuilder(props) {
+  const { projectId, roleId, onBack } = props || {};
   const [project, setProject] = React.useState(null);
   const [role, setRole] = React.useState(null);
   const [activeTab, setActiveTab] = React.useState('fields'); // fields, forms, dataflows, pages
