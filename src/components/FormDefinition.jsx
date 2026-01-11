@@ -183,7 +183,7 @@ function FormDefinition(props) {
 
   // 判断是否为属性表
   const isAttributeForm = (form) => {
-    return form.type === '属性表';
+    return form.type === '属性表单';
   };
 
   // 判断是否可以添加数据（基础表或属性表）
