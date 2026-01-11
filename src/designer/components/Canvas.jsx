@@ -1090,7 +1090,8 @@ function DesignerCanvas({
         const fieldDisplayMode = block.fieldDisplayMode || 'dropdown';
 
         if (fieldDisplayMode === 'dropdown') {
-          // 下拉菜单样式
+          // 下拉菜单样式 - 添加实际的select元素以支持属性字段选择
+          const attributeFieldValues = block.attributeFieldValues || [];
           return (
             <div style={{
               ...contentStyle,
@@ -1100,7 +1101,25 @@ function DesignerCanvas({
               fontSize: style.fontSize || 12,
               color: '#9ca3af',
             }}>
-              <span>请选择属性 ▼</span>
+              <select
+                style={{
+                  width: '100%',
+                  height: '100%',
+                  border: 'none',
+                  backgroundColor: 'transparent',
+                  padding: style.padding || 4,
+                  fontSize: style.fontSize || 12,
+                  outline: 'none',
+                  color: '#374151',
+                }}
+              >
+                <option value="">请选择属性</option>
+                {attributeFieldValues.map(({ fieldIdName, values }) =>
+                  values.map((value, idx) => (
+                    <option key={`${fieldIdName}-${idx}`} value={value}>{value}</option>
+                  ))
+                )}
+              </select>
             </div>
           );
         }
@@ -1110,6 +1129,22 @@ function DesignerCanvas({
         const buttonWidth = 80;
         const buttonHeight = 28;
         const gap = 8;
+
+        // 简单的状态管理，支持预览交互
+        const [selectedValues, setSelectedValues] = React.useState({});
+        const handleValueChange = (fieldIdName, value) => {
+          if (block.fieldSelectionMode === 'multiple') {
+            setSelectedValues(prev => {
+              const currentValues = prev[fieldIdName] || [];
+              const newValues = currentValues.includes(value)
+                ? currentValues.filter(v => v !== value)
+                : [...currentValues, value];
+              return { ...prev, [fieldIdName]: newValues };
+            });
+          } else {
+            setSelectedValues(prev => ({ ...prev, [fieldIdName]: value }));
+          }
+        };
 
         return (
           <div style={{
@@ -1121,7 +1156,7 @@ function DesignerCanvas({
             gap: `${gap}px`,
             alignItems: 'flex-start',
           }}>
-            {attributeFieldValues.map(({ fieldName, values }, fieldIdx) => (
+            {attributeFieldValues.map(({ fieldIdName, fieldName, values }, fieldIdx) => (
               <div key={fieldIdx} style={{ width: '100%' }}>
                 <div style={{
                   fontSize: '11px',
@@ -1131,12 +1166,16 @@ function DesignerCanvas({
                 }}>{fieldName}</div>
                 {values.map((value, valueIdx) => {
                   const isMultiple = block.fieldSelectionMode === 'multiple';
+                  const isSelected = isMultiple
+                    ? (selectedValues[fieldIdName] || []).includes(value)
+                    : selectedValues[fieldIdName] === value;
 
                   if (fieldDisplayMode === 'button') {
-                    // 按钮式
+                    // 按钮式 - 支持点击选择
                     return (
                       <div
                         key={`${fieldIdx}-${valueIdx}`}
+                        onClick={() => handleValueChange(fieldIdName, value)}
                         style={{
                           display: 'inline-block',
                           minWidth: buttonWidth,
@@ -1144,23 +1183,24 @@ function DesignerCanvas({
                           height: buttonHeight,
                           lineHeight: `${buttonHeight}px`,
                           padding: '0 12px',
-                          backgroundColor: '#ffffff',
+                          backgroundColor: isSelected ? '#3b82f6' : '#ffffff',
                           border: '1px solid #d1d5db',
                           borderRadius: '4px',
                           fontSize: '12px',
-                          color: '#374151',
+                          color: isSelected ? '#ffffff' : '#374151',
                           textAlign: 'center',
-                          cursor: 'move',
+                          cursor: 'pointer',
                           marginRight: gap,
                           marginBottom: gap,
                           userSelect: 'none',
+                          transition: 'all 0.2s',
                         }}
                       >
                         {value}
                       </div>
                     );
                   } else if (fieldDisplayMode === 'checkbox') {
-                    // 勾选框
+                    // 勾选框 - 支持实际选择
                     return (
                       <label
                         key={`${fieldIdx}-${valueIdx}`}
@@ -1175,10 +1215,11 @@ function DesignerCanvas({
                       >
                         <input
                           type={isMultiple ? 'checkbox' : 'radio'}
-                          disabled
+                          checked={isSelected}
+                          onChange={() => handleValueChange(fieldIdName, value)}
                           style={{
                             marginRight: '6px',
-                            cursor: 'move',
+                            cursor: 'pointer',
                           }}
                         />
                         <span style={{ fontSize: '12px', color: '#374151' }}>{value}</span>
