@@ -1201,10 +1201,17 @@ function PageDesigner({ projectId, roleId, page, onClose, onSave }) {
 
   // 为交互区块生成子区块（自行设计样式）
   const handleGenerateChildBlocks = (parentBlockId) => {
+    console.log('[PageDesigner-DEBUG] ===== 开始生成子区块 =====');
+    console.log('[PageDesigner-DEBUG] 父区块ID:', parentBlockId);
     const parentBlock = blocks.find(b => b.id === parentBlockId);
-    if (!parentBlock || parentBlock.type !== '交互') return;
+    console.log('[PageDesigner-DEBUG] 父区块信息:', parentBlock);
+    if (!parentBlock || parentBlock.type !== '交互') {
+      console.warn('[PageDesigner-DEBUG] 父区块不存在或不是交互区块');
+      return;
+    }
     
     const form = forms.find(f => f.id === parentBlock.targetFormId);
+    console.log('[PageDesigner-DEBUG] 目标表单:', form);
     if (!form) {
       alert('请先选择目标表单');
       return;
@@ -1213,9 +1220,11 @@ function PageDesigner({ projectId, roleId, page, onClose, onSave }) {
     // 获取选中的字段（包括主键）
     const primaryKeyId = form.structure?.primaryKey;
     const selectedFieldIds = [primaryKeyId, ...(parentBlock.selectedFields || [])].filter(Boolean);
+    console.log('[PageDesigner-DEBUG] 选中的字段ID列表:', selectedFieldIds);
 
     if (selectedFieldIds.length === 0) {
       alert('没有可用的字段');
+      console.warn('[PageDesigner-DEBUG] 没有可用的字段');
       return;
     }
 
@@ -1245,12 +1254,27 @@ function PageDesigner({ projectId, roleId, page, onClose, onSave }) {
       if (field) {
         // 判断是否是属性字段（来自属性表）
         const formField = form.structure?.fields?.find(ff => ff.fieldId === fieldId);
+        console.log('[PageDesigner-DEBUG] 字段详情:', {
+          fieldId,
+          field,
+          formField,
+          isAttribute: field.source === '属性表' || formField?.fromAttributeTable
+        });
         if (field.source === '属性表' || formField?.fromAttributeTable) {
           attributeFields.push({ fieldId, field, formField });
         } else {
           normalFields.push({ fieldId, field, formField });
         }
+      } else {
+        console.warn('[PageDesigner-DEBUG] 未找到字段:', fieldId);
       }
+    });
+    
+    console.log('[PageDesigner-DEBUG] 字段分类结果:', {
+      normalFieldsCount: normalFields.length,
+      attributeFieldsCount: attributeFields.length,
+      normalFields,
+      attributeFields
     });
     
     const generatedBlocks = [];

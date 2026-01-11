@@ -605,12 +605,26 @@ function BlockList({
             )}
             
             {/* 6. 生成子区块按钮 - 仅当选择了"自行设计样式"且有选中字段时显示 */}
-            {block.styleMode === 'custom' && block.targetFormId && (block.selectedFields?.length > 0 || block.targetFormId) && (
+            {(() => {
+              console.log('[BlockList-DEBUG] 检查生成子区块按钮显示条件:', {
+                blockId: block.id,
+                blockType: block.type,
+                styleMode: block.styleMode,
+                targetFormId: block.targetFormId,
+                selectedFieldsLength: block.selectedFields?.length,
+                shouldShow: block.styleMode === 'custom' && block.targetFormId && (block.selectedFields?.length > 0 || block.targetFormId)
+              });
+              return block.styleMode === 'custom' && block.targetFormId && (block.selectedFields?.length > 0 || block.targetFormId);
+            })() && (
               <button
                 onClick={(e) => {
                   e.stopPropagation();
+                  console.log('[BlockList-DEBUG] 点击生成子区块按钮:', block.id);
                   if (onGenerateChildBlocks) {
+                    console.log('[BlockList-DEBUG] 调用onGenerateChildBlocks');
                     onGenerateChildBlocks(block.id);
+                  } else {
+                    console.warn('[BlockList-DEBUG] onGenerateChildBlocks未定义');
                   }
                 }}
                 className="w-full mt-2 px-2 py-1.5 bg-green-500 text-white rounded text-xs hover:bg-green-600"
