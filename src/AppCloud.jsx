@@ -13,7 +13,7 @@ window.DNDComponents = window.DNDComponents || {};
 function useLazyComponent(src, componentGlobalName) {
   console.log('[useLazyComponent] 被调用:', { src, componentGlobalName });
 
-  const [Component, setComponent] = React.useState(null);
+  const [componentName, setComponentName] = React.useState(null);
   const [loading, setLoading] = React.useState(false);
   const [error, setError] = React.useState(null);
 
@@ -23,7 +23,7 @@ function useLazyComponent(src, componentGlobalName) {
     // 检查组件是否已在命名空间中
     if (window.DNDComponents[componentGlobalName]) {
       console.log('[useLazyComponent] 组件已存在:', componentGlobalName);
-      setComponent(window.DNDComponents[componentGlobalName]);
+      setComponentName(componentGlobalName);
       return;
     }
 
@@ -46,11 +46,11 @@ function useLazyComponent(src, componentGlobalName) {
         console.log('[useLazyComponent] 组件对象:', component);
         console.log('[useLazyComponent] window.DNDComponents:', window.DNDComponents);
         console.log('[useLazyComponent] window.DNDComponents[componentGlobalName]:', window.DNDComponents[componentGlobalName]);
-        console.log('[useLazyComponent] 即将调用 setComponent(component)');
-        console.log('[useLazyComponent] 当前 Component 状态:', Component);
+        console.log('[useLazyComponent] 即将调用 setComponentName(componentGlobalName)');
+        console.log('[useLazyComponent] 当前 componentName 状态:', componentName);
         console.log('[useLazyComponent] 当前 loading 状态:', loading);
-        setComponent(component);
-        console.log('[useLazyComponent] setComponent(component) 已调用');
+        setComponentName(componentGlobalName);
+        console.log('[useLazyComponent] setComponentName(componentGlobalName) 已调用');
         console.log('[useLazyComponent] 即将调用 setLoading(false)');
         setLoading(false);
         console.log('[useLazyComponent] setLoading(false) 已调用');
@@ -63,7 +63,8 @@ function useLazyComponent(src, componentGlobalName) {
       });
   }, [src, componentGlobalName]);
 
-  console.log('[useLazyComponent] 返回:', { Component: !!Component, loading, error });
+  console.log('[useLazyComponent] 返回:', { componentName, loading, error });
+  const Component = componentName ? window.DNDComponents[componentName] : null;
   console.log('[useLazyComponent] Component 实际值:', Component);
   console.log('[useLazyComponent] Component === window.DNDComponents.DataLayerBuilder:', Component === window.DNDComponents?.DataLayerBuilder);
   return { Component, loading, error };
@@ -85,6 +86,13 @@ function LazyComponentWrapper({ src, componentGlobalName, fallback, ...props }) 
   console.log('[LazyComponentWrapper] Component:', Component);
   console.log('[LazyComponentWrapper] loading:', loading);
   console.log('[LazyComponentWrapper] error:', error);
+  console.log('[LazyComponentWrapper] Component 是否为函数:', typeof Component === 'function');
+
+  // 警告：如果 Component 是函数，说明可能有问题
+  if (typeof Component === 'function') {
+    console.error('[LazyComponentWrapper] 警告：Component 是一个函数！');
+    console.error('[LazyComponentWrapper] 这个可能导致 React 直接渲染 Component 而不是通过包装组件');
+  }
 
   console.log('[LazyComponentWrapper] 开始渲染, 收到的参数:', { src, componentGlobalName, fallback, props });
   console.log('[LazyComponentWrapper] useLazyComponent 返回:', { Component: !!Component, loading, error });
