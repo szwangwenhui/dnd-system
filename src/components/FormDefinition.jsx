@@ -3,13 +3,6 @@
 function FormDefinition(props) {
   const { projectId } = props || {};
   console.log("[FormDefinition] 组件被调用, props:", props);
-  if (!projectId) {
-    console.warn("[FormDefinition] 缺少 projectId 参数");
-    return React.createElement("div", { className: "p-8 text-center text-red-600" },
-      "错误：缺少项目ID参数"
-    );
-  }
-  console.log("[FormDefinition] projectId:", projectId);
 
   const [forms, setForms] = React.useState([]);
   const [fields, setFields] = React.useState([]);
@@ -169,6 +162,16 @@ function FormDefinition(props) {
     setShowViewerModal(false);
     setViewerForm(null);
   };
+
+  // 检查项目 ID 是否存在
+  if (!projectId) {
+    console.warn("[FormDefinition] 缺少 projectId 参数");
+    return (
+      <div className="p-8 text-center text-red-600">
+        错误：缺少项目ID参数
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
