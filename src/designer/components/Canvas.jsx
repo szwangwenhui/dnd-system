@@ -967,6 +967,12 @@ function DesignerCanvas({
         ? [primaryKeyId, ...(block.selectedFields || [])]
         : (block.selectedFields || []);
 
+      console.log('[Canvas-DEBUG] 默认样式 - 渲染交互区块:', {
+        blockId: block.id,
+        displayFieldIds,
+        formFields: form?.structure?.fields
+      });
+
       return (
         <div style={{
           ...contentStyle,
@@ -984,10 +990,84 @@ function DesignerCanvas({
             flexDirection: 'column',
             gap: '6px',
           }}>
-            {/* 显示字段占位 */}
+            {/* 显示字段输入 */}
             {displayFieldIds.slice(0, 3).map((fieldId, index) => {
               const field = fields?.find(f => f.id === fieldId);
               const isPrimaryKey = fieldId === primaryKeyId;
+              const formField = form?.structure?.fields?.find(ff => ff.fieldId === fieldId);
+              const isAttributeField = field?.source === '属性表' || formField?.fromAttributeTable;
+
+              console.log('[Canvas-DEBUG] 渲染字段:', {
+                fieldId,
+                fieldName: field?.name,
+                isPrimaryKey,
+                isAttributeField,
+                formField
+              });
+
+              // 如果是属性字段，渲染下拉菜单
+              if (isAttributeField) {
+                // 获取属性表
+                const attributeFormId = formField?.attributeFormId;
+                const attributeForm = forms?.find(f => f.id === attributeFormId);
+                console.log('[Canvas-DEBUG] 属性字段信息:', { attributeFormId, attributeForm });
+
+                if (attributeForm && attributeForm.data && attributeForm.data.length > 0) {
+                  // 获取字段级别
+                  const level = formField?.level || 1;
+                  const levelFields = attributeForm.structure?.levelFields || [];
+                  const currentLevelField = levelFields.find(lf => lf.level === level);
+
+                  if (currentLevelField) {
+                    // 从属性表数据中提取该级别的所有不重复值
+                    const fieldValues = [...new Set(
+                      attributeForm.data.map(d => d[currentLevelField.fieldId]).filter(v => v !== undefined && v !== '')
+                    )].sort();
+
+                    console.log('[Canvas-DEBUG] 属性字段值:', {
+                      fieldName: field?.name,
+                      level,
+                      currentLevelField,
+                      fieldValues
+                    });
+
+                    return (
+                      <div key={fieldId} style={{
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: '4px',
+                      }}>
+                        <span style={{
+                          fontSize: '11px',
+                          color: '#6b7280',
+                        }}>
+                          {field?.name || `字段${index + 1}`} {isPrimaryKey && '*'}
+                        </span>
+                        <select
+                          style={{
+                            width: '100%',
+                            height: '28px',
+                            padding: '0 8px',
+                            border: '1px solid #d1d5db',
+                            borderRadius: '4px',
+                            fontSize: '12px',
+                            outline: 'none',
+                            color: '#374151',
+                            cursor: 'pointer',
+                          }}
+                        >
+                          <option value="">-- 请选择{field?.name} --</option>
+                          {fieldValues.map((value, idx) => (
+                            <option key={`${fieldId}-${idx}`} value={value}>{value}</option>
+                          ))}
+                        </select>
+                      </div>
+                    );
+                  }
+                }
+              }
+
+              // 普通字段：显示输入框占位
               return (
                 <div key={fieldId} style={{
                   display: 'flex',

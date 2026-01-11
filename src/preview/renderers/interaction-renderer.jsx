@@ -257,6 +257,18 @@ window.createInteractionRenderer = (props) => {
             const field = fields.find(f => f.id === fieldId);
             const fieldType = field?.type || '文本';
 
+            // 检查是否是属性字段
+            const formField = form?.structure?.fields?.find(ff => ff.fieldId === fieldId);
+            const isAttributeField = field?.source === '属性表' || formField?.fromAttributeTable;
+
+            console.log('[PreviewRenderer-DEBUG] 渲染字段:', {
+              fieldId,
+              fieldName: field?.name,
+              fieldType,
+              isAttributeField,
+              formField
+            });
+
             // 富文本字段特殊处理
             if (fieldType === '富文本') {
               const currentValue = interactionInputData[block.id]?.[fieldId] || '';
@@ -309,7 +321,78 @@ window.createInteractionRenderer = (props) => {
               );
             }
 
-            // 普通字段
+            // 属性字段 - 显示下拉菜单
+            if (isAttributeField) {
+              // 获取属性表
+              const attributeFormId = formField?.attributeFormId;
+              const attributeForm = forms.find(f => f.id === attributeFormId);
+              console.log('[PreviewRenderer-DEBUG] 属性字段信息:', { attributeFormId, attributeForm });
+
+              if (attributeForm && attributeForm.data && attributeForm.data.length > 0) {
+                // 获取字段级别
+                const level = formField?.level || 1;
+                const levelFields = attributeForm.structure?.levelFields || [];
+                const currentLevelField = levelFields.find(lf => lf.level === level);
+
+                if (currentLevelField) {
+                  // 从属性表数据中提取该级别的所有不重复值
+                  const fieldValues = [...new Set(
+                    attributeForm.data.map(d => d[currentLevelField.fieldId]).filter(v => v !== undefined && v !== '')
+                  )].sort();
+
+                  console.log('[PreviewRenderer-DEBUG] 属性字段值:', {
+                    fieldName: field?.name,
+                    level,
+                    currentLevelField,
+                    fieldValues
+                  });
+
+                  return (
+                    <div key={fieldId} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <label style={{
+                        width: '80px',
+                        fontSize: labelFontSize,
+                        color: labelColor,
+                        textAlign: 'right',
+                        flexShrink: 0,
+                        fontFamily: contentStyle.fontFamily || 'inherit',
+                      }}>
+                        {field?.name || fieldId}
+                      </label>
+                      <select
+                        value={interactionInputData[block.id]?.[fieldId] || ''}
+                        onChange={(e) => {
+                          setInteractionInputData(prev => ({
+                            ...prev,
+                            [block.id]: {
+                              ...(prev[block.id] || {}),
+                              [fieldId]: e.target.value
+                            }
+                          }));
+                        }}
+                        style={{
+                          flex: 1,
+                          padding: '6px 8px',
+                          border: '1px solid #d1d5db',
+                          borderRadius: '4px',
+                          fontSize: inputFontSize,
+                          fontFamily: contentStyle.fontFamily || 'inherit',
+                          outline: 'none',
+                          cursor: 'pointer',
+                        }}
+                      >
+                        <option value="">-- 请选择{field?.name} --</option>
+                        {fieldValues.map((value, idx) => (
+                          <option key={`${fieldId}-${idx}`} value={value}>{value}</option>
+                        ))}
+                      </select>
+                    </div>
+                  );
+                }
+              }
+            }
+
+            // 普通字段 - 显示输入框
             return (
               <div key={fieldId} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <label style={{

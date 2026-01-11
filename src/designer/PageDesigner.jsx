@@ -1931,7 +1931,9 @@ function PageDesigner({ projectId, roleId, page, onClose, onSave }) {
   };
 
   const updateBlockWithHistory = (blockId, updates) => {
+    console.log('[PageDesigner-DEBUG] updateBlockWithHistory 调用:', { blockId, updates });
     const newBlocks = blocks.map(b => b.id === blockId ? { ...b, ...updates } : b);
+    console.log('[PageDesigner-DEBUG] 更新后的区块:', newBlocks.find(b => b.id === blockId));
     setBlocks(newBlocks);
     setHasChanges(true);
     saveToHistory(newBlocks);
@@ -2459,9 +2461,11 @@ function PageDesigner({ projectId, roleId, page, onClose, onSave }) {
   // 处理左侧面板的区块更新
   // 当更新isPopup或style.zIndex时，自动联动更新所有下级区块
   const handleUpdateBlockFromList = (blockId, updates) => {
+    console.log('[PageDesigner-DEBUG] handleUpdateBlockFromList 调用:', { blockId, updates });
     // 检查是否需要层级联动（设为弹窗或修改zIndex）
-    const needsZIndexSync = updates.isPopup !== undefined || 
+    const needsZIndexSync = updates.isPopup !== undefined ||
                             (updates.style && updates.style.zIndex !== undefined);
+    console.log('[PageDesigner-DEBUG] needsZIndexSync:', needsZIndexSync);
     
     if (needsZIndexSync) {
       // 获取新的zIndex值
