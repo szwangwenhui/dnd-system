@@ -259,14 +259,15 @@ window.createInteractionRenderer = (props) => {
 
             // 检查是否是属性字段
             const formField = form?.structure?.fields?.find(ff => ff.fieldId === fieldId);
-            const isAttributeField = field?.source === '属性表' || formField?.fromAttributeTable;
+            const isAttributeField = formField?.isAttributeField === true;
 
             console.log('[PreviewRenderer-DEBUG] 渲染字段:', {
               fieldId,
               fieldName: field?.name,
               fieldType,
               isAttributeField,
-              formField
+              formField,
+              formFieldIsAttributeField: formField?.isAttributeField
             });
 
             // 富文本字段特殊处理
@@ -323,29 +324,25 @@ window.createInteractionRenderer = (props) => {
 
             // 属性字段 - 显示下拉菜单
             if (isAttributeField) {
-              // 获取属性表
+              // 查找属性表
               const attributeFormId = formField?.attributeFormId;
-              const attributeForm = forms.find(f => f.id === attributeFormId);
-              console.log('[PreviewRenderer-DEBUG] 属性字段信息:', { attributeFormId, attributeForm });
+              const attributeForm = forms?.find(f => f.id === attributeFormId);
+              const levelFields = attributeForm?.structure?.levelFields || [];
+              const currentLevelField = levelFields.find(lf => lf.level === formField?.level);
+              console.log('[PreviewRenderer-DEBUG] 属性字段信息:', { attributeFormId, attributeForm, levelFields, currentLevelField, level: formField?.level });
 
-              if (attributeForm && attributeForm.data && attributeForm.data.length > 0) {
-                // 获取字段级别
-                const level = formField?.level || 1;
-                const levelFields = attributeForm.structure?.levelFields || [];
-                const currentLevelField = levelFields.find(lf => lf.level === level);
+              if (attributeForm && attributeForm.data && attributeForm.data.length > 0 && currentLevelField) {
+                // 从属性表数据中提取该级别的所有不重复值
+                const fieldValues = [...new Set(
+                  attributeForm.data.map(d => d[currentLevelField.fieldId]).filter(v => v !== undefined && v !== '')
+                )].sort();
 
-                if (currentLevelField) {
-                  // 从属性表数据中提取该级别的所有不重复值
-                  const fieldValues = [...new Set(
-                    attributeForm.data.map(d => d[currentLevelField.fieldId]).filter(v => v !== undefined && v !== '')
-                  )].sort();
-
-                  console.log('[PreviewRenderer-DEBUG] 属性字段值:', {
-                    fieldName: field?.name,
-                    level,
-                    currentLevelField,
-                    fieldValues
-                  });
+                console.log('[PreviewRenderer-DEBUG] 属性字段值:', {
+                  fieldName: field?.name,
+                  level: formField?.level,
+                  currentLevelField,
+                  fieldValues
+                });
 
                   return (
                     <div key={fieldId} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>

@@ -995,45 +995,38 @@ function DesignerCanvas({
               const field = fields?.find(f => f.id === fieldId);
               const isPrimaryKey = fieldId === primaryKeyId;
               const formField = form?.structure?.fields?.find(ff => ff.fieldId === fieldId);
-              const isAttributeField = field?.source === '属性表' || formField?.fromAttributeTable;
+              const isAttributeField = formField?.isAttributeField === true;
 
               console.log('[Canvas-DEBUG] 渲染字段:', {
                 fieldId,
                 fieldName: field?.name,
                 isPrimaryKey,
                 isAttributeField,
-                fieldSource: field?.source,
                 formField,
-                formFieldKeys: formField ? Object.keys(formField) : [],
-                formFieldAttributeFormId: formField?.attributeFormId,
-                formFieldFromAttributeTable: formField?.fromAttributeTable
+                formFieldIsAttributeField: formField?.isAttributeField
               });
 
               // 如果是属性字段，渲染下拉菜单
               if (isAttributeField) {
-                // 获取属性表
+                // 查找属性表
                 const attributeFormId = formField?.attributeFormId;
                 const attributeForm = forms?.find(f => f.id === attributeFormId);
-                console.log('[Canvas-DEBUG] 属性字段信息:', { attributeFormId, attributeForm });
+                const levelFields = attributeForm?.structure?.levelFields || [];
+                const currentLevelField = levelFields.find(lf => lf.level === formField?.level);
+                console.log('[Canvas-DEBUG] 属性字段信息:', { attributeFormId, attributeForm, levelFields, currentLevelField, level: formField?.level });
 
-                if (attributeForm && attributeForm.data && attributeForm.data.length > 0) {
-                  // 获取字段级别
-                  const level = formField?.level || 1;
-                  const levelFields = attributeForm.structure?.levelFields || [];
-                  const currentLevelField = levelFields.find(lf => lf.level === level);
+                if (attributeForm && attributeForm.data && attributeForm.data.length > 0 && currentLevelField) {
+                  // 从属性表数据中提取该级别的所有不重复值
+                  const fieldValues = [...new Set(
+                    attributeForm.data.map(d => d[currentLevelField.fieldId]).filter(v => v !== undefined && v !== '')
+                  )].sort();
 
-                  if (currentLevelField) {
-                    // 从属性表数据中提取该级别的所有不重复值
-                    const fieldValues = [...new Set(
-                      attributeForm.data.map(d => d[currentLevelField.fieldId]).filter(v => v !== undefined && v !== '')
-                    )].sort();
-
-                    console.log('[Canvas-DEBUG] 属性字段值:', {
-                      fieldName: field?.name,
-                      level,
-                      currentLevelField,
-                      fieldValues
-                    });
+                  console.log('[Canvas-DEBUG] 属性字段值:', {
+                    fieldName: field?.name,
+                    level: currentLevelField.level,
+                    currentLevelField,
+                    fieldValues
+                  });
 
                     return (
                       <div key={fieldId} style={{

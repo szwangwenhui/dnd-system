@@ -1252,17 +1252,17 @@ function PageDesigner({ projectId, roleId, page, onClose, onSave }) {
     selectedFieldIds.forEach(fieldId => {
       const field = fields.find(f => f.id === fieldId);
       if (field) {
-        // 判断是否是属性字段（来自属性表）
+        // 判断是否是属性字段（通过表单结构中的isAttributeField标记）
         const formField = form.structure?.fields?.find(ff => ff.fieldId === fieldId);
+        const isAttribute = formField?.isAttributeField === true;
         console.log('[PageDesigner-DEBUG] 字段详情:', {
           fieldId,
           field,
-          fieldSource: field.source,
           formField,
-          formFieldFromAttributeTable: formField?.fromAttributeTable,
-          isAttribute: field.source === '属性表' || formField?.fromAttributeTable
+          formFieldIsAttributeField: formField?.isAttributeField,
+          isAttribute
         });
-        if (field.source === '属性表' || formField?.fromAttributeTable) {
+        if (isAttribute) {
           attributeFields.push({ fieldId, field, formField });
         } else {
           normalFields.push({ fieldId, field, formField });
