@@ -46,8 +46,14 @@ function useLazyComponent(src, componentGlobalName) {
         console.log('[useLazyComponent] 组件对象:', component);
         console.log('[useLazyComponent] window.DNDComponents:', window.DNDComponents);
         console.log('[useLazyComponent] window.DNDComponents[componentGlobalName]:', window.DNDComponents[componentGlobalName]);
+        console.log('[useLazyComponent] 即将调用 setComponent(component)');
+        console.log('[useLazyComponent] 当前 Component 状态:', Component);
+        console.log('[useLazyComponent] 当前 loading 状态:', loading);
         setComponent(component);
+        console.log('[useLazyComponent] setComponent(component) 已调用');
+        console.log('[useLazyComponent] 即将调用 setLoading(false)');
         setLoading(false);
+        console.log('[useLazyComponent] setLoading(false) 已调用');
       })
       .catch((err) => {
         console.error('[useLazyComponent] 脚本加载失败:', err);
