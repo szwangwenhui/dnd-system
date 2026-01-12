@@ -1995,8 +1995,21 @@ function DesignerCanvas({
 
         {/* 区块渲染 - 包括顶层区块和子区块 */}
         {!hideContentInAreas && blocks.filter(block => !block.parentId).map(block => renderBlock(block))}
-        {/* 渲染子区块（有parentId的区块） */}
-        {!hideContentInAreas && blocks.filter(block => block.parentId).map(block => renderBlock(block))}
+        {/* 渲染子区块（有parentId的区块） - 仅当父区块已生成子区块时显示 */}
+        {!hideContentInAreas && blocks.filter(block => {
+          // 只渲染已生成子区块的父区块的子区块
+          if (!block.parentId) return false;
+          const parentBlock = blocks.find(b => b.id === block.parentId);
+          const shouldRender = parentBlock?.childBlocksGenerated === true;
+          console.log('[Canvas-DEBUG] 子区块渲染检查:', {
+            childBlockId: block.id,
+            parentId: block.parentId,
+            parentBlockExists: !!parentBlock,
+            parentChildBlocksGenerated: parentBlock?.childBlocksGenerated,
+            shouldRender
+          });
+          return shouldRender;
+        }).map(block => renderBlock(block))}
       </div>
     </div>
   );
