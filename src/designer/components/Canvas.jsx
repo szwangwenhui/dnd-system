@@ -1028,39 +1028,72 @@ function DesignerCanvas({
                     fieldValues
                   });
 
-                    return (
-                      <div key={fieldId} style={{
-                        display: 'flex',
-                        flexDirection: 'column',
-                        gap: '4px',
+                  return (
+                    <div key={fieldId} style={{
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: '4px',
+                    }}>
+                      <span style={{
+                        fontSize: '11px',
+                        color: '#6b7280',
                       }}>
-                        <span style={{
-                          fontSize: '11px',
-                          color: '#6b7280',
-                        }}>
-                          {field?.name || `字段${index + 1}`} {isPrimaryKey && '*'}
-                        </span>
-                        <select
-                          style={{
-                            width: '100%',
-                            height: '28px',
-                            padding: '0 8px',
-                            border: '1px solid #d1d5db',
-                            borderRadius: '4px',
-                            fontSize: '12px',
-                            outline: 'none',
-                            color: '#374151',
-                            cursor: 'pointer',
-                          }}
-                        >
-                          <option value="">-- 请选择{field?.name} --</option>
-                          {fieldValues.map((value, idx) => (
-                            <option key={`${fieldId}-${idx}`} value={value}>{value}</option>
-                          ))}
-                        </select>
+                        {field?.name || `字段${index + 1}`} {isPrimaryKey && '*'}
+                      </span>
+                      <select
+                        style={{
+                          width: '100%',
+                          height: '28px',
+                          padding: '0 8px',
+                          border: '1px solid #d1d5db',
+                          borderRadius: '4px',
+                          fontSize: '12px',
+                          outline: 'none',
+                          color: '#374151',
+                          cursor: 'pointer',
+                        }}
+                      >
+                        <option value="">-- 请选择{field?.name} --</option>
+                        {fieldValues.map((value, idx) => (
+                          <option key={`${fieldId}-${idx}`} value={value}>{value}</option>
+                        ))}
+                      </select>
+                    </div>
+                  );
+                } else {
+                  // 属性字段但属性表或数据不存在，显示占位符
+                  return (
+                    <div key={fieldId} style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '8px',
+                    }}>
+                      <span style={{
+                        fontSize: '11px',
+                        color: '#9ca3af',
+                        width: '80px',
+                        whiteSpace: 'nowrap',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis'
+                      }}>
+                        {field?.name || `字段${index + 1}`}{isPrimaryKey ? '*' : ''}
+                      </span>
+                      <div style={{
+                        flex: 1,
+                        height: '24px',
+                        backgroundColor: '#fef3c7',
+                        borderRadius: '4px',
+                        border: '1px solid #fcd34d',
+                        fontSize: '10px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        color: '#92400e'
+                      }}>
+                        属性表无数据
                       </div>
-                    );
-                  }
+                    </div>
+                  );
                 }
               }
 
