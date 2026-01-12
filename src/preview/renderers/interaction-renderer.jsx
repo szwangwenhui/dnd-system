@@ -344,48 +344,75 @@ window.createInteractionRenderer = (props) => {
                   fieldValues
                 });
 
-                  return (
-                    <div key={fieldId} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      <label style={{
-                        width: '80px',
-                        fontSize: labelFontSize,
-                        color: labelColor,
-                        textAlign: 'right',
-                        flexShrink: 0,
+                return (
+                  <div key={fieldId} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <label style={{
+                      width: '80px',
+                      fontSize: labelFontSize,
+                      color: labelColor,
+                      textAlign: 'right',
+                      flexShrink: 0,
+                      fontFamily: contentStyle.fontFamily || 'inherit',
+                    }}>
+                      {field?.name || fieldId}
+                    </label>
+                    <select
+                      value={interactionInputData[block.id]?.[fieldId] || ''}
+                      onChange={(e) => {
+                        setInteractionInputData(prev => ({
+                          ...prev,
+                          [block.id]: {
+                            ...(prev[block.id] || {}),
+                            [fieldId]: e.target.value
+                          }
+                        }));
+                      }}
+                      style={{
+                        flex: 1,
+                        padding: '6px 8px',
+                        border: '1px solid #d1d5db',
+                        borderRadius: '4px',
+                        fontSize: inputFontSize,
                         fontFamily: contentStyle.fontFamily || 'inherit',
-                      }}>
-                        {field?.name || fieldId}
-                      </label>
-                      <select
-                        value={interactionInputData[block.id]?.[fieldId] || ''}
-                        onChange={(e) => {
-                          setInteractionInputData(prev => ({
-                            ...prev,
-                            [block.id]: {
-                              ...(prev[block.id] || {}),
-                              [fieldId]: e.target.value
-                            }
-                          }));
-                        }}
-                        style={{
-                          flex: 1,
-                          padding: '6px 8px',
-                          border: '1px solid #d1d5db',
-                          borderRadius: '4px',
-                          fontSize: inputFontSize,
-                          fontFamily: contentStyle.fontFamily || 'inherit',
-                          outline: 'none',
-                          cursor: 'pointer',
-                        }}
-                      >
-                        <option value="">-- 请选择{field?.name} --</option>
-                        {fieldValues.map((value, idx) => (
-                          <option key={`${fieldId}-${idx}`} value={value}>{value}</option>
-                        ))}
-                      </select>
+                        outline: 'none',
+                        cursor: 'pointer',
+                      }}
+                    >
+                      <option value="">-- 请选择{field?.name} --</option>
+                      {fieldValues.map((value, idx) => (
+                        <option key={`${fieldId}-${idx}`} value={value}>{value}</option>
+                      ))}
+                    </select>
+                  </div>
+                );
+              } else {
+                // 属性字段但属性表或数据不存在，显示占位符
+                return (
+                  <div key={fieldId} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <label style={{
+                      width: '80px',
+                      fontSize: labelFontSize,
+                      color: labelColor,
+                      textAlign: 'right',
+                      flexShrink: 0,
+                      fontFamily: contentStyle.fontFamily || 'inherit',
+                    }}>
+                      {field?.name || fieldId}
+                    </label>
+                    <div style={{
+                      flex: 1,
+                      padding: '6px 8px',
+                      backgroundColor: '#fef3c7',
+                      borderRadius: '4px',
+                      border: '1px solid #fcd34d',
+                      fontSize: inputFontSize,
+                      fontFamily: contentStyle.fontFamily || 'inherit',
+                      color: '#92400e'
+                    }}>
+                      属性表无数据
                     </div>
-                  );
-                }
+                  </div>
+                );
               }
             }
 

@@ -1913,6 +1913,14 @@ function DesignerCanvas({
     });
   };
 
+  // 调试日志：检查子区块数量
+  console.log('[Canvas-DEBUG] 渲染所有blocks:', {
+    totalBlocks: blocks.length,
+    blocksWithParentId: blocks.filter(b => b.parentId).length,
+    blocksWithChildBlocksGenerated: blocks.filter(b => b.childBlocksGenerated).length,
+    allBlocksIds: blocks.map(b => b.id)
+  });
+
   return (
     <div className="flex-1 bg-gray-200 p-4 designer-canvas-container" style={{ overflow: 'hidden' }} onClick={onCanvasClick}>
       {/* 画布尺寸提示 */}
